@@ -13,5 +13,4 @@ public class UserAreaOfLifeUserHabit
     public virtual UserAreaOfLife AreaOfLife { get; set; }
     public Guid HabitId { get; set; }
     public virtual UserHabit Habit { get; set; }
-    public int PriorityOfHabit { get; set; }
 }

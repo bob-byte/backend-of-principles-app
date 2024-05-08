@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SET.DataAccess;
 
@@ -11,9 +12,11 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20240508094244_DeleteExtraModels")]
+    partial class DeleteExtraModels
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,54 @@ namespace SET.DataAccess.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FullDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("TypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("ComplicatedDevPrograms", "dev");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevProgramProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("ChangedInPercent")
+                        .HasColumnType("decimal(11, 8)");
+
+                    b.Property<decimal>("TotalHabitsProgress")
+                        .HasColumnType("decimal(18, 8)");
+
+                    b.Property<decimal>("TotalProgressOfGoals")
+                        .HasColumnType("decimal(18, 8)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DevProgramsProgresses", "dev");
+                });
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
                 {
@@ -113,6 +164,23 @@ namespace SET.DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Statements");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.TypeOfComplicatedDevProgram", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDisabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Name")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TypeOfComplicatedDevProgram");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.User", b =>
@@ -273,6 +341,15 @@ namespace SET.DataAccess.Migrations
                     b.HasIndex("SubHabitsId");
 
                     b.ToTable("UserHabitUserHabit", "hbt");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
+                {
+                    b.HasOne("SET.Shared.Models.TypeOfComplicatedDevProgram", "Type")
+                        .WithMany()
+                        .HasForeignKey("TypeId");
+
+                    b.Navigation("Type");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>

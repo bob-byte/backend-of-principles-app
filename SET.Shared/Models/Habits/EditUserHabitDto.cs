@@ -13,10 +13,7 @@ public class EditUserHabitDto : EntityWithId
     public string? Question { get; set; }
     public StatusOfHabit Status { get; set; }
     public Frequency Frequency { get; set; }
-    public TimeOnly? Remind { get; set; }
     public int Priority { get; set; }
-
-    public int Complexity { get; set; }
     public string ColorName { get; set; }
 
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }

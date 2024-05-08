@@ -26,14 +26,8 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             HasMaxLength(255).
             IsRequired();
 
-        builder.HasIndex(c => c.DevelopmentPlanId);
-
         builder.Property( c => c.MainSlogan ).
             HasMaxLength( 255 );
-
-        builder.HasMany(c => c.Challenges).
-            WithOne(c => c.User).
-            OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany( u => u.AreasOfLife ).
             WithOne( u => u.User ).

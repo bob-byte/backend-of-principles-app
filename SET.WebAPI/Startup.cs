@@ -44,7 +44,6 @@ public class Startup
             options.UseSqlServer( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IGoalService, GoalService>();
         services.AddScoped<IFileSystemService, FileSystemService>();
         services.AddSingleton<IRandomService, RandomService>();
         services.AddSingleton<IProgressOfHabitService, ProgressOfHabitService>();

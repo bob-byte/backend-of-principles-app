@@ -12,9 +12,7 @@ public static class AutoMapperExtension
     {
         var mapperConfig = new MapperConfiguration(cfg =>
         {
-            cfg.CreateMap<GoalDto, Goal>();
             cfg.CreateMap<FileEntityDto, FileEntity>();
-            cfg.CreateMap<ChallengeDto, Challenge>();
             cfg.CreateMap<User, Models.Profile>();
             cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );
             cfg.CreateMap<UserHabit, EditUserHabitDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );

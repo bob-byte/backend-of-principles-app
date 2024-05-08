@@ -25,10 +25,7 @@ public class UserHabit : EntityWithId
     public ICollection<UserHabit>? SubHabits { get; set; }
     public Frequency Frequency { get; set; }
     public Guid FrequencyId { get; set; }
-    public TimeOnly? Remind { get; set; }
     public int Priority { get; set; }
-
     public int Complexity { get; set; }
     public string ColorName { get; set; }
-    public int FollowedCount { get; set; }
 }

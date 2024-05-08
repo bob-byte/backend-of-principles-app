@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SET.DataAccess;
 
@@ -11,9 +12,11 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20240508084041_DeleteGoals")]
+    partial class DeleteGoals
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,72 @@ namespace SET.DataAccess.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FullDescription")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("TypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TypeId");
+
+                    b.ToTable("ComplicatedDevPrograms", "dev");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevProgramProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("ChangedInPercent")
+                        .HasColumnType("decimal(11, 8)");
+
+                    b.Property<decimal>("TotalHabitsProgress")
+                        .HasColumnType("decimal(18, 8)");
+
+                    b.Property<decimal>("TotalProgressOfGoals")
+                        .HasColumnType("decimal(18, 8)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DevProgramsProgresses", "dev");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevelopmentPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DevelopmentPlanType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DevelopmentPlan");
+                });
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
                 {
@@ -115,10 +184,30 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("Statements");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.TypeOfComplicatedDevProgram", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDisabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Name")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TypeOfComplicatedDevProgram");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DevelopmentPlanId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")
@@ -144,7 +233,12 @@ namespace SET.DataAccess.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varbinary");
 
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DevelopmentPlanId");
 
                     b.ToTable("Users");
                 });
@@ -217,6 +311,9 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("FollowedCount")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("FrequencyId")
                         .HasColumnType("uniqueidentifier");
 
@@ -239,6 +336,9 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("ReasonToFollow")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeOnly?>("Remind")
+                        .HasColumnType("time");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
@@ -275,6 +375,15 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("UserHabitUserHabit", "hbt");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
+                {
+                    b.HasOne("SET.Shared.Models.TypeOfComplicatedDevProgram", "Type")
+                        .WithMany()
+                        .HasForeignKey("TypeId");
+
+                    b.Navigation("Type");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
                 {
                     b.HasOne("SET.Shared.Models.User", "User")
@@ -293,6 +402,15 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Habit");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.User", b =>
+                {
+                    b.HasOne("SET.Shared.Models.DevelopmentPlan", "DevelopmentPlan")
+                        .WithMany("UsersWhichUseThis")
+                        .HasForeignKey("DevelopmentPlanId");
+
+                    b.Navigation("DevelopmentPlan");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -357,6 +475,11 @@ namespace SET.DataAccess.Migrations
                         .HasForeignKey("SubHabitsId")
                         .OnDelete(DeleteBehavior.ClientCascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevelopmentPlan", b =>
+                {
+                    b.Navigation("UsersWhichUseThis");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.Frequency", b =>
