@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using System;
 namespace SET.DataAccess;
 
+//TODO: delete this class
 public class FactoryOfAppContext : IDesignTimeDbContextFactory<AppDbContext>
 {
     public AppDbContext CreateDbContext( string[] args )

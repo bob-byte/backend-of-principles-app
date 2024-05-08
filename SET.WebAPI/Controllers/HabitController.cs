@@ -32,7 +32,7 @@ public class HabitController : BaseController
         m_progressOfHabitService = serviceProvider.GetRequiredService<IProgressOfHabitService>();
         m_serviceOfHabit = serviceProvider.GetRequiredService<IServiceOfHabit>();
     }
-
+    
     [HttpGet( template: "inprogress/{userId}" )]
     public Task<IActionResult> InProgressIndex( Guid userId )
     {
@@ -43,7 +43,8 @@ public class HabitController : BaseController
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
                 OrderBy( u => u.Priority ).
-                ToListAsync();
+                ToListAsync().
+                DefaultConfigureAwait();
 
             List<UserHabitInProgressShortDto> resultData = new( listOfHabits.Count );
             for (int numPrc = 0; numPrc < listOfHabits.Count; numPrc++)

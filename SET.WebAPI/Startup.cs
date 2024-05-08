@@ -1,7 +1,5 @@
 using BusinessLogic;
 using SET.DataAccess;
-using SET.DataAccess.Repositories.Implementation;
-using SET.DataAccess.Repositories.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
