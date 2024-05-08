@@ -41,8 +41,6 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
-        modelBuilder.ApplyConfiguration( new ComplicatedDevProgramConfigurations() );
-        modelBuilder.ApplyConfiguration( new DevProgramProgressConfigurations() );
     }
 
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )
