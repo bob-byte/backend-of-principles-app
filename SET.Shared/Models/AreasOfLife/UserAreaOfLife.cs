@@ -13,7 +13,6 @@ public class UserAreaOfLife
     public int Priority { get; set; }
     public string Description { get; set; }
     public string ColorName { get; set; }
-    public double? Rate { get; set; }
     public User User { get; set; }
     public Guid UserId { get; set; }
     public ICollection<UserAreaOfLifeUserHabit> Habits { get; set; }

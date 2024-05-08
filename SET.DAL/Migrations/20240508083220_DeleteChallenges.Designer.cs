@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SET.DataAccess;
 
@@ -11,9 +12,11 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    [Migration("20240508083220_DeleteChallenges")]
+    partial class DeleteChallenges
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,6 +24,35 @@ namespace SET.DataAccess.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("NoticeReminder", b =>
+                {
+                    b.Property<Guid>("NoticesId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("RemindersId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("NoticesId", "RemindersId");
+
+                    b.HasIndex("RemindersId");
+
+                    b.ToTable("NoticeReminder");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.BuiltInFrequency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Frequency")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BuiltInFrequency");
+                });
 
             modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
                 {
@@ -68,6 +100,44 @@ namespace SET.DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DevProgramsProgresses", "dev");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevelopmentPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DevelopmentPlanType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DevelopmentPlan");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.EndRepeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool?>("Never")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("Timer")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EndRepeat");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
@@ -121,6 +191,98 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("Frequencies", "ntc");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.Goal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ActivityArea")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CompletionTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReasonToAchieve")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ShortDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Goals");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.Notice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("From")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("GoalId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsAllDay")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("RepeatId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("To")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoalId");
+
+                    b.HasIndex("RepeatId");
+
+                    b.ToTable("Notice");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.NoticeRepeat", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("BuiltInFrequencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("EndRepeatId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("UserFrequencyId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BuiltInFrequencyId");
+
+                    b.HasIndex("EndRepeatId");
+
+                    b.HasIndex("UserFrequencyId");
+
+                    b.ToTable("NoticeRepeat");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.ProgressOfHabit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -146,6 +308,20 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("ProgressesOfHabits", "hbt");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.Reminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeSpan>("TimeToMainNotice")
+                        .HasColumnType("time");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reminder");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.Statement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -161,6 +337,28 @@ namespace SET.DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Statements");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.TimeZone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("NoticeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Zone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NoticeId")
+                        .IsUnique()
+                        .HasFilter("[NoticeId] IS NOT NULL");
+
+                    b.ToTable("TimeZone");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.TypeOfComplicatedDevProgram", b =>
@@ -186,6 +384,9 @@ namespace SET.DataAccess.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("DevelopmentPlanId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -209,7 +410,12 @@ namespace SET.DataAccess.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varbinary");
 
+                    b.Property<int>("UserType")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DevelopmentPlanId");
 
                     b.ToTable("Users");
                 });
@@ -265,6 +471,23 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("UserAreasOfLifeUserHabits", "arlf");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.UserFrequency", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<TimeSpan>("Frequency")
+                        .HasColumnType("time");
+
+                    b.Property<int>("Interval")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserFrequency");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.UserHabit", b =>
                 {
                     b.Property<Guid>("Id")
@@ -281,6 +504,9 @@ namespace SET.DataAccess.Migrations
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("FollowedCount")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("FrequencyId")
                         .HasColumnType("uniqueidentifier");
@@ -304,6 +530,9 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("ReasonToFollow")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeOnly?>("Remind")
+                        .HasColumnType("time");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
@@ -340,6 +569,21 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("UserHabitUserHabit", "hbt");
                 });
 
+            modelBuilder.Entity("NoticeReminder", b =>
+                {
+                    b.HasOne("SET.Shared.Models.Notice", null)
+                        .WithMany()
+                        .HasForeignKey("NoticesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SET.Shared.Models.Reminder", null)
+                        .WithMany()
+                        .HasForeignKey("RemindersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SET.Shared.Models.ComplicatedDevProgram", b =>
                 {
                     b.HasOne("SET.Shared.Models.TypeOfComplicatedDevProgram", "Type")
@@ -358,6 +602,55 @@ namespace SET.DataAccess.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.Goal", b =>
+                {
+                    b.HasOne("SET.Shared.Models.User", "User")
+                        .WithMany("Goals")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.Notice", b =>
+                {
+                    b.HasOne("SET.Shared.Models.Goal", "Goal")
+                        .WithMany("Plan")
+                        .HasForeignKey("GoalId");
+
+                    b.HasOne("SET.Shared.Models.NoticeRepeat", "Repeat")
+                        .WithMany("Notices")
+                        .HasForeignKey("RepeatId");
+
+                    b.Navigation("Goal");
+
+                    b.Navigation("Repeat");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.NoticeRepeat", b =>
+                {
+                    b.HasOne("SET.Shared.Models.BuiltInFrequency", "BuiltInFrequency")
+                        .WithMany("Repeats")
+                        .HasForeignKey("BuiltInFrequencyId");
+
+                    b.HasOne("SET.Shared.Models.EndRepeat", "EndRepeat")
+                        .WithMany("Repeats")
+                        .HasForeignKey("EndRepeatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SET.Shared.Models.UserFrequency", "UserFrequency")
+                        .WithMany("Repeats")
+                        .HasForeignKey("UserFrequencyId");
+
+                    b.Navigation("BuiltInFrequency");
+
+                    b.Navigation("EndRepeat");
+
+                    b.Navigation("UserFrequency");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.ProgressOfHabit", b =>
                 {
                     b.HasOne("SET.Shared.Models.UserHabit", "Habit")
@@ -367,6 +660,24 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Habit");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.TimeZone", b =>
+                {
+                    b.HasOne("SET.Shared.Models.Notice", "Notice")
+                        .WithOne("TimeZone")
+                        .HasForeignKey("SET.Shared.Models.TimeZone", "NoticeId");
+
+                    b.Navigation("Notice");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.User", b =>
+                {
+                    b.HasOne("SET.Shared.Models.DevelopmentPlan", "DevelopmentPlan")
+                        .WithMany("UsersWhichUseThis")
+                        .HasForeignKey("DevelopmentPlanId");
+
+                    b.Navigation("DevelopmentPlan");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -433,14 +744,46 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.BuiltInFrequency", b =>
+                {
+                    b.Navigation("Repeats");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.DevelopmentPlan", b =>
+                {
+                    b.Navigation("UsersWhichUseThis");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.EndRepeat", b =>
+                {
+                    b.Navigation("Repeats");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.Frequency", b =>
                 {
                     b.Navigation("Habits");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.Goal", b =>
+                {
+                    b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.Notice", b =>
+                {
+                    b.Navigation("TimeZone");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.NoticeRepeat", b =>
+                {
+                    b.Navigation("Notices");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.User", b =>
                 {
                     b.Navigation("AreasOfLife");
+
+                    b.Navigation("Goals");
 
                     b.Navigation("Habits");
                 });
@@ -448,6 +791,11 @@ namespace SET.DataAccess.Migrations
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
                 {
                     b.Navigation("Habits");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.UserFrequency", b =>
+                {
+                    b.Navigation("Repeats");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserHabit", b =>

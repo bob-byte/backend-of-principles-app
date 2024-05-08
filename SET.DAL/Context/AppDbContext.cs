@@ -18,33 +18,10 @@ public class AppDbContext : DbContext
     {
         //do nothing
     }
-
-    public DbSet<Book> Books { get; set; }
-    public DbSet<BuiltInFrequency> BuiltInFrequencies { get; set; }
-
-    public DbSet<Challenge> Challenges { get; set; }
-    public DbSet<Diet> Diets { get; set; }
-    public DbSet<EndRepeat> EndRepeats { get; set; }
-    public DbSet<Goal> Goals { get; set; }
-    public DbSet<Notice> Notices { get; set; }
-    public DbSet<Rd71> Rd71s { get; set; }
-    public DbSet<Reading> Readings { get; set; }
-    public DbSet<Recipe> Recipes { get; set; }
-    public DbSet<Reminder> Reminders { get; set; }
-    public DbSet<NoticeRepeat> NoticeRepeats { get; set; }
-    public DbSet<TimeZone> TimeZones { get; set; }
-    public DbSet<TrainingProgram> TrainingPrograms { get; set; }
     public DbSet<User> Users { get; set; }
-    public DbSet<UserFrequency> UserFrequencies { get; set; }
-    public DbSet<UserTask> UserTasks { get; set; }
-    public DbSet<Workout> Workouts { get; set; }
-    public DbSet<DevelopmentPlan> DevelopmentPlans { get; set; }
     public DbSet<FileEntity> FileEntities { get; set; }
     public DbSet<Statement> Statements { get; set; }
-    public DbSet<RecomendedBook> RecomendedBooks { get; set; }
-    public DbSet<ComplicatedDevProgram> ComplicatedDevPrograms { get; set; }
     //public DbSet<ConfiguredDevProgram> ConfiguredDevPrograms { get; set; }
-    public DbSet<DevProgramProgress> DevProgramProgresses { get; set; }
     public DbSet<UserAreaOfLife> UserAreasOfLife { get; set; }
     public DbSet<UserAreaOfLifeUserHabit> UserAreasOfLifeUserHabits { get; set; }
     public DbSet<UserHabit> UserHabits { get; set; }
@@ -58,8 +35,6 @@ public class AppDbContext : DbContext
         {
             modelBuilder.Entity<Statement>().SeedDefaultStatements();
         }
-
-        modelBuilder.ApplyConfiguration( configuration: new ChallengeConfigurations() );
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
         modelBuilder.ApplyConfiguration( new FrequencyConfigurations() );
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeUserHabitConfigurations() );
