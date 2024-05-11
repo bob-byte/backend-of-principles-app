@@ -10,6 +10,6 @@ namespace BusinessLogic;
 
 public interface IFileSystemService
 {
-    MemoryStream GetFilesById( Guid userId );
-    Task SaveFileAsync( FileEntityDto fileEntityDTO, Guid userId, IFormFile file );
+    MemoryStream GetFilesById( long userId );
+    Task SaveFileAsync( FileEntityDto fileEntityDTO, long userId, IFormFile file );
 }

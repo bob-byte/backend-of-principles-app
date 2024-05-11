@@ -18,6 +18,12 @@ internal class FrequencyConfigurations : IEntityTypeConfiguration<Frequency>
     {
         builder.ToTable( name: nameof(AppDbContext.Frequencies), Schemas.NOTICES );
 
+        builder.HasKey( u => u.Id );
+
+        builder.Property( u => u.Id ).
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_Frequencies" );
+
         builder.Property( f => f.Value ).HasColumnType( "decimal(7, 6)" );
         builder.HasMany( f => f.Habits ).
             WithOne( u => u.Frequency ).

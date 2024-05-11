@@ -8,10 +8,10 @@ namespace SET.Shared.Models;
 
 public class UpdateProgressDto
 {
-    public Guid Id { get; set; }
+    public long Id { get; set; }
     public DateOnly Date { get; set; }
     public int Value { get; set; }
-    public Guid HabitId { get; set; }
+    public long HabitId { get; set; }
     public double PercentageAchieved { get; set; }
 }
 

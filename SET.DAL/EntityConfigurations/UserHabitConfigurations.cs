@@ -13,9 +13,11 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
     {
         builder.ToTable( name: "UserHabits", Schemas.HABITS );
 
+        builder.HasKey( u => u.Id );
+
         builder.Property( u => u.Id ).
-            HasColumnType( DbmsConstants.UNIQUE_IDENTIFIER ).
-            ValueGeneratedOnAdd();
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_UserHabits" );
 
         builder.Property( u => u.Name ).
             HasMaxLength( maxLength: 255 ).

@@ -17,9 +17,11 @@ public class UserAreaOfLifeUserHabitConfigurations : IEntityTypeConfiguration<Us
     {
         builder.ToTable( name: "UserAreasOfLifeUserHabits", Schemas.AREA_OF_LIFE );
 
+        builder.HasKey( u => u.Id );
+
         builder.Property( u => u.Id ).
-            ValueGeneratedOnAdd().
-            HasColumnType(DbmsConstants.UNIQUE_IDENTIFIER);
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_UserAreasOfLifeUserHabit" );
 
 
         builder.HasIndex( u => u.AreaOfLifeId );

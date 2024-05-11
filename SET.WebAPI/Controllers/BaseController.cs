@@ -25,7 +25,7 @@ public class BaseController : ControllerBase
     protected AppDbContext DbContext { get; }
     protected IMapper Mapper { get; }
 
-    protected async Task<IActionResult> CheckUserIdAsync(Guid userId)
+    protected async Task<IActionResult> CheckUserIdAsync(long userId)
     {
         User user = await DbContext.Users.FirstOrDefaultAsync( u => u.Id == userId ).DefaultConfigureAwait();
 
@@ -42,7 +42,7 @@ public class BaseController : ControllerBase
         return actionResult;
     }
 
-    protected async Task<IActionResult> TryCatchAsync( Guid userId, Func<User, Task<IActionResult>> action )
+    protected async Task<IActionResult> TryCatchAsync( long userId, Func<User, Task<IActionResult>> action )
     {
         User? user = await DbContext.Users.FindAsync( userId );
 

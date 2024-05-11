@@ -55,7 +55,7 @@ public class AccountController : BaseController
     }
 
     [HttpDelete("{userId}")]
-    public Task<IActionResult> Delete(Guid userId)
+    public Task<IActionResult> Delete(long userId)
     {
         return TryCatchAsync( userId, async ( user ) =>
         {

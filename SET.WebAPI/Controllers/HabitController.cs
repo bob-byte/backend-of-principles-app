@@ -32,9 +32,9 @@ public class HabitController : BaseController
         m_progressOfHabitService = serviceProvider.GetRequiredService<IProgressOfHabitService>();
         m_serviceOfHabit = serviceProvider.GetRequiredService<IServiceOfHabit>();
     }
-    
+
     [HttpGet( template: "inprogress/{userId}" )]
-    public Task<IActionResult> InProgressIndex( Guid userId )
+    public Task<IActionResult> InProgressIndex( long userId )
     {
         return TryCatchAsync( userId, async ( user ) =>
         {
@@ -68,7 +68,7 @@ public class HabitController : BaseController
     }
 
     [HttpGet(template: "{habitId}")]
-    public Task<IActionResult> Load( Guid habitId )
+    public Task<IActionResult> Load( long habitId )
     {
         return TryCatchAsync( async () =>
         {
@@ -101,7 +101,7 @@ public class HabitController : BaseController
     }
 
     [HttpPut( template: "{habitId}" )]
-    public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto, [FromQuery] Guid userId )
+    public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto, [FromQuery] long userId )
     {
         return TryCatchAsync( userId, async (User user) =>
         {
@@ -126,14 +126,14 @@ public class HabitController : BaseController
 
             foreach (UserHabit userHabit in userHabitList.Where( h => h.Id != habitDto.Id ))
             {
-                int? updatedPriority = habitDto.PrioritizedHabits.Find(h => h.Id == userHabit.Id)?.Priority;
+                int? updatedPriority = habitDto.PrioritizedHabits.Find(h => h.Id == userHabit.Id )?.Priority;
                 if(updatedPriority != null)
                 {
                     userHabit.Priority = (int)updatedPriority;
                 }
             }
 
-            UserHabit? habit = habitDto.Id == Guid.Empty
+            UserHabit? habit = habitDto.Id == 0
                 ? null
                 : userHabitList.Find( h => h.Id == habitDto.Id );
             bool isNewHabit = habit == null;
@@ -141,10 +141,10 @@ public class HabitController : BaseController
             if(isNewHabit)
             {
                 habit = Mapper.Map<UserHabit>( habitDto );
-                if(habit.Id == Guid.Empty)
-                {
-                    habit.Id = Guid.NewGuid();
-                }
+                //if(habit.Id == Guid.Empty)
+                //{
+                //    habit.Id = Guid.NewGuid();
+                //}
 
                 habit.FrequencyId = habitDto.Frequency.Id;
                 habit.UserId = userId;
@@ -201,7 +201,7 @@ public class HabitController : BaseController
     }
 
     [HttpPut("priorities/{userId}")]
-    public Task<IActionResult> ResetPrioritiesAsync( Guid userId, [FromBody] List<UserHabitWithPriority> habits )
+    public Task<IActionResult> ResetPrioritiesAsync( long userId, [FromBody] List<UserHabitWithPriority> habits )
     {
         return TryCatchAsync( userId, async (user) =>
         {
@@ -251,7 +251,7 @@ public class HabitController : BaseController
                     {
                         ProgressOfHabit progress = new()
                         {
-                            Id = Guid.NewGuid(),
+                            //Id = Guid.NewGuid(),
                             Date = date,
                             IsCompleted = false,
                             Habit = habit
@@ -274,11 +274,11 @@ public class HabitController : BaseController
     }
 
     [HttpDelete("{habitId}")]
-    public Task<IActionResult> Delete( Guid habitId )
+    public Task<IActionResult> Delete( long habitId )
     {
         return TryCatchAsync( async () =>
         {
-            UserHabit? habit = habitId == Guid.Empty
+            UserHabit? habit = habitId == 0
                 ? null
                 : await DbContext.UserHabits.FindAsync( habitId );
 

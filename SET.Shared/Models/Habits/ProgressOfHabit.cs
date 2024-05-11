@@ -18,5 +18,5 @@ public class ProgressOfHabit : EntityWithId
     public DateOnly Date { get; set; }
     public int Value { get; set; }
     public UserHabit Habit { get; set; }
-    public Guid HabitId { get; set; }
+    public long HabitId { get; set; }
 }

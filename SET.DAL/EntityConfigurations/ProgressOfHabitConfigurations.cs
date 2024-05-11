@@ -16,5 +16,11 @@ internal class ProgressOfHabitConfigurations : IEntityTypeConfiguration<Progress
     public void Configure( EntityTypeBuilder<ProgressOfHabit> builder )
     {
         builder.ToTable( name: nameof( AppDbContext.ProgressesOfHabits ), Schemas.HABITS );
+
+        builder.HasKey( u => u.Id );
+
+        builder.Property( u => u.Id ).
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_ProgressesOfHabits" );
     }
 }

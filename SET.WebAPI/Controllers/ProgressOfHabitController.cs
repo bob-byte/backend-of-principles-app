@@ -43,7 +43,7 @@ public class ProgressOfHabitController : BaseController
 
             UserHabit? habit = await DbContext.
                 UserHabits.
-                FirstOrDefaultAsync( p => p.Id == progressDto.HabitId );
+                FirstOrDefaultAsync( p => p.Id == progressDto.Id );
 
             if(habit == null)
             {

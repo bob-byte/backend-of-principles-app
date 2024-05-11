@@ -22,11 +22,33 @@ namespace SET.DataAccess.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.HasSequence("SQ_FilesEntity")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_Frequencies")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_ProgressesOfHabits")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_UserAreasOfLife")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_UserAreasOfLifeUserHabit")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_UserHabits")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("SQ_Users")
+                .StartsAt(100L);
+
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_FilesEntity");
 
                     b.Property<string>("FileExtension")
                         .HasColumnType("nvarchar(max)");
@@ -40,21 +62,22 @@ namespace SET.DataAccess.Migrations
                     b.Property<DateTime>("RecordDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long?>("UserId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("FileEntities");
+                    b.ToTable("FileEntities", "flt");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.Frequency", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_Frequencies");
 
                     b.Property<int>("IntervalLengthInDays")
                         .HasColumnType("int");
@@ -75,15 +98,16 @@ namespace SET.DataAccess.Migrations
 
             modelBuilder.Entity("SET.Shared.Models.ProgressOfHabit", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_ProgressesOfHabits");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
-                    b.Property<Guid>("HabitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("HabitId")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
@@ -112,14 +136,15 @@ namespace SET.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Statements");
+                    b.ToTable("Statements", (string)null);
                 });
 
             modelBuilder.Entity("SET.Shared.Models.User", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_Users");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -146,14 +171,15 @@ namespace SET.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserAreasOfLife");
 
                     b.Property<string>("ColorName")
                         .IsRequired()
@@ -169,8 +195,8 @@ namespace SET.DataAccess.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -181,15 +207,16 @@ namespace SET.DataAccess.Migrations
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLifeUserHabit", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserAreasOfLifeUserHabit");
 
-                    b.Property<Guid>("AreaOfLifeId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("AreaOfLifeId")
+                        .HasColumnType("bigint");
 
-                    b.Property<Guid>("HabitId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("HabitId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -202,9 +229,10 @@ namespace SET.DataAccess.Migrations
 
             modelBuilder.Entity("SET.Shared.Models.UserHabit", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserHabits");
 
                     b.Property<string>("ColorName")
                         .IsRequired()
@@ -217,8 +245,8 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("FrequencyId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("FrequencyId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -248,8 +276,8 @@ namespace SET.DataAccess.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -262,11 +290,11 @@ namespace SET.DataAccess.Migrations
 
             modelBuilder.Entity("UserHabitUserHabit", b =>
                 {
-                    b.Property<Guid>("ParentHabitsId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("ParentHabitsId")
+                        .HasColumnType("bigint");
 
-                    b.Property<Guid>("SubHabitsId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<long>("SubHabitsId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("ParentHabitsId", "SubHabitsId");
 

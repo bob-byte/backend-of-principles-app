@@ -41,6 +41,35 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
+        modelBuilder.ApplyConfiguration( new FileEntityConfigurations() );
+
+        modelBuilder.HasSequence<long>( "SQ_UserAreasOfLifeUserHabit" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_UserAreasOfLife" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_FilesEntity" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_Users" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_UserHabits" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_Frequencies" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "SQ_ProgressesOfHabits" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
     }
 
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )

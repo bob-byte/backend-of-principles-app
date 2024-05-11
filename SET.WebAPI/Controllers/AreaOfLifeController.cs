@@ -14,7 +14,7 @@ public class AreaOfLifeController : BaseController
     }
 
     [HttpGet]
-    public Task<IActionResult> Index( [FromQuery] Guid userId )
+    public Task<IActionResult> Index( [FromQuery] long userId )
     {
         return TryCatchAsync( userId, async ( user ) =>
         {

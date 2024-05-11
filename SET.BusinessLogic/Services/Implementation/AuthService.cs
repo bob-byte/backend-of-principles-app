@@ -32,7 +32,7 @@ public class AuthService : IAuthService
 
         var user = new User
         {
-            Id = Guid.NewGuid(),
+            //Id = Guid.NewGuid(),
             Email = userRegister.Email,
             Name = userRegister.Name,
             Gender = userRegister.Gender,

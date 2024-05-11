@@ -25,7 +25,7 @@ public class FileSystemService : IFileSystemService
         m_mapper = mapper;
     }
 
-    public MemoryStream GetFilesById( Guid userId )
+    public MemoryStream GetFilesById( long userId )
     {
         IQueryable<FileEntity> fileEntities = m_context.FileEntities.Where( x => x.UserId == userId );
 
@@ -52,13 +52,13 @@ public class FileSystemService : IFileSystemService
         return memoryStream;
     }
 
-    public async Task SaveFileAsync( FileEntityDto fileEntityDTO, Guid userId, IFormFile file )
+    public async Task SaveFileAsync( FileEntityDto fileEntityDTO, long userId, IFormFile file )
     {
         if (file != null && file.Length > 0)
         {
             FileEntity fileEntity = m_mapper.Map<FileEntity>( fileEntityDTO );
 
-            fileEntity.Id = Guid.NewGuid();
+            //fileEntity.SecondId = Guid.NewGuid();
             fileEntity.UserId = userId;
             fileEntity.RecordDate = DateTime.Now;
             fileEntity.FileExtension = Path.GetExtension( file.FileName );

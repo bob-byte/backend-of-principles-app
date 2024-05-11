@@ -11,9 +11,11 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.Property(c => c.Id).
-            ValueGeneratedOnAdd().
-            HasColumnType(DbmsConstants.UNIQUE_IDENTIFIER);
+        builder.HasKey( u => u.Id );
+
+        builder.Property( u => u.Id ).
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_Users" );
 
         builder.Property(c => c.Name).
             IsRequired();

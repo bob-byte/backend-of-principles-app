@@ -22,7 +22,7 @@ public class ProfileController : BaseController
     }
 
     [HttpGet( template: "{userId}" )]
-    public Task<IActionResult> LoadAsync(Guid userId)
+    public Task<IActionResult> LoadAsync(long userId)
     {
         return TryCatchAsync( userId, ( User user ) =>
         {
@@ -33,7 +33,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "name/{userId}" )]
-    public Task<IActionResult> SaveNameAsync( Guid userId, [FromBody] string name )
+    public Task<IActionResult> SaveNameAsync( long userId, [FromBody] string name )
     {
         return TryCatchAsync( userId, async ( User user ) =>
         {
@@ -47,7 +47,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mainslogan/{userId}" )]
-    public Task<IActionResult> SaveMainSloganAsync( Guid userId, [FromBody] string mainSlogan )
+    public Task<IActionResult> SaveMainSloganAsync( long userId, [FromBody] string mainSlogan )
     {
         return TryCatchAsync( userId, async ( User user ) =>
         {
@@ -61,7 +61,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mission/{userId}" )]
-    public Task<IActionResult> SaveMissionAsync( Guid userId, [FromBody] string mission )
+    public Task<IActionResult> SaveMissionAsync( long userId, [FromBody] string mission )
     {
         return TryCatchAsync( userId, async ( User user ) =>
         {

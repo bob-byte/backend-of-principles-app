@@ -12,9 +12,11 @@ internal class UserAreaOfLifeConfigurations : IEntityTypeConfiguration<UserAreaO
     {
         builder.ToTable( name: "UserAreasOfLife", Schemas.AREA_OF_LIFE);
 
-        builder.Property(u => u.Id).
-            ValueGeneratedOnAdd().
-            HasColumnType(DbmsConstants.UNIQUE_IDENTIFIER);
+        builder.HasKey(a => a.Id);
+
+        builder.Property( u => u.Id ).
+            HasColumnType( "bigint" ).
+            HasDefaultValueSql( "NEXT VALUE FOR SQ_UserAreasOfLife" );
 
         builder.Property(u => u.Name).
             IsRequired();

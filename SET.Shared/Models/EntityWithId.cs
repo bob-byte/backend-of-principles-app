@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 
 namespace SET.Shared.Models
 {
     public class EntityWithId
     {
-        public Guid Id { get; set; }
+        [Key]
+        public long Id { get; set; }
 
         public override bool Equals( object obj )
         {
