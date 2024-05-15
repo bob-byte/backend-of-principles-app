@@ -41,7 +41,7 @@ public class Startup
 #else
             connectionString = Configuration.GetConnectionString( "Azure" );
 #endif
-            options.UseSqlServer( connectionString );
+            options.UseNpgsql( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IFileSystemService, FileSystemService>();

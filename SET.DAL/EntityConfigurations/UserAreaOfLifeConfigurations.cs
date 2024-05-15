@@ -16,7 +16,7 @@ internal class UserAreaOfLifeConfigurations : IEntityTypeConfiguration<UserAreaO
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "NEXT VALUE FOR SQ_UserAreasOfLife" );
+            HasDefaultValueSql( "nextval('sq_userareasoflife')" );
 
         builder.Property(u => u.Name).
             IsRequired();

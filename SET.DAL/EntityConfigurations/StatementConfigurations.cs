@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-using SET.DataAccess;
 using SET.Shared.Models;
 
 using System;
@@ -11,16 +10,16 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace SET.DataAccess.EntityConfigurations;
-internal class FileEntityConfigurations : IEntityTypeConfiguration<FileEntity>
+internal class StatementConfigurations : IEntityTypeConfiguration<Statement>
 {
-    public void Configure( EntityTypeBuilder<FileEntity> builder )
+    public void Configure( EntityTypeBuilder<Statement> builder )
     {
-        builder.ToTable( name: "FileEntities", Schemas.FILE_ENTITY );
+        builder.ToTable( name: nameof( AppDbContext.Statements ), Schemas.STATEMENTS );
 
-        builder.HasKey( a => a.Id );
+        builder.HasKey( u => u.Id );
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_filesentity')" );
+            HasDefaultValueSql( "nextval('sq_statements')" );
     }
 }

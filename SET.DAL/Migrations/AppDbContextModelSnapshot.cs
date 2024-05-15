@@ -2,8 +2,8 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SET.DataAccess;
 
 #nullable disable
@@ -11,36 +11,39 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class ApplicationContextModelSnapshot : ModelSnapshot
+    partial class AppDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "7.0.5")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.HasSequence("SQ_FilesEntity")
+            modelBuilder.HasSequence("sq_filesentity")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_Frequencies")
+            modelBuilder.HasSequence("sq_frequencies")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_ProgressesOfHabits")
+            modelBuilder.HasSequence("sq_progressesofhabits")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_UserAreasOfLife")
+            modelBuilder.HasSequence("sq_statements")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_UserAreasOfLifeUserHabit")
+            modelBuilder.HasSequence("sq_userareasoflife")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_UserHabits")
+            modelBuilder.HasSequence("sq_userareasoflifeuserhabit")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("SQ_Users")
+            modelBuilder.HasSequence("sq_userhabits")
+                .StartsAt(100L);
+
+            modelBuilder.HasSequence("sq_users")
                 .StartsAt(100L);
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
@@ -48,19 +51,19 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_FilesEntity");
+                        .HasDefaultValueSql("nextval('sq_filesentity')");
 
                     b.Property<string>("FileExtension")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("FilePurpose")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("FileType")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("RecordDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<long?>("UserId")
                         .HasColumnType("bigint");
@@ -77,23 +80,23 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_Frequencies");
+                        .HasDefaultValueSql("nextval('sq_frequencies')");
 
                     b.Property<int>("IntervalLengthInDays")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Repeats")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Value")
                         .HasColumnType("decimal(7, 6)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Frequencies", "ntc");
+                    b.ToTable("Frequencies", "hbt");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.ProgressOfHabit", b =>
@@ -101,7 +104,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_ProgressesOfHabits");
+                        .HasDefaultValueSql("nextval('sq_progressesofhabits')");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
@@ -110,10 +113,10 @@ namespace SET.DataAccess.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<bool>("IsCompleted")
-                        .HasColumnType("bit");
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Value")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -124,19 +127,20 @@ namespace SET.DataAccess.Migrations
 
             modelBuilder.Entity("SET.Shared.Models.Statement", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("nextval('sq_statements')");
 
                     b.Property<string>("Author")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Text")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Statements", (string)null);
+                    b.ToTable("Statements", "stm");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.User", b =>
@@ -144,34 +148,34 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_Users");
+                        .HasDefaultValueSql("nextval('sq_users')");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("Gender")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("MainSlogan")
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("Mission")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<byte[]>("Password")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("varbinary");
+                        .HasColumnType("bytea");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users", "usr");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -179,21 +183,21 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserAreasOfLife");
+                        .HasDefaultValueSql("nextval('sq_userareasoflife')");
 
                     b.Property<string>("ColorName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("Priority")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -210,7 +214,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserAreasOfLifeUserHabit");
+                        .HasDefaultValueSql("nextval('sq_userareasoflifeuserhabit')");
 
                     b.Property<long>("AreaOfLifeId")
                         .HasColumnType("bigint");
@@ -232,18 +236,18 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("NEXT VALUE FOR SQ_UserHabits");
+                        .HasDefaultValueSql("nextval('sq_userhabits')");
 
                     b.Property<string>("ColorName")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("character varying(10)");
 
                     b.Property<int>("Complexity")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<long>("FrequencyId")
                         .HasColumnType("bigint");
@@ -251,30 +255,30 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("character varying(255)");
 
                     b.Property<decimal>("PercentageAchieved")
                         .HasColumnType("decimal(17, 16)");
 
                     b.Property<int>("Priority")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0);
 
                     b.Property<string>("Question")
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ReasonToFollow")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("text");
 
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
+                        .HasColumnType("integer")
                         .HasDefaultValue(0);
 
                     b.Property<int>("Type")
-                        .HasColumnType("int");
+                        .HasColumnType("integer");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -383,7 +387,7 @@ namespace SET.DataAccess.Migrations
                     b.HasOne("SET.Shared.Models.UserHabit", null)
                         .WithMany()
                         .HasForeignKey("SubHabitsId")
-                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

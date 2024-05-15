@@ -21,6 +21,6 @@ internal class ProgressOfHabitConfigurations : IEntityTypeConfiguration<Progress
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "NEXT VALUE FOR SQ_ProgressesOfHabits" );
+            HasDefaultValueSql( "nextval('sq_progressesofhabits')" );
     }
 }

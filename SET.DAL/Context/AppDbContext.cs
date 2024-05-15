@@ -42,32 +42,37 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new FileEntityConfigurations() );
+        modelBuilder.ApplyConfiguration( new StatementConfigurations() );
 
-        modelBuilder.HasSequence<long>( "SQ_UserAreasOfLifeUserHabit" ).
+        modelBuilder.HasSequence<long>( "sq_userareasoflifeuserhabit" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_UserAreasOfLife" ).
+        modelBuilder.HasSequence<long>( "sq_userareasoflife" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_FilesEntity" ).
+        modelBuilder.HasSequence<long>( "sq_filesentity" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_Users" ).
+        modelBuilder.HasSequence<long>( "sq_users" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_UserHabits" ).
+        modelBuilder.HasSequence<long>( "sq_userhabits" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_Frequencies" ).
+        modelBuilder.HasSequence<long>( "sq_frequencies" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "SQ_ProgressesOfHabits" ).
+        modelBuilder.HasSequence<long>( "sq_progressesofhabits" ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq_statements" ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }
@@ -77,10 +82,10 @@ public class AppDbContext : DbContext
         base.OnConfiguring( optionsBuilder );
         string connectionString;
 #if DEBUG
-        connectionString = "Server=localhost;Database=SET;User=sa;Password=76FE5bs6rG;TrustServerCertificate=True;Connect Timeout=30;Encrypt=True";
+        connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
 #else
         connectionString = "Server=habitsmentorsetdbserver.database.windows.net;Initial Catalog=SET;Persist Security Info=False;User ID=habitsmentorset;Password=#1927Bodya;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
 #endif
-        optionsBuilder.UseSqlServer(connectionString, builder => builder.UseDateOnlyTimeOnly());
+        optionsBuilder.UseNpgsql( connectionString );
     }
 }

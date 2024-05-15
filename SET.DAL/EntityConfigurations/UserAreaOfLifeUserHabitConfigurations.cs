@@ -21,7 +21,7 @@ public class UserAreaOfLifeUserHabitConfigurations : IEntityTypeConfiguration<Us
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "NEXT VALUE FOR SQ_UserAreasOfLifeUserHabit" );
+            HasDefaultValueSql( "nextval('sq_userareasoflifeuserhabit')" );
 
 
         builder.HasIndex( u => u.AreaOfLifeId );

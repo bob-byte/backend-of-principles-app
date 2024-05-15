@@ -22,7 +22,7 @@ internal class FrequencyConfigurations : IEntityTypeConfiguration<Frequency>
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "NEXT VALUE FOR SQ_Frequencies" );
+            HasDefaultValueSql( "nextval('sq_frequencies')" );
 
         builder.Property( f => f.Value ).HasColumnType( "decimal(7, 6)" );
         builder.HasMany( f => f.Habits ).
