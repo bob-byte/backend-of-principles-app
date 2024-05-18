@@ -6,64 +6,66 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SET.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreateInPostreSql : Migration
+    public partial class InitDatabase : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.EnsureSchema(
-                name: "flt");
+                name: "app");
 
             migrationBuilder.EnsureSchema(
                 name: "hbt");
 
             migrationBuilder.EnsureSchema(
-                name: "stm");
-
-            migrationBuilder.EnsureSchema(
                 name: "arlf");
 
-            migrationBuilder.EnsureSchema(
-                name: "usr");
-
             migrationBuilder.CreateSequence(
-                name: "sq_filesentity",
+                name: "sq__file_entities",
+                schema: "app",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_frequencies",
+                name: "sq__frequencies",
+                schema: "app",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_progressesofhabits",
+                name: "sq__progresses_of_habits",
+                schema: "hbt",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_statements",
+                name: "sq__statements",
+                schema: "app",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_userareasoflife",
+                name: "sq__user_areas_of_life",
+                schema: "arlf",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_userareasoflifeuserhabit",
+                name: "sq__user_areas_of_life_user_habits",
+                schema: "arlf",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_userhabits",
+                name: "sq__user_habits",
+                schema: "hbt",
                 startValue: 100L);
 
             migrationBuilder.CreateSequence(
-                name: "sq_users",
+                name: "sq__users",
+                schema: "app",
                 startValue: 100L);
 
             migrationBuilder.CreateTable(
                 name: "Frequencies",
-                schema: "hbt",
+                schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_frequencies')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('app.sq__frequencies')"),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Value = table.Column<decimal>(type: "numeric(7,6)", nullable: false),
                     Repeats = table.Column<int>(type: "integer", nullable: false),
@@ -76,10 +78,10 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Statements",
-                schema: "stm",
+                schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_statements')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('app.sq__statements')"),
                     Author = table.Column<string>(type: "text", nullable: true),
                     Text = table.Column<string>(type: "text", nullable: true)
                 },
@@ -90,10 +92,10 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.CreateTable(
                 name: "Users",
-                schema: "usr",
+                schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_users')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('app.sq__users')"),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Email = table.Column<string>(type: "text", nullable: false),
                     Password = table.Column<byte[]>(type: "bytea", maxLength: 255, nullable: false),
@@ -108,10 +110,10 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.CreateTable(
                 name: "FileEntities",
-                schema: "flt",
+                schema: "app",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_filesentity')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('app.sq__file_entities')"),
                     FileExtension = table.Column<string>(type: "text", nullable: true),
                     FileType = table.Column<int>(type: "integer", nullable: false),
                     FilePurpose = table.Column<int>(type: "integer", nullable: false),
@@ -124,7 +126,7 @@ namespace SET.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_FileEntities_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "usr",
+                        principalSchema: "app",
                         principalTable: "Users",
                         principalColumn: "Id");
                 });
@@ -134,7 +136,7 @@ namespace SET.DataAccess.Migrations
                 schema: "arlf",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_userareasoflife')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('arlf.sq__user_areas_of_life')"),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Priority = table.Column<int>(type: "integer", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
@@ -147,7 +149,7 @@ namespace SET.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_UserAreasOfLife_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "usr",
+                        principalSchema: "app",
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -158,7 +160,7 @@ namespace SET.DataAccess.Migrations
                 schema: "hbt",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_userhabits')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('hbt.sq__user_habits')"),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
@@ -178,14 +180,14 @@ namespace SET.DataAccess.Migrations
                     table.ForeignKey(
                         name: "FK_UserHabits_Frequencies_FrequencyId",
                         column: x => x.FrequencyId,
-                        principalSchema: "hbt",
+                        principalSchema: "app",
                         principalTable: "Frequencies",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_UserHabits_Users_UserId",
                         column: x => x.UserId,
-                        principalSchema: "usr",
+                        principalSchema: "app",
                         principalTable: "Users",
                         principalColumn: "Id");
                 });
@@ -195,7 +197,7 @@ namespace SET.DataAccess.Migrations
                 schema: "hbt",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_progressesofhabits')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('hbt.sq__progresses_of_habits')"),
                     IsCompleted = table.Column<bool>(type: "boolean", nullable: false),
                     Date = table.Column<DateOnly>(type: "date", nullable: false),
                     Value = table.Column<int>(type: "integer", nullable: false),
@@ -218,7 +220,7 @@ namespace SET.DataAccess.Migrations
                 schema: "arlf",
                 columns: table => new
                 {
-                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('sq_userareasoflifeuserhabit')"),
+                    Id = table.Column<long>(type: "bigint", nullable: false, defaultValueSql: "nextval('arlf.sq__user_areas_of_life_user_habits')"),
                     AreaOfLifeId = table.Column<long>(type: "bigint", nullable: false),
                     HabitId = table.Column<long>(type: "bigint", nullable: false)
                 },
@@ -270,7 +272,7 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_FileEntities_UserId",
-                schema: "flt",
+                schema: "app",
                 table: "FileEntities",
                 column: "UserId");
 
@@ -322,7 +324,7 @@ namespace SET.DataAccess.Migrations
         {
             migrationBuilder.DropTable(
                 name: "FileEntities",
-                schema: "flt");
+                schema: "app");
 
             migrationBuilder.DropTable(
                 name: "ProgressesOfHabits",
@@ -330,7 +332,7 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.DropTable(
                 name: "Statements",
-                schema: "stm");
+                schema: "app");
 
             migrationBuilder.DropTable(
                 name: "UserAreasOfLifeUserHabits",
@@ -350,35 +352,43 @@ namespace SET.DataAccess.Migrations
 
             migrationBuilder.DropTable(
                 name: "Frequencies",
-                schema: "hbt");
+                schema: "app");
 
             migrationBuilder.DropTable(
                 name: "Users",
-                schema: "usr");
+                schema: "app");
 
             migrationBuilder.DropSequence(
-                name: "sq_filesentity");
+                name: "sq__file_entities",
+                schema: "app");
 
             migrationBuilder.DropSequence(
-                name: "sq_frequencies");
+                name: "sq__frequencies",
+                schema: "app");
 
             migrationBuilder.DropSequence(
-                name: "sq_progressesofhabits");
+                name: "sq__progresses_of_habits",
+                schema: "hbt");
 
             migrationBuilder.DropSequence(
-                name: "sq_statements");
+                name: "sq__statements",
+                schema: "app");
 
             migrationBuilder.DropSequence(
-                name: "sq_userareasoflife");
+                name: "sq__user_areas_of_life",
+                schema: "arlf");
 
             migrationBuilder.DropSequence(
-                name: "sq_userareasoflifeuserhabit");
+                name: "sq__user_areas_of_life_user_habits",
+                schema: "arlf");
 
             migrationBuilder.DropSequence(
-                name: "sq_userhabits");
+                name: "sq__user_habits",
+                schema: "hbt");
 
             migrationBuilder.DropSequence(
-                name: "sq_users");
+                name: "sq__users",
+                schema: "app");
         }
     }
 }

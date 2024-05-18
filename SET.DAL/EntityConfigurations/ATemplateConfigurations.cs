@@ -16,7 +16,7 @@ internal class ATemplateConfigurations : IEntityTypeConfiguration<User>
 {
     public void Configure( EntityTypeBuilder<User> builder )
     {
-        builder.ToTable( name: nameof(AppDbContext.Users), Schemas.USERS );
+        builder.ToTable( name: nameof(AppDbContext.Users), Schemas.APP );
 
         builder.Property( u => u.Id ).
             IsRequired();

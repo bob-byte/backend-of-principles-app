@@ -15,12 +15,12 @@ internal class FileEntityConfigurations : IEntityTypeConfiguration<FileEntity>
 {
     public void Configure( EntityTypeBuilder<FileEntity> builder )
     {
-        builder.ToTable( name: "FileEntities", Schemas.FILE_ENTITY );
+        builder.ToTable( name: "FileEntities", Schemas.APP );
 
         builder.HasKey( a => a.Id );
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_filesentity')" );
+            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__file_entities')" );
     }
 }

@@ -14,12 +14,12 @@ internal class StatementConfigurations : IEntityTypeConfiguration<Statement>
 {
     public void Configure( EntityTypeBuilder<Statement> builder )
     {
-        builder.ToTable( name: nameof( AppDbContext.Statements ), Schemas.STATEMENTS );
+        builder.ToTable( name: nameof( AppDbContext.Statements ), Schemas.APP );
 
         builder.HasKey( u => u.Id );
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_statements')" );
+            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__statements')" );
     }
 }

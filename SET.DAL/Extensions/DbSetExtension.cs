@@ -16,14 +16,7 @@ public static class DbSetExtension
     public static void AddOrUpdate<TEntity>(this DbSet<TEntity> entities, TEntity entity)
         where TEntity : EntityWithId
     {
-        bool isAlreadyAdded = entities.Any( e => e.Id == entity.Id );
-        if (isAlreadyAdded)
-        {
-            entities.Update( entity );
-        }
-        else
-        {
-            entities.Add( entity );
-        }
+        //It does exactly AddOrUpdate based on value of entity PrimaryKey (0 means Add, > 0 means Update)
+        entities.Update( entity );
     }
 }

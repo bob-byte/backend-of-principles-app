@@ -7,7 +7,6 @@ using SET.Shared.Extensions;
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,9 +29,9 @@ public class AuthService : IAuthService
             throw new InvalidOperationException( message: $"User with {userRegister.Email} email already exists" );
         }
 
+        //Id will set during execution of SaveChangesAsync
         var user = new User
         {
-            //Id = Guid.NewGuid(),
             Email = userRegister.Email,
             Name = userRegister.Name,
             Gender = userRegister.Gender,
@@ -42,6 +41,7 @@ public class AuthService : IAuthService
         };
 
         await m_context.Users.AddAsync( user ).DefaultConfigureAwait();
+
         await RegisterDefaultAreasOfLifeAsync( user ).DefaultConfigureAwait();
 
         await m_context.SaveChangesAsync().DefaultConfigureAwait();

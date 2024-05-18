@@ -16,13 +16,13 @@ internal class FrequencyConfigurations : IEntityTypeConfiguration<Frequency>
 {
     public void Configure( EntityTypeBuilder<Frequency> builder )
     {
-        builder.ToTable( name: nameof(AppDbContext.Frequencies), Schemas.NOTICES );
+        builder.ToTable( name: nameof(AppDbContext.Frequencies), Schemas.APP );
 
         builder.HasKey( u => u.Id );
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_frequencies')" );
+            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__frequencies')" );
 
         builder.Property( f => f.Value ).HasColumnType( "decimal(7, 6)" );
         builder.HasMany( f => f.Habits ).

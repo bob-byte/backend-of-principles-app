@@ -12,8 +12,8 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240515102903_InitialCreateInPostreSql")]
-    partial class InitialCreateInPostreSql
+    [Migration("20240518085644_InitDatabase")]
+    partial class InitDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,28 +25,28 @@ namespace SET.DataAccess.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.HasSequence("sq_filesentity")
+            modelBuilder.HasSequence("sq__file_entities", "app")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_frequencies")
+            modelBuilder.HasSequence("sq__frequencies", "app")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_progressesofhabits")
+            modelBuilder.HasSequence("sq__progresses_of_habits", "hbt")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_statements")
+            modelBuilder.HasSequence("sq__statements", "app")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_userareasoflife")
+            modelBuilder.HasSequence("sq__user_areas_of_life", "arlf")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_userareasoflifeuserhabit")
+            modelBuilder.HasSequence("sq__user_areas_of_life_user_habits", "arlf")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_userhabits")
+            modelBuilder.HasSequence("sq__user_habits", "hbt")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq_users")
+            modelBuilder.HasSequence("sq__users", "app")
                 .StartsAt(100L);
 
             modelBuilder.Entity("SET.Shared.Models.FileEntity", b =>
@@ -54,7 +54,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_filesentity')");
+                        .HasDefaultValueSql("nextval('app.sq__file_entities')");
 
                     b.Property<string>("FileExtension")
                         .HasColumnType("text");
@@ -75,7 +75,7 @@ namespace SET.DataAccess.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("FileEntities", "flt");
+                    b.ToTable("FileEntities", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.Frequency", b =>
@@ -83,7 +83,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_frequencies')");
+                        .HasDefaultValueSql("nextval('app.sq__frequencies')");
 
                     b.Property<int>("IntervalLengthInDays")
                         .HasColumnType("integer");
@@ -99,7 +99,7 @@ namespace SET.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Frequencies", "hbt");
+                    b.ToTable("Frequencies", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.ProgressOfHabit", b =>
@@ -107,7 +107,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_progressesofhabits')");
+                        .HasDefaultValueSql("nextval('hbt.sq__progresses_of_habits')");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
@@ -133,7 +133,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_statements')");
+                        .HasDefaultValueSql("nextval('app.sq__statements')");
 
                     b.Property<string>("Author")
                         .HasColumnType("text");
@@ -143,7 +143,7 @@ namespace SET.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Statements", "stm");
+                    b.ToTable("Statements", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.User", b =>
@@ -151,7 +151,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_users')");
+                        .HasDefaultValueSql("nextval('app.sq__users')");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -178,7 +178,7 @@ namespace SET.DataAccess.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", "usr");
+                    b.ToTable("Users", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -186,7 +186,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_userareasoflife')");
+                        .HasDefaultValueSql("nextval('arlf.sq__user_areas_of_life')");
 
                     b.Property<string>("ColorName")
                         .IsRequired()
@@ -217,7 +217,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_userareasoflifeuserhabit')");
+                        .HasDefaultValueSql("nextval('arlf.sq__user_areas_of_life_user_habits')");
 
                     b.Property<long>("AreaOfLifeId")
                         .HasColumnType("bigint");
@@ -239,7 +239,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('sq_userhabits')");
+                        .HasDefaultValueSql("nextval('hbt.sq__user_habits')");
 
                     b.Property<string>("ColorName")
                         .IsRequired()

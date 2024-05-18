@@ -17,7 +17,7 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_userhabits')" );
+            HasDefaultValueSql( $"nextval('{Schemas.HABITS}.sq__user_habits')" );
 
         builder.Property( u => u.Name ).
             HasMaxLength( maxLength: 255 ).

@@ -11,13 +11,13 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.ToTable( name: nameof( AppDbContext.Users ), Schemas.USERS );
+        builder.ToTable( name: nameof( AppDbContext.Users ), Schemas.APP );
 
         builder.HasKey( u => u.Id );
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( "nextval('sq_users')" );
+            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__users')" );
 
         builder.Property(c => c.Name).
             IsRequired();
