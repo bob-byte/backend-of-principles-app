@@ -39,7 +39,7 @@ public class Startup
 #if DEBUG
             connectionString = Configuration.GetConnectionString( name: "DefaultConnection" );
 #else
-            connectionString = Configuration.GetConnectionString( "Azure" );
+            connectionString = Configuration.GetConnectionString( "Hostinger" );
 #endif
             options.UseNpgsql( connectionString );
         });
