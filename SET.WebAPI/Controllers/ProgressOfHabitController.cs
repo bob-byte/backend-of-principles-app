@@ -24,7 +24,7 @@ public class ProgressOfHabitController : BaseController
         //do nothing
     }
 
-    [HttpPut( template: "{progressId}" )]
+    [HttpPost( template: "{progressId}" )]
     public Task<IActionResult> UpdateProgress( [FromBody] UpdateProgressDto progressDto )
     {
         return TryCatchAsync( async () =>
@@ -67,8 +67,12 @@ public class ProgressOfHabitController : BaseController
             DbContext.ProgressesOfHabits.AddOrUpdate( progress );
             await DbContext.SaveChangesAsync();
 
-            IActionResult actionResult = Ok();
-            return actionResult;
+            var result = new
+            {
+                HabitId = habit.Id,
+                ProgressId = progress.Id
+            };
+            return Ok( result );
         } );
     }
 }
