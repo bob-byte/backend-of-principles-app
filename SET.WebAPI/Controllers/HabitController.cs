@@ -100,7 +100,7 @@ public class HabitController : BaseController
         } );
     }
 
-    [HttpPut( template: "{habitId}" )]
+    [HttpPost( template: "{habitId}" )]
     public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto, [FromQuery] long userId )
     {
         return TryCatchAsync( userId, async (User user) =>
@@ -194,9 +194,13 @@ public class HabitController : BaseController
             DbContext.Frequencies.AddOrUpdate( habitDto.Frequency );
 
             await DbContext.SaveChangesAsync();
-            IActionResult actionResult = Ok();
+            var result = new
+            {
+                habit.Id,
+                habit.FrequencyId
+            };
 
-            return actionResult;
+            return Ok( result );
         } );
     }
 
