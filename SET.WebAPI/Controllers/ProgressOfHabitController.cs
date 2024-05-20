@@ -63,14 +63,13 @@ public class ProgressOfHabitController : BaseController
             {
                 progress.Value = progressDto.Value;
             }
-
+            
             DbContext.ProgressesOfHabits.AddOrUpdate( progress );
             await DbContext.SaveChangesAsync();
 
             var result = new
             {
-                HabitId = habit.Id,
-                ProgressId = progress.Id
+                progressDto.Id,
             };
             return Ok( result );
         } );
