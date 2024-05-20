@@ -196,7 +196,7 @@ public class HabitController : BaseController
             await DbContext.SaveChangesAsync();
             var result = new
             {
-                HabitId = habit.Id,
+                habit.Id,
                 habit.FrequencyId
             };
 
