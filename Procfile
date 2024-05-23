@@ -1,0 +1,1 @@
+web: dotnet /workspace/SET.WebAPI/bin/Release/net7.0/ubuntu.18.04-x64/SET.WebAPI.dll
