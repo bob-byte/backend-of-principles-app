@@ -85,7 +85,7 @@ public class AppDbContext : DbContext
 #if DEBUG
         connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
 #else
-        connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
+        connectionString = "postgres://postgres:76193db1d01e34743d5c@principles_database:5432/principles";
 #endif
         optionsBuilder.UseNpgsql( connectionString );
     }

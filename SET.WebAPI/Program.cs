@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
-using System;
-
 namespace SET.WebAPI;
 
 public static class Program
