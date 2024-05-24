@@ -34,7 +34,7 @@ public static class Program
         }
         catch(Exception ex)
         {
-            Log.Fatal( ex, "An unhandled exception occurred during bootstrapping" );
+            Log.Information( ex, "An unhandled exception occurred during bootstrapping" );
             return 1;
         }
         finally
