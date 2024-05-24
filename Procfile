@@ -1,1 +1,1 @@
-web: dotnet run /workspace/SET.WebAPI
+web: dotnet SET.WebAPI.dll
