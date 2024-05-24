@@ -25,6 +25,7 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        Log.Information( "Start of Startup.ConfigureServices" );
         services.
             AddControllers().
             AddNewtonsoftJson( options =>
@@ -48,10 +49,13 @@ public class Startup
         services.AddSingleton<IRandomService, RandomService>();
         services.AddSingleton<IProgressOfHabitService, ProgressOfHabitService>();
         services.AddSingleton<IServiceOfHabit, ServiceOfHabit>();
+        Log.Information( "End of Startup.ConfigureServices" );
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        Log.Information( "Start of Startup.Configure" );
+
         app.UseSwagger();
         app.UseSwaggerUI( setupAction: opts => opts.SwaggerEndpoint( url: "/swagger/v1/swagger.json", name: "Principles.WebAPI v1" ) );
         
@@ -70,5 +74,7 @@ public class Startup
         using IServiceScope scope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope();
         using AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbContext.Database.Migrate();
+
+        Log.Information( "End of Startup.Configure" );
     }
 }

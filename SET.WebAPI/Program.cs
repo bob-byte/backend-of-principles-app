@@ -13,6 +13,15 @@ public static class Program
 
         Log.Information( "Starting up!" );
 
+        if (args is null)
+        {
+            Log.Information( string.Join( ", ", args ) );
+        }
+        else
+        {
+            Log.Information( "args parameter is null" );
+        }
+
         try
         {
             CreateHostBuilder( args ).Build().Run();
