@@ -61,7 +61,7 @@ public class Startup
         
         app.UseDeveloperExceptionPage();
 
-        app.UseForwardedHeaders();
+        app.UseHttpsRedirection();
 
         app.UseRouting();
 

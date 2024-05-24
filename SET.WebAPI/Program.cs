@@ -46,17 +46,9 @@ public static class Program
     public static IHostBuilder CreateHostBuilder(string[] args)
     {
         return Host.CreateDefaultBuilder(args)
-                   .UseSerilog((context, services, configuration) =>
-                   {
-                       configuration.
-                           ReadFrom.Configuration( context.Configuration ).
-                           ReadFrom.Services( services ).
-                           Enrich.FromLogContext();
-                   })
                    .ConfigureWebHostDefaults( webBuilder =>
                    {
                        webBuilder.UseStartup<Startup>();
-                       webBuilder.UseUrls( "http://0.0.0.0:80" );
                    } );
     }
 }
