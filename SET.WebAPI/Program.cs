@@ -15,11 +15,11 @@ public static class Program
 
         if (args is null)
         {
-            Log.Information( string.Join( ", ", args ) );
+            Log.Information( "args parameter is null" );
         }
         else
         {
-            Log.Information( "args parameter is null" );
+            Log.Information( string.Join( separator: ", ", args ) );
         }
 
         try
@@ -34,7 +34,7 @@ public static class Program
         }
         catch(Exception ex)
         {
-            Log.Information( ex, "An unhandled exception occurred during bootstrapping" );
+            Log.Fatal( ex, "An unhandled exception occurred during bootstrapping" );
             return 1;
         }
         finally
@@ -53,6 +53,10 @@ public static class Program
                            ReadFrom.Services( services ).
                            Enrich.FromLogContext();
                    })
-                   .ConfigureWebHostDefaults( webBuilder => webBuilder.UseStartup<Startup>() );
+                   .ConfigureWebHostDefaults( webBuilder =>
+                   {
+                       webBuilder.UseStartup<Startup>();
+                       webBuilder.UseUrls( "http://0.0.0.0:80" );
+                   } );
     }
 }
