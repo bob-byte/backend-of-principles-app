@@ -24,7 +24,11 @@ public static class Program
 
         try
         {
-            CreateHostBuilder( args ).Build().Run();
+            IHostBuilder hostBuilder = CreateHostBuilder( args );
+            Log.Information( "hostBuilder successfully created" );
+            IHost host = hostBuilder.Build();
+            Log.Information( "host successfully built" );
+            host.Run();
             Log.Information( "Stoppend cleanly" );
             return 0;
         }
