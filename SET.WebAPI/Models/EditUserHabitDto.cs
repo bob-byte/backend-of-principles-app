@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SET.Shared.Models;
+namespace SET.WebAPI.Models;
 
-public class EditUserHabitDto : EntityWithId
+public class EditUserHabitDto
 {
+    public long Id { get; set; }
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }

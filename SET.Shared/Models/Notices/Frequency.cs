@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace SET.Shared.Models;
 
-public class Frequency : EntityWithId
+public class Frequency
 {
+    public long Id { get; set; }
     public FrequencyType Type { get; set; }
     public double Value { get; set; }
     public int Repeats { get; set; }

@@ -47,22 +47,7 @@ public class HabitController : BaseController
                 ToListAsync().
                 DefaultConfigureAwait();
 
-            List<UserHabitInProgressShortDto> resultData = new( listOfHabits.Count );
-            for (int numPrc = 0; numPrc < listOfHabits.Count; numPrc++)
-            {
-                UserHabit habit = listOfHabits[numPrc];
-
-                UserHabitInProgressShortDto dtoOfHabit = Mapper.Map<UserHabitInProgressShortDto>( habit );
-                List<UserAreaOfLife> areasOfLife = await DbContext.
-                    UserAreasOfLife.
-                    Include( a => a.Habits ).
-                    Where( a => a.Habits.Any( ua => ua.HabitId == habit.Id ) ).
-                    ToListAsync();
-                dtoOfHabit.AreasOfLife = areasOfLife;
-
-                resultData.Add(dtoOfHabit);
-            }
-
+            List<UserHabitInProgressShortDto> resultData = Mapper.Map<List<UserHabitInProgressShortDto>>( listOfHabits );
             OkObjectResult result = Ok( resultData );
             return result;
         } );

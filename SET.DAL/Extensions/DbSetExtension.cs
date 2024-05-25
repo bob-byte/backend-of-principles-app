@@ -10,9 +10,9 @@ namespace SET.DataAccess.Extensions;
 public static class DbSetExtension
 {
     public static void AddOrUpdate<TEntity>( this DbSet<TEntity> entities, TEntity entity )
-        where TEntity : EntityWithId
+        where TEntity : class
     {
-        if(entity.Id == 0)
+        if (entity.PropValue<long>( "Id" ) == 0)
         {
             entities.Add( entity );
         }
@@ -23,9 +23,9 @@ public static class DbSetExtension
     }
 
     public static async ValueTask AddOrUpdateAsync<TEntity>( this DbSet<TEntity> entities, TEntity entity )
-        where TEntity : EntityWithId
+        where TEntity : class
     {
-        if (entity.Id == 0)
+        if (entity.PropValue<long>( "Id" ) == 0)
         {
             await entities.AddAsync( entity ).DefaultConfigureAwait();
         }

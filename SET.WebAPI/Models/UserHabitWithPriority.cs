@@ -1,5 +1,5 @@
 ﻿using System;
-namespace SET.Shared.Models;
+namespace SET.WebAPI.Models;
 
 public class UserHabitWithPriority
 {

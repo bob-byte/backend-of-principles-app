@@ -8,8 +8,9 @@ using System.Threading.Tasks;
 
 namespace SET.Shared.Models;
 
-public class UserHabit : EntityWithId
+public class UserHabit
 {
+    public long Id { get; set; }
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
     public StatusOfHabit Status { get; set; }

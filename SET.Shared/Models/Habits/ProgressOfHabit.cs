@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace SET.Shared.Models;
 
-public class ProgressOfHabit : EntityWithId
+public class ProgressOfHabit
 {
     public const int UNKNOWN = -1;
     public const int NO = 0;
@@ -14,6 +14,7 @@ public class ProgressOfHabit : EntityWithId
     public const int YES_MANUAL = 2;
     public const int SKIP = 3;
 
+    public long Id { get; set; }
     public bool IsCompleted { get; set; }
     public DateOnly Date { get; set; }
     public int Value { get; set; }
