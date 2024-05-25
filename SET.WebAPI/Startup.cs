@@ -11,6 +11,8 @@ using SET.Shared.Services.Implementation;
 using SET.Shared.Services.Interfaces;
 using System;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography.X509Certificates;
 
 namespace SET.WebAPI;
 
@@ -26,12 +28,30 @@ public class Startup
     public void ConfigureServices(IServiceCollection services)
     {
         Log.Information( "Start of Startup.ConfigureServices" );
+
+        services.AddDataProtection();
+
         services.
             AddControllers().
             AddNewtonsoftJson( options =>
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore );
 
-        services.AddJwtAuthentication(() => Configuration[ key: "JwtSettings:Secret" ]);
+        services.AddJwtAuthentication(() =>
+        {
+            string? jwtSecret = Configuration[key: "JwtSettings:Secret"];
+            if (string.IsNullOrWhiteSpace( jwtSecret ))
+            {
+                jwtSecret = Environment.GetEnvironmentVariable( variable: "PRINCIPLES_SERVER_JWT_SECRET" );
+
+                if(string.IsNullOrWhiteSpace( jwtSecret ))
+                {
+                    throw new InvalidOperationException( "JWT secret is not set" );
+                }
+            }
+
+            return jwtSecret!;
+        } );
+
         services.AddSwaggerWithBearer();
         services.AddAutoMapper();
         services.AddDbContext<AppDbContext>(options =>
