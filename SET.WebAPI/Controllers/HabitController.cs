@@ -147,6 +147,7 @@ public class HabitController : BaseController
             }
             else
             {
+                //TODO: use DbContext.UserHabits.Update(habitDto)
                 habit.Name = habitDto.Name;
                 habit.FrequencyId = habitDto.Frequency.Id;
                 habit.Frequency = habitDto.Frequency;
@@ -154,6 +155,7 @@ public class HabitController : BaseController
                 habit.ColorName = habitDto.ColorName;
                 habit.Description = habitDto.Description;
                 habit.Question = habitDto.Question;
+                habit.Complexity = habitDto.Complexity;
                 habit.Type = habitDto.Type;
                 habit.Priority = habitDto.Priority;
             }

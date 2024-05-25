@@ -10,6 +10,7 @@ public class EditUserHabitDto : EntityWithId
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }
     public string? Description { get; set; }
     public string ReasonToFollow { get; set; }
+    public int Complexity { get; set; }
     public string? Question { get; set; }
     public StatusOfHabit Status { get; set; }
     public Frequency Frequency { get; set; }
