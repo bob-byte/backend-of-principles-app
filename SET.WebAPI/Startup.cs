@@ -13,6 +13,8 @@ using System;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.DataProtection;
 using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 
 namespace SET.WebAPI;
 
@@ -29,7 +31,11 @@ public class Startup
     {
         Log.Information( "Start of Startup.ConfigureServices" );
 
-        services.AddDataProtection();
+        services.AddDataProtection().UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
+        {
+            EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+            ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
+        } );
 
         services.
             AddControllers().
@@ -69,6 +75,7 @@ public class Startup
         services.AddSingleton<IRandomService, RandomService>();
         services.AddSingleton<IProgressOfHabitService, ProgressOfHabitService>();
         services.AddSingleton<IServiceOfHabit, ServiceOfHabit>();
+
         Log.Information( "End of Startup.ConfigureServices" );
     }
 
