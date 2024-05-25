@@ -41,7 +41,7 @@ public class Startup
             string? jwtSecret = Configuration[key: "JwtSettings:Secret"];
             if (string.IsNullOrWhiteSpace( jwtSecret ))
             {
-                jwtSecret = Environment.GetEnvironmentVariable( variable: "PRINCIPLES_SERVER_JWT_SECRET" );
+                jwtSecret = Configuration[ "PRINCIPLES_SERVER_JWT_SECRET" ];
 
                 if(string.IsNullOrWhiteSpace( jwtSecret ))
                 {
