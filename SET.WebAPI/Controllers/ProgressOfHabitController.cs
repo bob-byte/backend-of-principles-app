@@ -39,37 +39,29 @@ public class ProgressOfHabitController : BaseController
             {
                 return BadRequest( error: $"Date is {progressDto.Date}" );
             }
+
+            if (progressDto.HabitId == default)
+            {
+                return BadRequest( error: $"HabitId of ${progressDto.GetType().Name} is not set" );
+            }
             #endregion
 
-            UserHabit? habit = await DbContext.
-                UserHabits.
-                FirstOrDefaultAsync( p => p.Id == progressDto.Id );
+            bool isNewProgress = progressDto.Id == 0;
 
-            if(habit == null)
-            {
-                return BadRequest( "Habit of progress is not found" );
-            }
-
-            habit.PercentageAchieved = progressDto.PercentageAchieved;
-
-            ProgressOfHabit progress = await DbContext.
-                ProgressesOfHabits.
-                FirstOrDefaultAsync( p => p.Id == progressDto.Id || (p.HabitId == habit.Id && p.Date == progressDto.Date) );
-            if(progress == null)
-            {
-                progress = Mapper.Map<ProgressOfHabit>( progressDto );
-            }
-            else
+            ProgressOfHabit progress = isNewProgress
+                ? Mapper.Map<ProgressOfHabit>( progressDto )
+                : await DbContext.ProgressesOfHabits.FindAsync( progressDto.Id ).DefaultConfigureAwait();
+            if(!isNewProgress)
             {
                 progress.Value = progressDto.Value;
             }
             
-            DbContext.ProgressesOfHabits.AddOrUpdate( progress );
-            await DbContext.SaveChangesAsync();
+            await DbContext.ProgressesOfHabits.AddOrUpdateAsync( progress ).DefaultConfigureAwait();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
             var result = new
             {
-                progressDto.Id,
+                progressDto.Id
             };
             return Ok( result );
         } );
