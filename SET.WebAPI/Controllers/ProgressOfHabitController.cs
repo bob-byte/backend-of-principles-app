@@ -61,7 +61,7 @@ public class ProgressOfHabitController : BaseController
 
             var result = new
             {
-                progressDto.Id
+                progress.Id
             };
             return Ok( result );
         } );
