@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -122,11 +123,12 @@ public class HabitController : BaseController
             List<UserHabit> userHabitList = await DbContext.
                 UserHabits.
                 Where( h => h.UserId == userId ).
-                ToListAsync();
+                ToListAsync().
+                DefaultConfigureAwait();
 
             foreach (UserHabit userHabit in userHabitList.Where( h => h.Id != habitDto.Id ))
             {
-                int? updatedPriority = habitDto.PrioritizedHabits.Find(h => h.Id == userHabit.Id )?.Priority;
+                int? updatedPriority = habitDto.PrioritizedHabits?.Find(h => h.Id == userHabit.Id )?.Priority;
                 if(updatedPriority != null)
                 {
                     userHabit.Priority = (int)updatedPriority;
@@ -138,21 +140,16 @@ public class HabitController : BaseController
                 : userHabitList.Find( h => h.Id == habitDto.Id );
             bool isNewHabit = habit == null;
 
-            if(isNewHabit)
+            if (isNewHabit)
             {
                 habit = Mapper.Map<UserHabit>( habitDto );
-                //if(habit.Id == Guid.Empty)
-                //{
-                //    habit.Id = Guid.NewGuid();
-                //}
-
-                habit.FrequencyId = habitDto.Frequency.Id;
                 habit.UserId = userId;
             }
             else
             {
                 habit.Name = habitDto.Name;
                 habit.FrequencyId = habitDto.Frequency.Id;
+                habit.Frequency = habitDto.Frequency;
                 habit.ReasonToFollow = habitDto.ReasonToFollow;
                 habit.ColorName = habitDto.ColorName;
                 habit.Description = habitDto.Description;
@@ -161,39 +158,60 @@ public class HabitController : BaseController
                 habit.Priority = habitDto.Priority;
             }
 
-            //TODO: don't use delete to reset areas of habit
-            if (!isNewHabit)
+            if (isNewHabit)
             {
-                await DbContext.UserAreasOfLifeUserHabits.Where( u => u.HabitId == habit.Id ).ExecuteDeleteAsync();
-            }
-
-            if (habitDto.AreasOfLife != null)
-            {
-                List<UserAreaOfLife> currentAreas = habitDto.AreasOfLife.ToList();
-                foreach (UserAreaOfLife area in currentAreas)
+                if (habitDto.AreasOfLife?.Any() == true)
                 {
-                    await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
+                    List<UserAreaOfLife> currentAreas = habitDto.AreasOfLife.ToList();
+                    foreach (UserAreaOfLife area in currentAreas)
                     {
-                        HabitId = habit.Id,
-                        AreaOfLifeId = area.Id
-                    } );
+                        await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
+                        {
+                            Habit = habit,
+                            AreaOfLifeId = area.Id
+                        } );
+                    }
                 }
+            }
+            else
+            {
+                //this block is an analog to MERGE operator which inserts and deletes
+
+                IEnumerable<long> sourceAreasIds = habitDto.AreasOfLife.Select( s => s.Id );
+                UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits.
+                    Where( u => u.HabitId == habit.Id ).
+                    ToArray();
+
+                //delete from database items that were removed by client
+                IEnumerable<UserAreaOfLifeUserHabit> elemsNotFoundInSource = targetAreasAndHabits.Where( s => !sourceAreasIds.Contains( s.AreaOfLifeId ) );
+                DbContext.UserAreasOfLifeUserHabits.RemoveRange( elemsNotFoundInSource );
+
+                //insert new areas of life that was added by client
+                long[] itemsThatNotExistInSource = sourceAreasIds.Where( sourceAreaId => !targetAreasAndHabits.Any( a => a.AreaOfLifeId == sourceAreaId ) ).ToArray();
+                IEnumerable<UserAreaOfLifeUserHabit> toInsertAreas = itemsThatNotExistInSource.Select(
+                    areaId => new UserAreaOfLifeUserHabit()
+                    {
+                        AreaOfLifeId = areaId,
+                        HabitId = habit.Id
+                    }
+                );
+                await DbContext.UserAreasOfLifeUserHabits.AddRangeAsync( toInsertAreas ).DefaultConfigureAwait();
             }
 
             if (isNewHabit)
             {
-                DbContext.UserHabits.AddOrUpdate( habit );
+                await DbContext.UserHabits.AddOrUpdateAsync( habit ).DefaultConfigureAwait();
             }
             else
             {
                 userHabitList.Remove( habit );
             }
 
+            await DbContext.Frequencies.AddOrUpdateAsync( habitDto.Frequency ).DefaultConfigureAwait();
             DbContext.UserHabits.UpdateRange( userHabitList );
 
-            DbContext.Frequencies.AddOrUpdate( habitDto.Frequency );
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            await DbContext.SaveChangesAsync();
             var result = new
             {
                 habit.Id,
@@ -236,47 +254,6 @@ public class HabitController : BaseController
         } );
     }
 
-    [HttpPost]
-    public Task<IActionResult> Post( [FromBody] UserHabit habit, [FromQuery] DateOnly startProgressInterval, [FromQuery] DateOnly endProgressInterval )
-    {
-        return TryCatchAsync( async () =>
-        {
-            bool isCorrectArg = habit != null;
-            IActionResult actionResult;
-
-            if (isCorrectArg)
-            {
-                DbContext.UserHabits.AddOrUpdate( habit );
-
-                habit.Progresses ??= new List<ProgressOfHabit>();
-                for (DateOnly date = startProgressInterval; date > endProgressInterval; date = date.AddDays( value: -1 ))
-                {
-                    if (!habit.Progresses.Any( p => p.Date == date ))
-                    {
-                        ProgressOfHabit progress = new()
-                        {
-                            //Id = Guid.NewGuid(),
-                            Date = date,
-                            IsCompleted = false,
-                            Habit = habit
-                        };
-                        DbContext.ProgressesOfHabits.AddOrUpdate( progress );
-                        habit.Progresses.Add( progress );
-                    }
-                }
-
-                await DbContext.SaveChangesAsync();
-                actionResult = Ok( habit );
-            }
-            else
-            {
-                actionResult = BadRequest( error: "ProgressIsNull" );
-            }
-
-            return actionResult;
-        } );
-    }
-
     [HttpDelete("{habitId}")]
     public Task<IActionResult> Delete( long habitId )
     {
@@ -306,7 +283,4 @@ public class HabitController : BaseController
             return result;
         } );
     }
-
-
-    
 }
