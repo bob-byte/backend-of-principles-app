@@ -13,6 +13,8 @@ public static class JwtAuthenticationExtension
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory)
     {
+        string secret = secretFactory();
+
         services.AddAuthentication(x =>
         {
             x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -24,7 +26,7 @@ public static class JwtAuthenticationExtension
             c.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretFactory())),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secret)),
                 ValidateIssuer = false,
                 ValidateAudience = false,
                 RequireExpirationTime = false,

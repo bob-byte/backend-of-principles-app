@@ -36,7 +36,7 @@ public static class SwaggerExtension
     {
         services.AddSwaggerGen(c =>
         {
-            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Atomic Habits.WebAPI", Version = "v1" });
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "Principles.WebAPI", Version = "v1" });
             c.OperationFilter<SwaggerFileOperationFilter>();
 
             var jwtSecurityScheme = new OpenApiSecurityScheme

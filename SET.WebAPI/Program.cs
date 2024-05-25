@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
-using System;
-
 namespace SET.WebAPI;
 
 public static class Program
@@ -15,9 +13,22 @@ public static class Program
 
         Log.Information( "Starting up!" );
 
+        if (args is null)
+        {
+            Log.Information( "args parameter is null" );
+        }
+        else
+        {
+            Log.Information( string.Join( separator: ", ", args ) );
+        }
+
         try
         {
-            CreateHostBuilder( args ).Build().Run();
+            IHostBuilder hostBuilder = CreateHostBuilder( args );
+            Log.Information( "hostBuilder successfully created" );
+            IHost host = hostBuilder.Build();
+            Log.Information( "host successfully built" );
+            host.Run();
             Log.Information( "Stoppend cleanly" );
             return 0;
         }
@@ -35,13 +46,9 @@ public static class Program
     public static IHostBuilder CreateHostBuilder(string[] args)
     {
         return Host.CreateDefaultBuilder(args)
-                   .UseSerilog((context, services, configuration) =>
+                   .ConfigureWebHostDefaults( webBuilder =>
                    {
-                       configuration.
-                           ReadFrom.Configuration( context.Configuration ).
-                           ReadFrom.Services( services ).
-                           Enrich.FromLogContext();
-                   })
-                   .ConfigureWebHostDefaults( webBuilder => webBuilder.UseStartup<Startup>() );
+                       webBuilder.UseStartup<Startup>();
+                   } );
     }
 }

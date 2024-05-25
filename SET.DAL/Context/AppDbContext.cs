@@ -85,7 +85,7 @@ public class AppDbContext : DbContext
 #if DEBUG
         connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
 #else
-        connectionString = "Server=habitsmentorsetdbserver.database.windows.net;Initial Catalog=SET;Persist Security Info=False;User ID=habitsmentorset;Password=#1927Bodya;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+        connectionString = "Host=principles_database;Port=5432;Username=postgres;Password=76193db1d01e34743d5c;Database=principles;";
 #endif
         optionsBuilder.UseNpgsql( connectionString );
     }

@@ -11,6 +11,10 @@ using SET.Shared.Services.Implementation;
 using SET.Shared.Services.Interfaces;
 using System;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.DataProtection;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
+using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 
 namespace SET.WebAPI;
 
@@ -25,12 +29,35 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        Log.Information( "Start of Startup.ConfigureServices" );
+
+        services.AddDataProtection().UseCryptographicAlgorithms(new AuthenticatedEncryptorConfiguration()
+        {
+            EncryptionAlgorithm = EncryptionAlgorithm.AES_256_CBC,
+            ValidationAlgorithm = ValidationAlgorithm.HMACSHA256
+        } );
+
         services.
             AddControllers().
             AddNewtonsoftJson( options =>
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore );
 
-        services.AddJwtAuthentication(() => Configuration[ key: "JwtSettings:Secret" ]);
+        services.AddJwtAuthentication(() =>
+        {
+            string? jwtSecret = Configuration[key: "JwtSettings:Secret"];
+            if (string.IsNullOrWhiteSpace( jwtSecret ))
+            {
+                jwtSecret = Configuration[ "PRINCIPLES_SERVER_JWT_SECRET" ];
+
+                if(string.IsNullOrWhiteSpace( jwtSecret ))
+                {
+                    throw new InvalidOperationException( "JWT secret is not set" );
+                }
+            }
+
+            return jwtSecret!;
+        } );
+
         services.AddSwaggerWithBearer();
         services.AddAutoMapper();
         services.AddDbContext<AppDbContext>(options =>
@@ -39,7 +66,7 @@ public class Startup
 #if DEBUG
             connectionString = Configuration.GetConnectionString( name: "DefaultConnection" );
 #else
-            connectionString = Configuration.GetConnectionString( "Azure" );
+            connectionString = Configuration.GetConnectionString( "Hostinger" );
 #endif
             options.UseNpgsql( connectionString );
         });
@@ -48,12 +75,16 @@ public class Startup
         services.AddSingleton<IRandomService, RandomService>();
         services.AddSingleton<IProgressOfHabitService, ProgressOfHabitService>();
         services.AddSingleton<IServiceOfHabit, ServiceOfHabit>();
+
+        Log.Information( "End of Startup.ConfigureServices" );
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        Log.Information( "Start of Startup.Configure" );
+
         app.UseSwagger();
-        app.UseSwaggerUI( setupAction: opts => opts.SwaggerEndpoint( url: "/swagger/v1/swagger.json", name: "Atomic Habits.WebAPI v1" ) );
+        app.UseSwaggerUI( setupAction: opts => opts.SwaggerEndpoint( url: "/swagger/v1/swagger.json", name: "Principles.WebAPI v1" ) );
         
         app.UseDeveloperExceptionPage();
 
@@ -70,5 +101,7 @@ public class Startup
         using IServiceScope scope = app.ApplicationServices.GetService<IServiceScopeFactory>().CreateScope();
         using AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbContext.Database.Migrate();
+
+        Log.Information( "End of Startup.Configure" );
     }
 }
