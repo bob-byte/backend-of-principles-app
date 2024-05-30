@@ -3,9 +3,8 @@
 using System;
 namespace SET.WebAPI.Controllers;
 
-[Route( template: "api/logs" )]
+[Route( template: "api/log" )]
 [ApiController]
-[Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class LogController : BaseController
 {
     public LogController( IServiceProvider serviceProvider )
@@ -14,10 +13,10 @@ public class LogController : BaseController
         //do nothing
     }
 
-    [HttpPut( template: "{userId}" )]
-    public Task<IActionResult> LogToServerConsole( long userId, [FromBody] SaveLogRequest saveLogRequest )
+    [HttpPut]
+    public Task<IActionResult> LogToServerConsole( [FromBody] SaveLogRequest saveLogRequest )
     {
-        return TryCatchAsync( userId, ( User user ) =>
+        return TryCatchAsync( () =>
         {
             bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true, out LogEventLevel logEventLevel );
             if (!isParsedLogEventLevel)
@@ -26,10 +25,14 @@ public class LogController : BaseController
             }
 
             string newLine = Environment.NewLine;
-            string convertedLog =
-                $"{newLine}{nameof( SaveLogRequest.LogMessage )} = {saveLogRequest.LogMessage};{newLine}" +
-                $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}" +
-                $"UserId = {userId};{newLine}" +
+            string convertedLog = $"Client log info:{newLine}" +
+                $"{nameof( SaveLogRequest.LogMessage )} = {saveLogRequest.LogMessage};{newLine}" +
+                (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
+                    ? string.Empty
+                    : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
+                (saveLogRequest.UserId is null
+                    ? ""
+                    : $"{nameof( SaveLogRequest.UserId )} = {saveLogRequest.UserId};{newLine}") +
                 $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +
                 $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
                 $"{nameof( SaveLogRequest.DeviceModelName )} = {saveLogRequest.DeviceModelName};{newLine}" +
