@@ -30,8 +30,8 @@ public class LogController : BaseController
                 (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
                     ? string.Empty
                     : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
-                (saveLogRequest.UserId is null
-                    ? ""
+                (saveLogRequest.UserId is 0
+                    ? string.Empty
                     : $"{nameof( SaveLogRequest.UserId )} = {saveLogRequest.UserId};{newLine}") +
                 $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +
                 $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
