@@ -43,6 +43,7 @@ public class HabitController : BaseController
                 Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == userId ).
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
+                Include( u => u.AreasOfLife ).
                 OrderBy( u => u.Priority ).
                 ToListAsync().
                 DefaultConfigureAwait();
