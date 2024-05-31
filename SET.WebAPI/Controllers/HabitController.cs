@@ -60,9 +60,9 @@ public class HabitController : BaseController
         {
             UserHabit habit = await DbContext.UserHabits.
                 Where( u => u.Id == habitId ).
-                Include( u => u.AreasOfLife ).
                 Include( u => u.Frequency ).
-                FirstOrDefaultAsync();
+                FirstOrDefaultAsync().
+                DefaultConfigureAwait();
 
             IActionResult result;
             if(habit == null)
@@ -75,10 +75,11 @@ public class HabitController : BaseController
                     UserAreasOfLife.
                     Include( u => u.Habits ).
                     Where( u => u.Habits.Any( up => up.HabitId == habitId )).
-                    ToListAsync();
+                    ToListAsync().
+                    DefaultConfigureAwait();
 
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
-                resultData.AreasOfLife = areasOfLife;
+                resultData.AreasOfLife = Mapper.Map<List<EditUserHabitDto.UserAreaOfLifeDto>>( areasOfLife );
                 result = Ok( resultData );
             }
 
@@ -132,10 +133,9 @@ public class HabitController : BaseController
             }
             else
             {
-                //TODO: use DbContext.UserHabits.Update(habitDto)
                 habit.Name = habitDto.Name;
                 habit.FrequencyId = habitDto.Frequency.Id;
-                habit.Frequency = habitDto.Frequency;
+                habit.Frequency = Mapper.Map<Frequency>(habitDto.Frequency);
                 habit.ReasonToFollow = habitDto.ReasonToFollow;
                 habit.ColorName = habitDto.ColorName;
                 habit.Description = habitDto.Description;
@@ -149,8 +149,8 @@ public class HabitController : BaseController
             {
                 if (habitDto.AreasOfLife?.Any() == true)
                 {
-                    List<UserAreaOfLife> currentAreas = habitDto.AreasOfLife.ToList();
-                    foreach (UserAreaOfLife area in currentAreas)
+                    List<EditUserHabitDto.UserAreaOfLifeDto> currentAreas = habitDto.AreasOfLife.ToList();
+                    foreach (EditUserHabitDto.UserAreaOfLifeDto area in currentAreas)
                     {
                         await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
                         {
@@ -194,7 +194,7 @@ public class HabitController : BaseController
                 userHabitList.Remove( habit );
             }
 
-            await DbContext.Frequencies.AddOrUpdateAsync( habitDto.Frequency ).DefaultConfigureAwait();
+            await DbContext.Frequencies.AddOrUpdateAsync( habit.Frequency ).DefaultConfigureAwait();
             DbContext.UserHabits.UpdateRange( userHabitList );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();

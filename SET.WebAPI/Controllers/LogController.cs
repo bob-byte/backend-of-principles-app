@@ -13,7 +13,7 @@ public class LogController : BaseController
         //do nothing
     }
 
-    [HttpPut]
+    [HttpPost]
     public Task<IActionResult> LogToServerConsole( [FromBody] SaveLogRequest saveLogRequest )
     {
         return TryCatchAsync( () =>
