@@ -1,14 +1,11 @@
 ﻿using System;
+namespace SET.Shared.Models;
 
-namespace SET.WebAPI.Models;
-
-public record SaveUserNameRequest(string UserName);
-public record SaveUserMainSloganRequest(string MainSlogan);
-public record GetAiAnswerRequest(string Prompt);
-
-public class SaveLogRequest
+public class ClientLog
 {
-    public long UserId { get; set; }
+    public long Id { get; set; }
+    public User? User { get; set; }
+    public long? UserId { get; set; }
     public string DeviceOs { get; set; }
     public string? DeviceModelName { get; set; }
     public string DeviceType { get; set; }

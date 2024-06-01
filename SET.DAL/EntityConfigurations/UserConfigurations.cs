@@ -31,7 +31,7 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             IsRequired();
 
         builder.Property( c => c.MainSlogan ).
-            HasMaxLength( 255 );
+            HasColumnType( DbmsConstants.TEXT_WITH_MAX_LENGTH_TYPE );
 
         builder.HasMany( u => u.AreasOfLife ).
             WithOne( u => u.User ).
@@ -42,6 +42,13 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             WithOne( u => u.User ).
             HasForeignKey(u => u.UserId).
             IsRequired().
+            OnDelete( DeleteBehavior.NoAction );
+
+        //set UserId = NULL if user deletes account
+        builder.HasMany( u => u.ClientLogs ).
+            WithOne( u => u.User ).
+            HasForeignKey( u => u.UserId ).
+            IsRequired( false ).
             OnDelete( DeleteBehavior.NoAction );
     }
 }

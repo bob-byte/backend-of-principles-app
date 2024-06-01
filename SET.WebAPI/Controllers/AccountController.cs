@@ -65,16 +65,17 @@ public class AccountController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.Progresses).
                 Include( u => u.AreasOfLife ).
-                ToListAsync();
+                ToListAsync().
+                DefaultConfigureAwait();
 
             DbContext.ProgressesOfHabits.RemoveRange( habits.SelectMany( u => u.Progresses ) );
             DbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
             DbContext.UserHabits.RemoveRange( habits );
             DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
 
-            await DbContext.SaveChangesAsync();
-            await DbContext.UserAreasOfLife.Where( u => u.UserId == userId ).ExecuteDeleteAsync();
-            await DbContext.Users.Where( u => u.Id == userId ).ExecuteDeleteAsync();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            await DbContext.UserAreasOfLife.Where( u => u.UserId == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
+            await DbContext.Users.Where( u => u.Id == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
 
             return Ok();
         } );
