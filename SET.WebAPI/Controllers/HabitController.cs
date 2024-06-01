@@ -45,6 +45,7 @@ public class HabitController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 OrderBy( u => u.Priority ).
+                AsSplitQuery().
                 ToListAsync().
                 DefaultConfigureAwait();
 
