@@ -1,13 +1,18 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
+using SET.WebAPI.Helpers;
+
 namespace SET.WebAPI;
 
 public static class Program
 {
     public static int Main(string[] args)
     {
+        var kyivTimeZone = TimeZoneInfo.FindSystemTimeZoneById( id: "FLE Standard Time" );
+
         Log.Logger = new LoggerConfiguration()
+            .Enrich.With( new TimeZoneEnricher( kyivTimeZone ) )
             .WriteTo.Console()
             .CreateBootstrapLogger();
 

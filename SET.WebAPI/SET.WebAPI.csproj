@@ -34,5 +34,4 @@
     <ProjectReference Include="..\SET.BusinessLogic\SET.BusinessLogic.csproj" />
     <ProjectReference Include="..\SET.DAL\SET.DataAccess.csproj" />
   </ItemGroup>
-
 </Project>
