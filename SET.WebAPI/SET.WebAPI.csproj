@@ -12,7 +12,7 @@
     <NoWarn>1701;1702;8632</NoWarn>
   </PropertyGroup>
 
-  <PropertyGroup Condition=" '$(RunConfiguration)' == 'https' " />
+  <PropertyGroup Condition=" '$(RunConfiguration)' == 'Api' " />
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="10.1.1" />
     <PackageReference Include="Npgsql" Version="7.0.7" />
