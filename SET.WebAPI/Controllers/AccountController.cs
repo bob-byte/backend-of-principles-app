@@ -33,7 +33,7 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
-            User user = await m_authService.RegisterAsync( registerInfo );
+            User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
 
             RegisterResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
             string jsonResult = JsonSerializer.Serialize( result );
@@ -65,6 +65,7 @@ public class AccountController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.Progresses).
                 Include( u => u.AreasOfLife ).
+                AsSplitQuery().
                 ToListAsync().
                 DefaultConfigureAwait();
 
