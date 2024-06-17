@@ -2,6 +2,7 @@
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SET.Shared.Models;
@@ -33,11 +34,25 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
-            User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
+            bool isEmailAlreadyRegistered = await DbContext.Users.AnyAsync( x => x.Email == registerInfo.Email ).DefaultConfigureAwait();
+            bool isNewEmail = !isEmailAlreadyRegistered;
 
-            RegisterResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
-            string jsonResult = JsonSerializer.Serialize( result );
-            return Ok( jsonResult );
+            IActionResult result;
+
+            if (isNewEmail)
+            {
+                User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
+
+                RegisterResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
+                string jsonResult = JsonSerializer.Serialize( response );
+                result = Ok( jsonResult );
+            }
+            else
+            {
+                result = BadRequest( "UserWithIdenticalEmailAlreadyExists" );
+            }
+
+            return result;
         } );
     }
 
