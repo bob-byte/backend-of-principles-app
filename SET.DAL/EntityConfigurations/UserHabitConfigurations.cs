@@ -23,9 +23,6 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             HasMaxLength( maxLength: 255 ).
             IsRequired();
 
-        builder.Property( u => u.PercentageAchieved )
-            .HasColumnType( typeName: "decimal(17, 16)" );
-
         builder.Property( u => u.ReasonToFollow ).
             IsRequired();
 
@@ -42,10 +39,7 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             HasMaxLength(10).
             IsRequired();
 
-        builder.HasMany<UserHabit>( u => u.ParentHabits ).
-            WithMany( u => u.SubHabits );
-
-        builder.HasMany<ProgressOfHabit>( u => u.Progresses ).
+        builder.HasMany( u => u.Progresses ).
             WithOne( p => p.Habit ).
             IsRequired().
             OnDelete(DeleteBehavior.Cascade);

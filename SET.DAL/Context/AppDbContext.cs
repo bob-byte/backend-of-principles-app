@@ -20,8 +20,6 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
-    public DbSet<FileEntity> FileEntities { get; set; }
-    public DbSet<Statement> Statements { get; set; }
     public DbSet<UserAreaOfLife> UserAreasOfLife { get; set; }
     public DbSet<UserAreaOfLifeUserHabit> UserAreasOfLifeUserHabits { get; set; }
     public DbSet<UserHabit> UserHabits { get; set; }
@@ -31,20 +29,12 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        bool executeSeed = false;
-        if ( executeSeed )
-        {
-            modelBuilder.Entity<Statement>().SeedDefaultStatements();
-        }
-
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
         modelBuilder.ApplyConfiguration( new FrequencyConfigurations() );
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeUserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
-        modelBuilder.ApplyConfiguration( new FileEntityConfigurations() );
-        modelBuilder.ApplyConfiguration( new StatementConfigurations() );
         modelBuilder.ApplyConfiguration( new ClientLogConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
@@ -52,10 +42,6 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life", Schemas.AREA_OF_LIFE ).
-        StartsAt( 100 ).
-        IncrementsBy( 1 );
-
-        modelBuilder.HasSequence<long>( "sq__file_entities", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
@@ -72,10 +58,6 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__progresses_of_habits", Schemas.HABITS ).
-        StartsAt( 100 ).
-        IncrementsBy( 1 );
-
-        modelBuilder.HasSequence<long>( "sq__statements", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
 

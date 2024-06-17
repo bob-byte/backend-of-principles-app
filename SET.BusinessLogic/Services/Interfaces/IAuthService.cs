@@ -8,5 +8,5 @@ public interface IAuthService
 {
     Task<User> RegisterAsync( UserRegister userRegister );
 
-    Task<User> LoginAsync( UserLogin userLogin );
+    Task<(User? foundUser, string? errorMsg)> LoginAsync( UserLogin userLogin );
 }

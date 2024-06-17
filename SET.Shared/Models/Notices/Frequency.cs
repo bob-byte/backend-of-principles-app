@@ -10,7 +10,6 @@ public class Frequency
 {
     public long Id { get; set; }
     public FrequencyType Type { get; set; }
-    public double Value { get; set; }
     public int Repeats { get; set; }
     public int IntervalLengthInDays { get; set; }
     public ICollection<UserHabit> Habits { get; set; }

@@ -20,10 +20,7 @@ public class UserHabit
     public string? Description { get; set; }
     public string ReasonToFollow { get; set; }
     public string? Question { get; set; }
-    public double PercentageAchieved { get; set; }
     public ICollection<ProgressOfHabit> Progresses { get; set; }
-    public ICollection<UserHabit>? ParentHabits { get; set; }
-    public ICollection<UserHabit>? SubHabits { get; set; }
     public Frequency Frequency { get; set; }
     public long FrequencyId { get; set; }
     public int Priority { get; set; }

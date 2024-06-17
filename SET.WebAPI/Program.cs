@@ -18,9 +18,9 @@ public static class Program
 
         Log.Information( "Starting up!" );
 
-        if (args is null)
+        if (args is null || args.Length == 0)
         {
-            Log.Information( "args parameter is null" );
+            Log.Information( "args parameter is null or empty" );
         }
         else
         {

@@ -20,8 +20,5 @@ internal class UserAreaOfLifeConfigurations : IEntityTypeConfiguration<UserAreaO
 
         builder.Property(u => u.Name).
             IsRequired();
-
-        builder.Property(u => u.ColorName).
-            IsRequired();
     }
 }

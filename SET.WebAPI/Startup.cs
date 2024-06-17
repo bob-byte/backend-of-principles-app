@@ -1,18 +1,11 @@
 using BusinessLogic;
-using SET.DataAccess;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using SET.WebAPI.Extensions;
-using SET.Shared.Services.Implementation;
-using SET.Shared.Services.Interfaces;
-using System;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.DataProtection;
-using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
 
@@ -71,10 +64,6 @@ public class Startup
             options.UseNpgsql( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IFileSystemService, FileSystemService>();
-        services.AddSingleton<IRandomService, RandomService>();
-        services.AddSingleton<IProgressOfHabitService, ProgressOfHabitService>();
-        services.AddSingleton<IServiceOfHabit, ServiceOfHabit>();
 
         Log.Information( "End of Startup.ConfigureServices" );
     }

@@ -15,7 +15,6 @@ public class ProgressOfHabit
     public const int SKIP = 3;
 
     public long Id { get; set; }
-    public bool IsCompleted { get; set; }
     public DateOnly Date { get; set; }
     public int Value { get; set; }
     public UserHabit Habit { get; set; }

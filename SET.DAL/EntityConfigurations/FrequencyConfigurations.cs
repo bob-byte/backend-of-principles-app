@@ -24,7 +24,6 @@ internal class FrequencyConfigurations : IEntityTypeConfiguration<Frequency>
             HasColumnType( "bigint" ).
             HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__frequencies')" );
 
-        builder.Property( f => f.Value ).HasColumnType( "decimal(7, 6)" );
         builder.HasMany( f => f.Habits ).
             WithOne( u => u.Frequency ).
             IsRequired().

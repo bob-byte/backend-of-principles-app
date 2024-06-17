@@ -26,7 +26,7 @@ public class AuthService : IAuthService
         bool isEmailAlreadyRegistered = await m_context.Users.AnyAsync( x => x.Email == userRegister.Email ).DefaultConfigureAwait();
         if (isEmailAlreadyRegistered)
         {
-            throw new InvalidOperationException( message: $"User with {userRegister.Email} email already exists" );
+            throw new InvalidOperationException( message: "UserWithIdenticalEmailAlreadyExists" );
         }
 
         //Id will set during execution of SaveChangesAsync
@@ -49,82 +49,70 @@ public class AuthService : IAuthService
         return user;
     }
 
-    public async Task<User> LoginAsync( UserLogin userLogin )
+    public async Task<(User? foundUser, string? errorMsg)> LoginAsync( UserLogin userLogin )
     {
-        User user = await m_context.Users.FirstOrDefaultAsync( u => u.Email == userLogin.Email ).DefaultConfigureAwait();
+        User? user = await m_context.Users.FirstOrDefaultAsync( u => u.Email == userLogin.Email ).DefaultConfigureAwait();
+        (User? user, string? errorMsg) result;
+        if (user is null)
+        {
+            result = (null, "EmailIsIncorrect");
+        }
+        else
+        {
+            bool isCorrectPassword = PasswordHelper.VerifyPasswordHash( userLogin.Password, user.Password );
+            result = isCorrectPassword ? (user, null) : (user, "PasswordIsIncorrect" );
+        }
 
-        return user is not null && PasswordHelper.VerifyPasswordHash( userLogin.Password, user.Password )
-            ? user
-            : throw new InvalidOperationException( message: "Email or password is incorrect" );
+        return result;
     }
 
     private Task RegisterDefaultAreasOfLifeAsync( User user )
     {
-        //TODO: change colors when it is needed
         List<UserAreaOfLife> areasOfLife = new()
         {
             new()
             {
                 Name = "Spirituality",
-                Description = "SpiritualityAreaOfLifeDescription",
-                Priority = 1,
-                ColorName = "#5e93ff",
                 User = user
             },
             new()
             {
                 Name = "Character",
-                Description = "CharacterAreaOfLifeDescription",
-                Priority = 2,
-                ColorName = "#e0123a",
                 User = user
             },
             new()
             {
                 Name = "Mentality",
-                Description = "MentalityAreaOfLifeDescription",
-                Priority = 3,
-                ColorName = "#ED2939",
                 User = user
             },
             new()
             {
                 Name = "Health",
-                Description = "HealthAreaOfLifeDescription",
-                Priority = 4,
-                ColorName = "#36ca3a",
                 User = user
             },
             new()
             {
                 Name = "Career",
-                Description = "CareerAreaOfLifeDescription",
-                Priority = user.Gender is Gender.Man ? 5 : 7,
-                ColorName = "#749fff",
+                User = user
+            },
+            new()
+            {
+                Name = "HouseholdChores",
                 User = user
             },
             new()
             {
                 Name = "Family",
-                Description = "FemilyAreaOfLifeDescription",
-                Priority = user.Gender is Gender.Man ? 6 : 5,
-                ColorName = "#c09fff",
                 User = user
             },
             new()
             {
                 Name = "Relationships",
-                Description = "RelationshipsAreaOfLifeDescription",
-                Priority = user.Gender is Gender.Man ? 7 : 6,
-                ColorName = "#ffb53e",
                 User = user
             },
             new()
             {
                 Name = "Sociality",
-                Description = "SocialityAreaOfLifeDescription",
-                Priority = 8,
-                ColorName = "#ff72e9",
                 User = user
             }
         };

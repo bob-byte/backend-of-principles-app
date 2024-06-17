@@ -24,14 +24,10 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class HabitController : BaseController
 {
-    private readonly IProgressOfHabitService m_progressOfHabitService;
-    private readonly IServiceOfHabit m_serviceOfHabit;
-
     public HabitController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
-        m_progressOfHabitService = serviceProvider.GetRequiredService<IProgressOfHabitService>();
-        m_serviceOfHabit = serviceProvider.GetRequiredService<IServiceOfHabit>();
+        //do nothing
     }
 
     [HttpGet( template: "inprogress/{userId}" )]

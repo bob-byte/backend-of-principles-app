@@ -12,7 +12,6 @@ public static class AutoMapperExtension
     {
         var mapperConfig = new MapperConfiguration(cfg =>
         {
-            cfg.CreateMap<FileEntityDto, FileEntity>();
             cfg.CreateMap<User, Models.Profile>();
             cfg.CreateMap<UserAreaOfLifeUserHabit, DtoWithId>().ForMember( destinationMember: dest => dest.Id, memberOptions: opt => opt.MapFrom( src => src.AreaOfLifeId ) );
             cfg.CreateMap<SaveLogRequest, ClientLog>();

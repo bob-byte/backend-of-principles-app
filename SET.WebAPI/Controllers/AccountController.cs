@@ -46,11 +46,23 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
-            User user = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
+            (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
 
-            LoginResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
-            string jsonResult = JsonSerializer.Serialize( result );
-            return Ok( jsonResult );
+            IActionResult actionResult;
+            if (loginResult.errorMsg is null)
+            {
+                User user = loginResult.user;
+
+                LoginResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
+                string jsonResult = JsonSerializer.Serialize( result );
+                actionResult = Ok( jsonResult );
+            }
+            else
+            {
+                actionResult = BadRequest( loginResult.errorMsg );
+            }
+
+            return actionResult;
         } );
     }
 
