@@ -1,4 +1,8 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Configuration;
+
+using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -51,6 +55,28 @@ public static class PasswordHelper
         byte[] computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
         return computedHash.SequenceEqual(storedHash);
+    }
+
+    public static string DecryptNewPassword( string cipherText, string firstKey, string secondKey )
+    {
+        byte[] Key = Encoding.UTF8.GetBytes( firstKey );
+
+        byte[] IV = Encoding.UTF8.GetBytes( secondKey );
+
+        using (Aes aesAlg = Aes.Create())
+        {
+            aesAlg.Key = Key;
+            aesAlg.IV = IV;
+
+            ICryptoTransform decryptor = aesAlg.CreateDecryptor( aesAlg.Key, aesAlg.IV );
+
+            using (MemoryStream msDecrypt = new MemoryStream( Convert.FromBase64String( cipherText ) ))
+            using (CryptoStream csDecrypt = new CryptoStream( msDecrypt, decryptor, CryptoStreamMode.Read ))
+            using (StreamReader srDecrypt = new StreamReader( csDecrypt ))
+            {
+                return srDecrypt.ReadToEnd();
+            }
+        }
     }
 }
 

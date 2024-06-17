@@ -8,8 +8,13 @@ using SET.Shared.Models;
 using SET.Shared.Models.Auth;
 
 using System;
+using System.Net.Mail;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using SET.Shared.Helpers;
+using Microsoft.Extensions.Configuration;
 
 namespace SET.WebAPI.Controllers;
 
@@ -19,12 +24,14 @@ public class AccountController : BaseController
 {
     private readonly IAuthService m_authService;
     private readonly IJwtTokenService m_jwtTokenService;
+    private readonly IConfiguration m_configuration;
 
     public AccountController(IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
         m_authService = serviceProvider.GetService<IAuthService>();
         m_jwtTokenService = serviceProvider.GetService<IJwtTokenService>();
+        m_configuration = serviceProvider.GetService<IConfiguration>();
     }
 
     [AllowAnonymous]
@@ -79,5 +86,59 @@ public class AccountController : BaseController
 
             return Ok();
         } );
+    }
+
+    [HttpPost( "email" )]
+    public async Task<ActionResult<string>> SendEmail(string userEmail)
+    {
+        string fromEmail = "app@principles.top";
+        string fromPassword = "pN8g^x47_N";
+        string code = GenerateRandomCode();
+
+        var smtpClient = new SmtpClient( "smtp.hostinger.com" )
+        {
+            Port = 587,
+            Credentials = new NetworkCredential( fromEmail, fromPassword ),
+            EnableSsl = true
+        };
+
+        var mailMessage = new MailMessage
+        {
+            From = new MailAddress( fromEmail ),
+            Subject = "Your 6-digit code",
+            Body = $"Your code is: {code}",
+            IsBodyHtml = false,
+        };
+        mailMessage.To.Add( userEmail );
+
+        await smtpClient.SendMailAsync( mailMessage );
+
+        return Ok(code);
+    }
+    [HttpPost( "password" )]
+    public async Task<IActionResult> ChangePassword( [FromBody] UserNewPassword request )
+    {
+        User user = await DbContext.Users.FirstOrDefaultAsync( u => u.Email == request.Email );
+        if (user == null)
+        {
+            return BadRequest( "UserIsNotFound" );
+        }
+        string firstKey = m_configuration["EncryptionSettings:FirstKey"];
+        string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+
+        string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey);
+
+        user.Password = PasswordHelper.CreatePasswordHash(decryptedPassword);
+
+        await DbContext.SaveChangesAsync();
+
+        return Ok();
+    }
+
+    private string GenerateRandomCode()
+    {
+        Random random = new Random();
+        int code = random.Next( 100000, 999999 );
+        return code.ToString();
     }
 }
