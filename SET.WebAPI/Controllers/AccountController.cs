@@ -18,7 +18,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace SET.WebAPI.Controllers;
 
-[Route("api/account")]
+[Route( "api/account" )]
 [ApiController]
 public class AccountController : BaseController
 {
@@ -26,8 +26,8 @@ public class AccountController : BaseController
     private readonly IJwtTokenService m_jwtTokenService;
     private readonly IConfiguration m_configuration;
 
-    public AccountController(IServiceProvider serviceProvider)
-        : base(serviceProvider)
+    public AccountController( IServiceProvider serviceProvider )
+        : base( serviceProvider )
     {
         m_authService = serviceProvider.GetService<IAuthService>();
         m_jwtTokenService = serviceProvider.GetService<IJwtTokenService>();
@@ -36,7 +36,7 @@ public class AccountController : BaseController
 
     [AllowAnonymous]
     [HttpPost( "authentication" )]
-    public Task<IActionResult> Register([FromBody] UserRegister registerInfo)
+    public Task<IActionResult> Register( [FromBody] UserRegister registerInfo )
     {
         return TryCatchAsync( async () =>
         {
@@ -49,7 +49,7 @@ public class AccountController : BaseController
     }
 
     [HttpPost( "authorization" )]
-    public Task<IActionResult> Login([FromBody] UserLogin userlogin)
+    public Task<IActionResult> Login( [FromBody] UserLogin userlogin )
     {
         return TryCatchAsync( async () =>
         {
@@ -61,16 +61,16 @@ public class AccountController : BaseController
         } );
     }
 
-    [HttpDelete("{userId}")]
-    public Task<IActionResult> Delete(long userId)
+    [HttpDelete( "{userId}" )]
+    public Task<IActionResult> Delete( long userId )
     {
         return TryCatchAsync( userId, async ( user ) =>
         {
             List<UserHabit> habits = await DbContext.
                 UserHabits.
-                Where(u => u.UserId == userId).
+                Where( u => u.UserId == userId ).
                 Include( u => u.Frequency ).
-                Include( u => u.Progresses).
+                Include( u => u.Progresses ).
                 Include( u => u.AreasOfLife ).
                 ToListAsync().
                 DefaultConfigureAwait();
@@ -88,57 +88,74 @@ public class AccountController : BaseController
         } );
     }
 
-    [HttpPost( "email" )]
-    public async Task<ActionResult<string>> SendEmail(string userEmail)
+    //It generates random code and sends it to email specified in a "request" parameter
+    [HttpGet( "code" )]
+    public async Task<ActionResult<string>> GenerateCode( [FromBody] GenerateCodeRequest request )
     {
+        #region Check parameter
+        if (request is null || string.IsNullOrWhiteSpace( request.EmailWhereSendCode ))
+        {
+            return BadRequest( "RequestOrEmailIsNullOrWhiteSpace" );
+        }
+        #endregion
+
         string fromEmail = "app@principles.top";
         string fromPassword = "pN8g^x47_N";
-        string code = GenerateRandomCode();
 
-        var smtpClient = new SmtpClient( "smtp.hostinger.com" )
+        SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
         {
             Port = 587,
             Credentials = new NetworkCredential( fromEmail, fromPassword ),
             EnableSsl = true
         };
 
-        var mailMessage = new MailMessage
+        int code = GenerateRandomCode();
+        MailMessage mailMessage = new()
         {
             From = new MailAddress( fromEmail ),
             Subject = "Your 6-digit code",
             Body = $"Your code is: {code}",
             IsBodyHtml = false,
         };
-        mailMessage.To.Add( userEmail );
+        mailMessage.To.Add( request.EmailWhereSendCode );
 
-        await smtpClient.SendMailAsync( mailMessage );
+        await smtpClient.SendMailAsync( mailMessage ).DefaultConfigureAwait();
 
-        return Ok(code);
+        GenerateCodeResponse response = new( code );
+        return Ok( response );
     }
-    [HttpPost( "password" )]
-    public async Task<IActionResult> ChangePassword( [FromBody] UserNewPassword request )
+
+    [HttpPut( "password" )]
+    public Task<IActionResult> ChangePassword( [FromBody] UserNewPassword request )
     {
-        User user = await DbContext.Users.FirstOrDefaultAsync( u => u.Email == request.Email );
-        if (user == null)
+        return TryCatchAsync( async () =>
         {
-            return BadRequest( "UserIsNotFound" );
-        }
-        string firstKey = m_configuration["EncryptionSettings:FirstKey"];
-        string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+            User user = await DbContext.
+                Users.
+                FirstOrDefaultAsync( u => u.Email == request.Email ).
+                DefaultConfigureAwait();
 
-        string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey);
+            if (user == null)
+            {
+                return BadRequest( "UserIsNotFound" );
+            }
 
-        user.Password = PasswordHelper.CreatePasswordHash(decryptedPassword);
+            string firstKey = m_configuration["EncryptionSettings:FirstKey"];
+            string secondKey = m_configuration["EncryptionSettings:SecondKey"];
 
-        await DbContext.SaveChangesAsync();
+            string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
 
-        return Ok();
+            user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+            return Ok();
+        } );
     }
 
-    private string GenerateRandomCode()
+    private static int GenerateRandomCode()
     {
-        Random random = new Random();
-        int code = random.Next( 100000, 999999 );
-        return code.ToString();
+        Random random = new();
+        int result = random.Next( minValue: 100000, maxValue: 999999 );
+        return result;
     }
 }
