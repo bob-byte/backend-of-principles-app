@@ -22,6 +22,8 @@ namespace SET.WebAPI.Controllers;
 [ApiController]
 public class AccountController : BaseController
 {
+    private const int MIN_PASSWORD_LENGTH = 8;
+
     private readonly IAuthService m_authService;
     private readonly IJwtTokenService m_jwtTokenService;
     private readonly IConfiguration m_configuration;
@@ -40,11 +42,44 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
-            User user = await m_authService.RegisterAsync( registerInfo );
+            #region Check parameter
+            if(registerInfo is null)
+            {
+                return BadRequest( "RegisterInfo is null" );
+            }
+            #endregion
 
-            RegisterResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
-            string jsonResult = JsonSerializer.Serialize( result );
-            return Ok( jsonResult );
+            IActionResult? result = null;
+
+            string firstKey = m_configuration["EncryptionSettings:FirstKey"];
+            string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+
+            try
+            {
+                string decryptedPassword = PasswordHelper.DecryptNewPassword( registerInfo.Password, firstKey, secondKey );
+                if (decryptedPassword?.Length >= MIN_PASSWORD_LENGTH)
+                {
+                    registerInfo.Password = decryptedPassword;
+                }
+                else
+                {
+                    result = BadRequest( "PasswordLengthIsLessThanEight" );
+                }
+            }
+            catch
+            {
+                result = BadRequest( "InvalidPassword" );
+            }
+
+            if(result is null)
+            {
+                User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
+
+                RegisterResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
+                result = Ok( response );
+            }
+
+            return result;
         } );
     }
 
@@ -56,8 +91,7 @@ public class AccountController : BaseController
             User user = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
 
             LoginResponse result = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
-            string jsonResult = JsonSerializer.Serialize( result );
-            return Ok( jsonResult );
+            return Ok( result );
         } );
     }
 
@@ -90,39 +124,52 @@ public class AccountController : BaseController
 
     //It generates random code and sends it to email specified in a "request" parameter
     [HttpGet( "code" )]
-    public async Task<ActionResult<string>> GenerateCode( [FromBody] GenerateCodeRequest request )
+    public Task<IActionResult> GenerateCode( [FromQuery] string emailWhereSendCode )
     {
-        #region Check parameter
-        if (request is null || string.IsNullOrWhiteSpace( request.EmailWhereSendCode ))
+        return TryCatchAsync( async () =>
         {
-            return BadRequest( "RequestOrEmailIsNullOrWhiteSpace" );
-        }
-        #endregion
+            #region Check parameter
+            User user = await DbContext.
+                Users.
+                FirstOrDefaultAsync( u => u.Email == emailWhereSendCode ).
+                DefaultConfigureAwait();
 
-        string fromEmail = "app@principles.top";
-        string fromPassword = "pN8g^x47_N";
+            if (user is null)
+            {
+                return BadRequest( "UserIsNotFound" );
+            }
 
-        SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
-        {
-            Port = 587,
-            Credentials = new NetworkCredential( fromEmail, fromPassword ),
-            EnableSsl = true
-        };
+            if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
+            {
+                return BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
+            }
+            #endregion
 
-        int code = GenerateRandomCode();
-        MailMessage mailMessage = new()
-        {
-            From = new MailAddress( fromEmail ),
-            Subject = "Your 6-digit code",
-            Body = $"Your code is: {code}",
-            IsBodyHtml = false,
-        };
-        mailMessage.To.Add( request.EmailWhereSendCode );
+            string fromEmail = "app@principles.top";
+            string fromPassword = "pN8g^x47_N";
 
-        await smtpClient.SendMailAsync( mailMessage ).DefaultConfigureAwait();
+            SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
+            {
+                Port = 587,
+                Credentials = new NetworkCredential( fromEmail, fromPassword ),
+                EnableSsl = true
+            };
 
-        GenerateCodeResponse response = new( code );
-        return Ok( response );
+            int code = GenerateRandomCode();
+            MailMessage mailMessage = new()
+            {
+                From = new MailAddress( fromEmail, displayName: "Principles app" ),
+                Subject = "Your 6-digit code",
+                Body = $"Your code is: {code}.",
+                IsBodyHtml = false,
+            };
+            mailMessage.To.Add( emailWhereSendCode );
+
+            await smtpClient.SendMailAsync( mailMessage ).DefaultConfigureAwait();
+
+            GenerateCodeResponse response = new( code );
+            return Ok( response );
+        } );
     }
 
     [HttpPut( "password" )]
@@ -130,25 +177,64 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
+            #region Check parameter
+            if(request is null)
+            {
+                return BadRequest( error: "Request is null" );
+            }
+
+            if (string.IsNullOrWhiteSpace( request.Email ))
+            {
+                return BadRequest( "EmailIsNullOrWhiteSpace" );
+            }
+
+            if (string.IsNullOrWhiteSpace( request.NewPassword ))
+            {
+                return BadRequest( "PasswordIsNullOrWhiteSpace" );
+            }
+            #endregion
             User user = await DbContext.
                 Users.
                 FirstOrDefaultAsync( u => u.Email == request.Email ).
                 DefaultConfigureAwait();
 
-            if (user == null)
+            IActionResult? result = null;
+
+            if (user is null)
             {
-                return BadRequest( "UserIsNotFound" );
+                result = BadRequest( error: "UserIsNotFound" );
+            }
+            else
+            {
+                string firstKey = m_configuration["EncryptionSettings:FirstKey"];
+                string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+
+                try
+                {
+                    string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
+
+                    if (decryptedPassword.Length >= MIN_PASSWORD_LENGTH)
+                    {
+                        user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
+                    }
+                    else
+                    {
+                        result = BadRequest( "PasswordLengthIsLessThanEight" );
+                    }
+                }
+                catch
+                {
+                    result = BadRequest( "IncorrectPassword" );
+                }
+
+                if (result is null)
+                {
+                    await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                    result = Ok();
+                }
             }
 
-            string firstKey = m_configuration["EncryptionSettings:FirstKey"];
-            string secondKey = m_configuration["EncryptionSettings:SecondKey"];
-
-            string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
-
-            user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-
-            return Ok();
+            return result;
         } );
     }
 
