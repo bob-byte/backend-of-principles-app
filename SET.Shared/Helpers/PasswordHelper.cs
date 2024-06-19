@@ -7,7 +7,7 @@ namespace SET.Shared.Helpers;
 
 public static class PasswordHelper
 {
-    public static byte[] CreatePasswordHash(string password)
+    public static byte[] CreatePasswordHash( string password )
     {
         if (password is null)
         {

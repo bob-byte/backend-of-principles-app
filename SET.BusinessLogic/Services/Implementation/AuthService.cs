@@ -23,12 +23,6 @@ public class AuthService : IAuthService
 
     public async Task<User> RegisterAsync( UserRegister userRegister )
     {
-        bool isEmailAlreadyRegistered = await m_context.Users.AnyAsync( x => x.Email == userRegister.Email ).DefaultConfigureAwait();
-        if (isEmailAlreadyRegistered)
-        {
-            throw new InvalidOperationException( message: "UserWithIdenticalEmailAlreadyExists" );
-        }
-
         //Id will set during execution of SaveChangesAsync
         var user = new User
         {
