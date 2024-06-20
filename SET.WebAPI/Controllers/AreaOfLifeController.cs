@@ -1,5 +1,4 @@
 ﻿
-
 namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/areasoflife" )]

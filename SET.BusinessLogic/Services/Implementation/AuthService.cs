@@ -9,16 +9,19 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace BusinessLogic;
 
 public class AuthService : IAuthService
 {
     private readonly AppDbContext m_context;
+    private readonly IConfiguration m_configuration;
 
-    public AuthService( AppDbContext context )
+    public AuthService( AppDbContext context, IConfiguration configuration )
     {
         m_context = context;
+        m_configuration = configuration;
     }
 
     public async Task<User> RegisterAsync( UserRegister userRegister )
