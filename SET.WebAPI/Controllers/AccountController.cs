@@ -1,18 +1,8 @@
 ﻿using BusinessLogic;
-
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-
-using SET.Shared.Models;
 using SET.Shared.Models.Auth;
-
-using System;
 using System.Net.Mail;
 using System.Net;
-using System.Text.Json;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using SET.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
 
@@ -43,7 +33,7 @@ public class AccountController : BaseController
         return TryCatchAsync( async () =>
         {
             #region Check parameter
-            if(registerInfo is null)
+            if (registerInfo is null)
             {
                 return BadRequest( "RegisterInfo is null" );
             }
@@ -63,7 +53,7 @@ public class AccountController : BaseController
                 }
                 else
                 {
-                    result = BadRequest( "PasswordLengthIsLessThanEight" );
+                    result = BadRequest( "PasswordLengthIsLessThanEightCharacters" );
                 }
             }
             catch
@@ -71,7 +61,7 @@ public class AccountController : BaseController
                 result = BadRequest( "InvalidPassword" );
             }
 
-            if(result is null)
+            if (result is null)
             {
                 User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
 
@@ -146,7 +136,11 @@ public class AccountController : BaseController
             #endregion
 
             string fromEmail = "app@principles.top";
-            string fromPassword = "pN8g^x47_N";
+            string fromPassword = m_configuration["HostEmailPassword"];
+            if (string.IsNullOrWhiteSpace( fromPassword ))
+            {
+                fromPassword = m_configuration["HOST_EMAIL_PASSWORD"];
+            }
 
             SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
             {
@@ -178,7 +172,7 @@ public class AccountController : BaseController
         return TryCatchAsync( async () =>
         {
             #region Check parameter
-            if(request is null)
+            if (request is null)
             {
                 return BadRequest( error: "Request is null" );
             }
@@ -219,7 +213,7 @@ public class AccountController : BaseController
                     }
                     else
                     {
-                        result = BadRequest( "PasswordLengthIsLessThanEight" );
+                        result = BadRequest( "PasswordLengthIsLessThanEightCharacters" );
                     }
                 }
                 catch
