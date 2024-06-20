@@ -41,8 +41,19 @@ public class AccountController : BaseController
 
             IActionResult? result = null;
 
-            string firstKey = m_configuration["EncryptionSettings:FirstKey"];
-            string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+            string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
+                m_configuration["FIRST_KEY_OF_PASSWORD_ENCRYPTION"];
+            if (string.IsNullOrWhiteSpace( firstKey ))
+            {
+                throw new InvalidProgramException( "First key of password encryption is not set" );
+            }
+
+            string secondKey = m_configuration["EncryptionSettings:SecondKey"] ??
+                m_configuration["SECOND_KEY_OF_PASSWORD_ENCRYPTION"];
+            if (string.IsNullOrWhiteSpace( secondKey ))
+            {
+                throw new InvalidProgramException( "Second key of password encryption is not set" );
+            }
 
             try
             {
@@ -200,8 +211,19 @@ public class AccountController : BaseController
             }
             else
             {
-                string firstKey = m_configuration["EncryptionSettings:FirstKey"];
-                string secondKey = m_configuration["EncryptionSettings:SecondKey"];
+                string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
+                    m_configuration["FIRST_KEY_OF_PASSWORD_ENCRYPTION"];
+                if (string.IsNullOrWhiteSpace( firstKey ))
+                {
+                    throw new InvalidProgramException( "First key of password encryption is not set" );
+                }
+
+                string secondKey = m_configuration["EncryptionSettings:SecondKey"] ??
+                    m_configuration["SECOND_KEY_OF_PASSWORD_ENCRYPTION"];
+                if (string.IsNullOrWhiteSpace( secondKey ))
+                {
+                    throw new InvalidProgramException( "Second key of password encryption is not set" );
+                }
 
                 try
                 {
