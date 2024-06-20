@@ -35,7 +35,16 @@ public class AccountController : BaseController
             #region Check parameter
             if (registerInfo is null)
             {
-                return BadRequest( "RegisterInfo is null" );
+                return BadRequest( error: "RegisterInfoIsNull" );
+            }
+
+            bool isAlreadyRegistered = await DbContext.
+                Users.
+                AnyAsync( u => u.Email == registerInfo.Email ).
+                DefaultConfigureAwait();
+            if (isAlreadyRegistered)
+            {
+                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
             }
             #endregion
 
