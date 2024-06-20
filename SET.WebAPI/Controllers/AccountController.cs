@@ -179,7 +179,7 @@ public class AccountController : BaseController
 
             if (user is null)
             {
-                return BadRequest( "UserIsNotFound" );
+                return BadRequest( "EmailIsIncorrect" );
             }
 
             if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
@@ -249,7 +249,7 @@ public class AccountController : BaseController
 
             if (user is null)
             {
-                result = BadRequest( error: "UserIsNotFound" );
+                result = BadRequest( error: "EmailIsIncorrect" );
             }
             else
             {
