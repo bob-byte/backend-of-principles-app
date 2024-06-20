@@ -112,25 +112,28 @@ public class AccountController : BaseController
             }
             catch
             {
+                //message contains "email" to confuse an attacker
                 result = BadRequest( "InvalidEmailOrPassword" );
             }
 
-            (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
-
-            IActionResult actionResult;
-            if (loginResult.errorMsg is null)
+            if (result is null)
             {
-                User user = loginResult.user;
+                (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
 
-                LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
-                actionResult = Ok( response );
-            }
-            else
-            {
-                actionResult = BadRequest( loginResult.errorMsg );
+                if (loginResult.errorMsg is null)
+                {
+                    User user = loginResult.user;
+
+                    LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
+                    result = Ok( response );
+                }
+                else
+                {
+                    result = BadRequest( loginResult.errorMsg );
+                }
             }
 
-            return actionResult;
+            return result;
         } );
     }
 
