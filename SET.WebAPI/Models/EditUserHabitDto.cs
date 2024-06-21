@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
+﻿
 namespace SET.WebAPI.Models;
 
 public class EditUserHabitDto
 {
-    public class UserAreaOfLifeDto
-    {
-        public long Id { get; set; }
-        public string Name { get; set; }
-    }
     public class FrequencyDto
     {
         public long Id { get; set; }

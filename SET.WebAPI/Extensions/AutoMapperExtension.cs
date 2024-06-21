@@ -20,7 +20,7 @@ public static class AutoMapperExtension
             cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>();
             cfg.CreateMap<Frequency, EditUserHabitDto.FrequencyDto>();
             cfg.CreateMap<EditUserHabitDto.FrequencyDto, Frequency>();
-            cfg.CreateMap<UserAreaOfLife, EditUserHabitDto.UserAreaOfLifeDto>();
+            cfg.CreateMap<UserAreaOfLife, UserAreaOfLifeDto>();
             cfg.CreateMap<UserHabit, EditUserHabitDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );
             cfg.CreateMap<EditUserHabitDto, UserHabit>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );
             cfg.CreateMap<UpdateProgressDto, ProgressOfHabit>();

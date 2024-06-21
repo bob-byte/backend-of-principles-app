@@ -22,7 +22,8 @@ public class AreaOfLifeController : BaseController
                 Where( u => u.UserId == userId ).
                 ToListAsync();
 
-            return Ok( userAreasOfLife );
+            List<UserAreaOfLifeDto> result = Mapper.Map<List<UserAreaOfLifeDto>>( userAreasOfLife );
+            return Ok( result );
         } );
     }
 }
