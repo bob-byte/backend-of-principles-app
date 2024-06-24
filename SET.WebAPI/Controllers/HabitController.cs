@@ -77,7 +77,7 @@ public class HabitController : BaseController
                     DefaultConfigureAwait();
 
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
-                resultData.AreasOfLife = Mapper.Map<List<EditUserHabitDto.UserAreaOfLifeDto>>( areasOfLife );
+                resultData.AreasOfLife = Mapper.Map<List<UserAreaOfLifeDto>>( areasOfLife );
                 result = Ok( resultData );
             }
 
@@ -147,8 +147,8 @@ public class HabitController : BaseController
             {
                 if (habitDto.AreasOfLife?.Any() == true)
                 {
-                    List<EditUserHabitDto.UserAreaOfLifeDto> currentAreas = habitDto.AreasOfLife.ToList();
-                    foreach (EditUserHabitDto.UserAreaOfLifeDto area in currentAreas)
+                    List<UserAreaOfLifeDto> currentAreas = habitDto.AreasOfLife.ToList();
+                    foreach (UserAreaOfLifeDto area in currentAreas)
                     {
                         await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
                         {
