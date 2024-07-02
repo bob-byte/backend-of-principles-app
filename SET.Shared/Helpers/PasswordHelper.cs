@@ -23,14 +23,13 @@ public static class PasswordHelper
             throw new ArgumentException("Value cannot be empty or whitespace only string.", nameof(password));
         }
 
-        byte[] passwordSalt = new byte[128];
-        byte[] passwordHash = new byte[ 64 ];
+        using HMACSHA512 hmac = new();
 
-        using ( var hmac = new HMACSHA512())
-        {
-            passwordSalt = hmac.Key;
-            passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-        }
+        //length is 128
+        byte[] passwordSalt = hmac.Key;
+
+        //length is 64
+        byte[] passwordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
 
         return passwordHash.Concat(passwordSalt).ToArray();
     }

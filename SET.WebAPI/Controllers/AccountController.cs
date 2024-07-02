@@ -168,13 +168,14 @@ public class AccountController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             await DbContext.UserAreasOfLife.Where( u => u.UserId == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
+            await DbContext.ClientLogs.Where( u => u.UserId == userId ).ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) ).DefaultConfigureAwait();
             await DbContext.Users.Where( u => u.Id == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
 
             return Ok();
         } );
     }
 
-    //It generates random code and sends it to email specified in a "request" parameter
+    //It generates random code and sends it to email specified in the "request" parameter
     [HttpGet( "code" )]
     public Task<IActionResult> GenerateCode( [FromQuery] string emailWhereSendCode )
     {
