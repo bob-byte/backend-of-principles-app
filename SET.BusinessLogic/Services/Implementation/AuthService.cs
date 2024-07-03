@@ -48,7 +48,7 @@ public class AuthService : IAuthService
 
     public async Task<(User? foundUser, string? errorMsg)> LoginAsync( UserLogin userLogin )
     {
-        User? user = await m_context.Users.FirstOrDefaultAsync( u => u.Email.Equals( userLogin.Email, StringComparison.OrdinalIgnoreCase ) ).DefaultConfigureAwait();
+        User? user = await m_context.Users.FirstOrDefaultAsync( u => u.Email.ToLower() == userLogin.Email.ToLower() ).DefaultConfigureAwait();
         (User? user, string? errorMsg) result;
         if (user is null)
         {

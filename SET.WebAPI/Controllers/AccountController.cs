@@ -45,7 +45,7 @@ public class AccountController : BaseController
 
             bool isAlreadyRegistered = await DbContext.
                 Users.
-                AnyAsync( u => u.Email.Equals( registerInfo.Email, StringComparison.OrdinalIgnoreCase ) ).
+                AnyAsync( u => u.Email.ToLower() == registerInfo.Email.ToLower() ).
                 DefaultConfigureAwait();
             if (isAlreadyRegistered)
             {
@@ -151,6 +151,33 @@ public class AccountController : BaseController
         } );
     }
 
+#if DEBUG
+    [HttpPost( "simpleauthorization" )]
+    public Task<IActionResult> SimpleLogin( [FromBody] UserLogin userlogin )
+    {
+        return TryCatchAsync( async () =>
+        {
+            IActionResult? result = null;
+
+            (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
+
+            if (loginResult.errorMsg is null)
+            {
+                User user = loginResult.user;
+
+                LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
+                result = Ok( response );
+            }
+            else
+            {
+                result = BadRequest( loginResult.errorMsg );
+            }
+
+            return result;
+        } );
+    }
+#endif
+
     [HttpDelete( "{userId}" )]
     public Task<IActionResult> Delete( long userId )
     {
@@ -189,7 +216,7 @@ public class AccountController : BaseController
             #region Check parameter
             User user = await DbContext.
                 Users.
-                FirstOrDefaultAsync( u => u.Email.Equals( emailWhereSendCode, StringComparison.OrdinalIgnoreCase ) ).
+                FirstOrDefaultAsync( u => u.Email.ToLower() == emailWhereSendCode.ToLower() ).
                 DefaultConfigureAwait();
 
             if (user is null)
@@ -257,7 +284,7 @@ public class AccountController : BaseController
             #endregion
             User user = await DbContext.
                 Users.
-                FirstOrDefaultAsync( u => u.Email.Equals( request.Email, StringComparison.OrdinalIgnoreCase ) ).
+                FirstOrDefaultAsync( u => u.Email.ToLower() == request.Email.ToLower() ).
                 DefaultConfigureAwait();
 
             IActionResult? result = null;
