@@ -38,9 +38,14 @@ public class AccountController : BaseController
                 return BadRequest( error: "RegisterInfoIsNull" );
             }
 
+            if (registerInfo.Email is null)
+            {
+                return BadRequest( "EmailOfRegisterInfoIsNull" );
+            }
+
             bool isAlreadyRegistered = await DbContext.
                 Users.
-                AnyAsync( u => u.Email == registerInfo.Email ).
+                AnyAsync( u => u.Email.Equals( registerInfo.Email, StringComparison.OrdinalIgnoreCase ) ).
                 DefaultConfigureAwait();
             if (isAlreadyRegistered)
             {
@@ -184,7 +189,7 @@ public class AccountController : BaseController
             #region Check parameter
             User user = await DbContext.
                 Users.
-                FirstOrDefaultAsync( u => u.Email == emailWhereSendCode ).
+                FirstOrDefaultAsync( u => u.Email.Equals( emailWhereSendCode, StringComparison.OrdinalIgnoreCase ) ).
                 DefaultConfigureAwait();
 
             if (user is null)
@@ -252,7 +257,7 @@ public class AccountController : BaseController
             #endregion
             User user = await DbContext.
                 Users.
-                FirstOrDefaultAsync( u => u.Email == request.Email ).
+                FirstOrDefaultAsync( u => u.Email.Equals( request.Email, StringComparison.OrdinalIgnoreCase ) ).
                 DefaultConfigureAwait();
 
             IActionResult? result = null;
