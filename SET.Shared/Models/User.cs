@@ -19,4 +19,5 @@ public class User
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }
     public ICollection<UserHabit> Habits { get; set; }
     public ICollection<ClientLog> ClientLogs { get; set; }
+    public ICollection<UserGoal> Goals { get; set; }
 }

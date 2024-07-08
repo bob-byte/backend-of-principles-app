@@ -40,6 +40,7 @@ public class HabitController : BaseController
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
+                Include( u => u.Goal ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -59,6 +60,7 @@ public class HabitController : BaseController
             UserHabit habit = await DbContext.UserHabits.
                 Where( u => u.Id == habitId ).
                 Include( u => u.Frequency ).
+                Include( u => u.Goal ).
                 FirstOrDefaultAsync().
                 DefaultConfigureAwait();
 
@@ -134,7 +136,6 @@ public class HabitController : BaseController
                 habit.Name = habitDto.Name;
                 habit.FrequencyId = habitDto.Frequency.Id;
                 habit.Frequency = Mapper.Map<Frequency>(habitDto.Frequency);
-                habit.ReasonToFollow = habitDto.ReasonToFollow;
                 habit.ColorName = habitDto.ColorName;
                 habit.Description = habitDto.Description;
                 habit.Question = habitDto.Question;
@@ -190,6 +191,12 @@ public class HabitController : BaseController
             else
             {
                 userHabitList.Remove( habit );
+            }
+
+            if (!isNewHabit)
+            {
+                habit.GoalId = habitDto.Goal.Id;
+                habit.Goal = Mapper.Map<UserGoal>( habitDto.Goal );
             }
 
             await DbContext.Frequencies.AddOrUpdateAsync( habit.Frequency ).DefaultConfigureAwait();

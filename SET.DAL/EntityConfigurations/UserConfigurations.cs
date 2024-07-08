@@ -50,5 +50,11 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             HasForeignKey( u => u.UserId ).
             IsRequired( false ).
             OnDelete( DeleteBehavior.NoAction );
+
+        builder.HasMany( u => u.Goals ).
+            WithOne( u => u.User ).
+            HasForeignKey( u => u.UserId ).
+            IsRequired().
+            OnDelete( DeleteBehavior.Cascade );
     }
 }

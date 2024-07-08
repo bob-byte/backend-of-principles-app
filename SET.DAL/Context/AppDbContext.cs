@@ -26,7 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<ProgressOfHabit> ProgressesOfHabits { get; set; }
     public DbSet<Frequency> Frequencies { get; set; }
     public DbSet<ClientLog> ClientLogs { get; set; }
-
+    public DbSet<UserGoal> UserGoals { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
@@ -36,6 +36,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ClientLogConfigurations() );
+        modelBuilder.ApplyConfiguration( new UserGoalConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -62,6 +63,10 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__client_logs", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__user_goals", Schemas.GOAL ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }

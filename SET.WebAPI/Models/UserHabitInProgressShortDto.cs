@@ -24,4 +24,5 @@ public class UserHabitInProgressShortDto
     public FrequencyDto Frequency { get; set; }
     public int Complexity { get; set; }
     public int Priority { get; set; }
+    public UserGoalDto? Goal { get; set; }
 }

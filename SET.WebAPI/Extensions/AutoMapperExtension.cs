@@ -24,6 +24,8 @@ public static class AutoMapperExtension
             cfg.CreateMap<UserHabit, EditUserHabitDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );
             cfg.CreateMap<EditUserHabitDto, UserHabit>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() );
             cfg.CreateMap<UpdateProgressDto, ProgressOfHabit>();
+            cfg.CreateMap<UserGoal, UserGoalDto>();
+            cfg.CreateMap<UserGoalDto, UserGoal>();
         } );
 
         IMapper mapper = mapperConfig.CreateMapper();

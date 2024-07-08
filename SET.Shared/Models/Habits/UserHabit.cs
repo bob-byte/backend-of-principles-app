@@ -18,7 +18,6 @@ public class UserHabit
     public User User { get; set; }
     public ICollection<UserAreaOfLifeUserHabit> AreasOfLife { get; set; }
     public string? Description { get; set; }
-    public string ReasonToFollow { get; set; }
     public string? Question { get; set; }
     public ICollection<ProgressOfHabit> Progresses { get; set; }
     public Frequency Frequency { get; set; }
@@ -26,4 +25,6 @@ public class UserHabit
     public int Priority { get; set; }
     public int Complexity { get; set; }
     public string ColorName { get; set; }
+    public long? GoalId { get; set; }
+    public UserGoal? Goal { get; set; }
 }

@@ -176,6 +176,47 @@ public class AccountController : BaseController
             return result;
         } );
     }
+
+
+    [AllowAnonymous]
+    [HttpPost( "simpleregister" )]
+    public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
+    {
+        return TryCatchAsync( async () =>
+        {
+            #region Check parameter
+            if (registerInfo is null)
+            {
+                return BadRequest( error: "RegisterInfoIsNull" );
+            }
+
+            if (registerInfo.Email is null)
+            {
+                return BadRequest( "EmailOfRegisterInfoIsNull" );
+            }
+
+            bool isAlreadyRegistered = await DbContext.Users
+                .AnyAsync( u => u.Email.ToLower() == registerInfo.Email.ToLower() )
+                .ConfigureAwait( false );
+            if (isAlreadyRegistered)
+            {
+                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
+            }
+            #endregion
+
+            IActionResult? result = null;
+
+            if (result is null)
+            {
+                User user = await m_authService.RegisterAsync( registerInfo ).ConfigureAwait( false );
+
+                RegisterResponse response = new( "You are right", Token: m_jwtTokenService.GetToken( user ) );
+                result = Ok( response );
+            }
+
+            return result;
+        } );
+    }
 #endif
 
     [HttpDelete( "{userId}" )]
