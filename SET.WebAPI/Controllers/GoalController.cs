@@ -14,56 +14,22 @@ public class GoalController : BaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> Index( [FromQuery] long userId )
+    public Task<IActionResult> Index( [FromQuery] long userId )
     {
-        return await TryCatchAsync( async () =>
+        return TryCatchAsync( async () =>
         {
-            var userGoals = await DbContext.UserGoals
-                .Where( g => g.UserId == userId )
-                .Select( g => new UserGoalDto
+            List<UserGoalDto> userGoals = await DbContext.UserGoals.
+                Where( g => g.UserId == userId ).
+                Select( g => new UserGoalDto
                 {
                     Id = g.Id,
                     Name = g.Name
-                } )
-                .ToListAsync();
+                } ).
+                ToListAsync().
+                DefaultConfigureAwait();
 
             return Ok( userGoals );
         } );
-    }
-
-    [HttpPost( "updateallgoals" )]
-    public async Task UpdateAllGoalsOfUser( EditUserHabitDto habitDto )
-    {
-        IEnumerable<long> sourceGoalIds = habitDto.AllUserGoals.Select( g => g.Id );
-
-        UserGoal[] targetUserGoals = DbContext.UserGoals
-            .Where( ug => ug.UserId == habitDto.Id )
-            .ToArray();
-
-        // Delete user goals
-        IEnumerable<UserGoal> goalNotFoundInSource = targetUserGoals
-            .Where( tg => !sourceGoalIds.Contains( tg.Id ) );
-        DbContext.UserGoals.RemoveRange( goalNotFoundInSource );
-
-        // Add new user goals
-        IEnumerable<UserGoal> newUserGoals = habitDto.AllUserGoals
-            .Where( g => g.Id == 0 )
-            .Select( g => new UserGoal
-            {
-                Name = g.Name,
-                UserId = habitDto.Id
-            } );
-        await DbContext.UserGoals.AddRangeAsync( newUserGoals );
-
-        foreach (var sourceGoal in habitDto.AllUserGoals)
-        {
-            var targetGoal = targetUserGoals.FirstOrDefault( tg => tg.Id == sourceGoal.Id );
-            if (targetGoal != null && targetGoal.Name != sourceGoal.Name)
-            {
-                targetGoal.Name = sourceGoal.Name;
-            }
-        }
-        await DbContext.SaveChangesAsync().DefaultConfigureAwait();
     }
 
     [HttpDelete( "{goalId}" )]
@@ -71,48 +37,68 @@ public class GoalController : BaseController
     {
         return TryCatchAsync( async () =>
         {
+            #region Check parameter
+            if (goalId == 0)
+            {
+                return BadRequest( "GoalIdIsZero" );
+            }
+            #endregion
+
             UserGoal? goal = goalId == 0
                 ? null
-                : await DbContext.UserGoals.FindAsync( goalId );
+                : await DbContext.UserGoals.FindAsync( goalId ).DefaultConfigureAwait();
 
             bool isCorrectArg = goal != null;
 
             IActionResult result;
             if (isCorrectArg)
             {
-                await DbContext.UserGoals.Where( p => p.Id == goalId ).ExecuteDeleteAsync();
+                await DbContext.
+                    UserHabits.
+                    Where( u => u.GoalId == goalId ).
+                    ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.GoalId, c => null ) ).
+                    DefaultConfigureAwait();
+
+                await DbContext.
+                    UserGoals.
+                    Where( p => p.Id == goalId ).
+                    ExecuteDeleteAsync().
+                    DefaultConfigureAwait();
           
                 result = Ok();
             }
             else
             {
-                result = NotFound( goalId );
+                result = BadRequest( "GoalIsNotFound" );
             }
 
             return result;
         } );
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Update( [FromBody] UserGoalDto userGoal, [FromQuery( Name = "UserId" )] long userId )
+    [HttpPost(template: "{goalId}")]
+    public Task<IActionResult> Update( [FromBody] UserGoalDto userGoal, [FromQuery( Name = "userId" )] long userId )
     {
-        return await TryCatchAsync( async () =>
+        return TryCatchAsync( userId, async (User _) =>
         {
+            #region Check parameter
+            if(userGoal is null)
+            {
+                return BadRequest( "UserGoalDtoIsNull" );
+            }
+            #endregion
+
             UserGoal? existingGoal = userGoal.Id == 0
                 ? null
-                : await DbContext.UserGoals.FindAsync( userGoal.Id );
+                : await DbContext.UserGoals.FindAsync( userGoal.Id ).DefaultConfigureAwait();
 
-            IActionResult result;
-            if (existingGoal != null)
+            if (existingGoal is null && userGoal.Id != 0)
             {
-                existingGoal.Name = userGoal.Name;
-
-                DbContext.UserGoals.Update( existingGoal );
-                await DbContext.SaveChangesAsync();
-
-                result = Ok();
+                return BadRequest( $"GoalIsNotFoundWithId {userGoal.Id}" );
             }
-            else
+
+            DtoWithId response = new();
+            if (existingGoal is null)
             {
                 var newGoal = new UserGoal
                 {
@@ -120,11 +106,22 @@ public class GoalController : BaseController
                     UserId = userId
                 };
 
-                await DbContext.UserGoals.AddAsync( newGoal );
-                await DbContext.SaveChangesAsync();
-                result = Ok();
+                await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
+                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+                response.Id = newGoal.Id;
+            }
+            else
+            {
+                existingGoal.Name = userGoal.Name;
+
+                DbContext.UserGoals.Update( existingGoal );
+                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+                response.Id = existingGoal.Id;
             }
 
+            IActionResult result = Ok( response );
             return result;
         } );
     }

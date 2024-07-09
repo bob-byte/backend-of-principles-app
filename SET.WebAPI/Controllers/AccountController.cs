@@ -179,7 +179,7 @@ public class AccountController : BaseController
 
 
     [AllowAnonymous]
-    [HttpPost( "simpleregister" )]
+    [HttpPost( "simpleauthentication" )]
     public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
     {
         return TryCatchAsync( async () =>

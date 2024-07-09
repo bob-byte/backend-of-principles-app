@@ -278,6 +278,9 @@ namespace SET.DataAccess.Migrations
                     b.Property<string>("Question")
                         .HasColumnType("text");
 
+                    b.Property<string>("ReasonToFollow")
+                        .HasColumnType("text");
+
                     b.Property<int>("Status")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

@@ -5,27 +5,34 @@
 namespace SET.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class RemovedReasonToFollowProp : Migration
+    public partial class MakeReasonToFollowColOptional : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
+            migrationBuilder.AlterColumn<string>(
                 name: "ReasonToFollow",
                 schema: "hbt",
-                table: "UserHabits");
+                table: "UserHabits",
+                type: "text",
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "text");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
+            migrationBuilder.AlterColumn<string>(
                 name: "ReasonToFollow",
                 schema: "hbt",
                 table: "UserHabits",
                 type: "text",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "",
+                oldClrType: typeof(string),
+                oldType: "text",
+                oldNullable: true);
         }
     }
 }

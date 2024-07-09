@@ -23,6 +23,9 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             HasMaxLength( maxLength: 255 ).
             IsRequired();
 
+        builder.Property( u => u.ReasonToFollow ).
+            IsRequired( false );
+
         builder.Property( u => u.Complexity ).
             IsRequired();
 

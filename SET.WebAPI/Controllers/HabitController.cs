@@ -137,6 +137,7 @@ public class HabitController : BaseController
                 habit.FrequencyId = habitDto.Frequency.Id;
                 habit.Frequency = Mapper.Map<Frequency>(habitDto.Frequency);
                 habit.ColorName = habitDto.ColorName;
+                habit.ReasonToFollow = habitDto.ReasonToFollow;
                 habit.Description = habitDto.Description;
                 habit.Question = habitDto.Question;
                 habit.Complexity = habitDto.Complexity;
@@ -251,9 +252,16 @@ public class HabitController : BaseController
     {
         return TryCatchAsync( async () =>
         {
+            #region Check parameter
+            if (habitId == 0)
+            {
+                return BadRequest( "HabitIdIsZero" );
+            }
+            #endregion
+
             UserHabit? habit = habitId == 0
                 ? null
-                : await DbContext.UserHabits.FindAsync( habitId );
+                : await DbContext.UserHabits.FindAsync( habitId ).DefaultConfigureAwait();
 
             bool isCorrectArg = habit != null;
 
@@ -269,7 +277,7 @@ public class HabitController : BaseController
             }
             else
             {
-                result = NotFound( habitId );
+                result = BadRequest( $"HabitIsNotFoundWithId {habitId}" );
             }
 
             return result;

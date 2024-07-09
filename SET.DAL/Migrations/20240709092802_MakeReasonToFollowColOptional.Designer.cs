@@ -12,8 +12,8 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240708112018_RemovedReasonToFollowProp")]
-    partial class RemovedReasonToFollowProp
+    [Migration("20240709092802_MakeReasonToFollowColOptional")]
+    partial class MakeReasonToFollowColOptional
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -279,6 +279,9 @@ namespace SET.DataAccess.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<string>("Question")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ReasonToFollow")
                         .HasColumnType("text");
 
                     b.Property<int>("Status")

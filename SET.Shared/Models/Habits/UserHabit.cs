@@ -14,6 +14,7 @@ public class UserHabit
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
     public StatusOfHabit Status { get; set; }
+    public string? ReasonToFollow { get; set; }
     public long UserId { get; set; }
     public User User { get; set; }
     public ICollection<UserAreaOfLifeUserHabit> AreasOfLife { get; set; }
