@@ -290,7 +290,7 @@ public class AccountController : BaseController
             {
                 From = new MailAddress( fromEmail, displayName: "Principles app" ),
                 Subject = "Your 6-digit code",
-                Body = $"Your code is: {code}.",
+                Body = $"Your code is: {code}",
                 IsBodyHtml = false,
             };
             mailMessage.To.Add( emailWhereSendCode );
