@@ -143,6 +143,7 @@ public class HabitController : BaseController
                 habit.Complexity = habitDto.Complexity;
                 habit.Type = habitDto.Type;
                 habit.Priority = habitDto.Priority;
+                habit.GoalId = habitDto.Goal?.Id;
             }
 
             if (isNewHabit)
@@ -192,12 +193,6 @@ public class HabitController : BaseController
             else
             {
                 userHabitList.Remove( habit );
-            }
-
-            if (!isNewHabit)
-            {
-                habit.GoalId = habitDto.Goal.Id;
-                habit.Goal = Mapper.Map<UserGoal>( habitDto.Goal );
             }
 
             await DbContext.Frequencies.AddOrUpdateAsync( habit.Frequency ).DefaultConfigureAwait();
