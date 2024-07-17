@@ -130,6 +130,8 @@ public class HabitController : BaseController
             {
                 habit = Mapper.Map<UserHabit>( habitDto );
                 habit.UserId = userId;
+                habit.Goal = null;
+                habit.GoalId = habitDto.Goal?.Id;
             }
             else
             {
