@@ -14,6 +14,8 @@ public class AccountController : BaseController
 {
     private const int MIN_PASSWORD_LENGTH = 8;
 
+    private readonly Lazy<SmtpClient> m_smtpClient;
+
     private readonly IAuthService m_authService;
     private readonly IJwtTokenService m_jwtTokenService;
     private readonly IConfiguration m_configuration;
@@ -24,6 +26,32 @@ public class AccountController : BaseController
         m_authService = serviceProvider.GetRequiredService<IAuthService>();
         m_jwtTokenService = serviceProvider.GetRequiredService<IJwtTokenService>();
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
+
+        m_smtpClient = new Lazy<SmtpClient>( () =>
+        {
+            string fromPassword = m_configuration["HostEmailPassword"];
+            if (string.IsNullOrWhiteSpace( fromPassword ))
+            {
+                fromPassword = m_configuration["HOST_EMAIL_PASSWORD"];
+            }
+
+            string fromEmail = m_configuration["HostEmail"];
+            SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
+            {
+                Port = 587,
+                Credentials = new NetworkCredential( fromEmail, fromPassword ),
+                EnableSsl = true
+            };
+            return smtpClient;
+        } );
+    }
+
+    ~AccountController()
+    {
+        if (m_smtpClient.IsValueCreated)
+        {
+            m_smtpClient.Value.Dispose();
+        }
     }
 
     [AllowAnonymous]
@@ -271,31 +299,17 @@ public class AccountController : BaseController
             }
             #endregion
 
-            string fromEmail = "app@principles.top";
-            string fromPassword = m_configuration["HostEmailPassword"];
-            if (string.IsNullOrWhiteSpace( fromPassword ))
-            {
-                fromPassword = m_configuration["HOST_EMAIL_PASSWORD"];
-            }
-
-            SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
-            {
-                Port = 587,
-                Credentials = new NetworkCredential( fromEmail, fromPassword ),
-                EnableSsl = true
-            };
-
             int code = GenerateRandomCode();
             MailMessage mailMessage = new()
             {
-                From = new MailAddress( fromEmail, displayName: "Principles app" ),
+                From = new MailAddress( m_configuration["HostEmail"], displayName: "Principles app" ),
                 Subject = "Your 6-digit code",
                 Body = $"Your code is: {code}",
                 IsBodyHtml = false,
             };
             mailMessage.To.Add( emailWhereSendCode );
 
-            await smtpClient.SendMailAsync( mailMessage ).DefaultConfigureAwait();
+            await m_smtpClient.Value.SendMailAsync( mailMessage ).DefaultConfigureAwait();
 
             GenerateCodeResponse response = new( code );
             return Ok( response );
