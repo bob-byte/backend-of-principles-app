@@ -131,7 +131,7 @@ public class HabitController : BaseController
                 habit = Mapper.Map<UserHabit>( habitDto );
                 habit.UserId = userId;
                 habit.Goal = null;
-                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : (long?)null;
+                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
             }
             else
             {
@@ -145,7 +145,8 @@ public class HabitController : BaseController
                 habit.Complexity = habitDto.Complexity;
                 habit.Type = habitDto.Type;
                 habit.Priority = habitDto.Priority;
-                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : (long?)null;
+                habit.Goal = null;
+                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
             }
 
             if (isNewHabit)
