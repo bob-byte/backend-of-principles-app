@@ -14,4 +14,5 @@ public class ClientLog
     public string LogType { get; set; }
     public string LogMessage { get; set; }
     public string? StackTrace { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

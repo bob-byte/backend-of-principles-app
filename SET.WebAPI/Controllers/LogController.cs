@@ -39,7 +39,7 @@ public class LogController : BaseController
                 newClientLog.UserId = null;
             }
 
-            if(result is null)
+            if (result is null)
             {
                 string newLine = Environment.NewLine;
                 string convertedLog =
@@ -54,7 +54,8 @@ public class LogController : BaseController
                     $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
                     $"{nameof( SaveLogRequest.DeviceModelName )} = {saveLogRequest.DeviceModelName};{newLine}" +
                     $"{nameof( SaveLogRequest.DeviceManufacturer )} = {saveLogRequest.DeviceManufacturer};{newLine}" +
-                    $"{nameof( SaveLogRequest.DeviceType )} = {saveLogRequest.DeviceType}.";
+                    $"{nameof( SaveLogRequest.DeviceType )} = {saveLogRequest.DeviceType};{newLine}" +
+                    $"{nameof( SaveLogRequest.CreatedAt )} = {saveLogRequest.CreatedAt}.";
                 
                 try
                 {
