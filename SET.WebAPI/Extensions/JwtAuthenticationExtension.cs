@@ -1,6 +1,7 @@
 ﻿using BusinessLogic;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
@@ -11,7 +12,7 @@ namespace SET.WebAPI.Extensions;
 
 public static class JwtAuthenticationExtension
 {
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory)
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory, IConfiguration configuration)
     {
         string secret = secretFactory();
 
@@ -27,12 +28,19 @@ public static class JwtAuthenticationExtension
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secret)),
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = true,
+                ValidateAudience = true,
                 RequireExpirationTime = false,
-                ValidateLifetime = true
+                ValidateLifetime = true,
+                ValidIssuer = configuration["JwtSettings:Issuer"],
+                ValidAudience = configuration["JwtSettings:Audience"],
             };
-        });
+        }).AddGoogle( options =>
+        {
+            options.ClientId = configuration["Google:ClientId"];
+            options.ClientSecret = configuration["Google:ClientSecret"];
+            options.Scope.Add( "https://www.googleapis.com/auth/user.gender.read" );
+        } );
 
         services.AddSingleton(typeof(IJwtTokenService), new JwtTokenService(() => secretFactory()));
         return services;

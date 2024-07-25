@@ -8,6 +8,7 @@ using Newtonsoft.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption;
+using Microsoft.IdentityModel.Tokens;
 
 namespace SET.WebAPI;
 
@@ -49,7 +50,7 @@ public class Startup
             }
 
             return jwtSecret!;
-        } );
+        }, Configuration );
 
         services.AddSwaggerWithBearer();
         services.AddAutoMapper();

@@ -5,6 +5,10 @@ using System.Net.Mail;
 using System.Net;
 using SET.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
+using Google.Apis.Auth;
+using Google.Apis.Auth.OAuth2;
+using Google.Apis.Services;
+using Google.Apis.PeopleService.v1;
 
 namespace SET.WebAPI.Controllers;
 
@@ -71,6 +75,11 @@ public class AccountController : BaseController
                 return BadRequest( "EmailOfRegisterInfoIsNull" );
             }
 
+            if (registerInfo.Password is null)
+            {
+                return BadRequest( "PasswordShoudBeFilled" );
+            }
+
             bool isAlreadyRegistered = await DbContext.
                 Users.
                 AnyAsync( u => u.Email.ToLower() == registerInfo.Email.ToLower() ).
@@ -131,6 +140,13 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
+            #region Check parameter
+            if (userlogin.Password is null)
+            {
+                return BadRequest( "PasswordShoudBeFilled" );
+            }
+            #endregion
+
             IActionResult? result = null;
 
             string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
@@ -246,6 +262,46 @@ public class AccountController : BaseController
         } );
     }
 #endif
+
+    [HttpPost("googleauthorization")]
+    public async Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
+    {
+        return await TryCatchAsync( async () =>
+        {
+            var payload = await ValidateGoogleToken( request.IdToken );
+            if (payload == null)
+            {
+                return Unauthorized();
+            }
+
+            var userLogin = new UserLogin()
+            {
+                Email = payload.Email
+            };
+
+            var (loginResult, loginError) = await m_authService.LoginAsync( userLogin );
+            if (loginResult == null)
+            {
+                var gender = await GetGoogleUserGender( request.IdToken );
+
+                var userRegister = new UserRegister()
+                {
+                    Email = payload.Email,
+                    Name = payload.Name,
+                    Gender = gender
+                };
+
+                var registerResult = await m_authService.RegisterAsync( userRegister );
+                if (registerResult == null)
+                {
+                    throw new Exception( "Failed to register user." );
+                }
+            }
+
+            var token = m_jwtTokenService.GenerateJwtTokenForGoogleAuthorization( payload );
+            return Ok( new { Token = token } );
+        } );
+    }
 
     [HttpDelete( "{userId}" )]
     public Task<IActionResult> Delete( long userId )
@@ -398,5 +454,47 @@ public class AccountController : BaseController
         Random random = new();
         int result = random.Next( minValue: 100000, maxValue: 999999 );
         return result;
+    }
+
+    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken( string idToken )
+    {
+        try
+        {
+            var settings = new GoogleJsonWebSignature.ValidationSettings()
+            {
+                Audience = new[] { m_configuration["Google:ClientId"] }
+            };
+
+            var payload = await GoogleJsonWebSignature.ValidateAsync( idToken, settings );
+            return payload;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<Gender> GetGoogleUserGender( string idToken )
+    {
+        var googleCredential = GoogleCredential.FromAccessToken( idToken )
+        .CreateScoped( new[] { "https://www.googleapis.com/auth/user.gender.read" } );
+
+        var service = new PeopleServiceService( new BaseClientService.Initializer
+        {
+            HttpClientInitializer = googleCredential,
+            ApplicationName = "MyHabits"
+        } );
+
+        var request = service.People.Get( "people/me" );
+        request.PersonFields = "genders";
+        var response = await request.ExecuteAsync();
+        var gender = response.Genders?.FirstOrDefault()?.Value;
+
+        return gender.ToLower() switch
+        {
+            "male" => Gender.Man,
+            "female" => Gender.Woman,
+            "other" => Gender.Other
+        };
     }
 }
