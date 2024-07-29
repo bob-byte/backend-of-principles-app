@@ -13,7 +13,7 @@ public static class Program
 
         Log.Logger = new LoggerConfiguration()
             .Enrich.With( new TimeZoneEnricher( kyivTimeZone ) )
-            .WriteTo.Console()
+            .WriteTo.Console( outputTemplate: "[{LocalTimestamp:HH:mm:ss dd-MM-yyyy} {Level:u3}] {Message:lj}{NewLine}{Exception}" )
             .CreateBootstrapLogger();
 
         Log.Information( "Starting up!" );

@@ -61,7 +61,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now() at time zone 'UTC' at time zone 'Europe/Kiev'");
+                        .HasDefaultValueSql("now() at time zone 'Europe/Kiev'");
 
                     b.Property<string>("DeviceManufacturer")
                         .IsRequired()

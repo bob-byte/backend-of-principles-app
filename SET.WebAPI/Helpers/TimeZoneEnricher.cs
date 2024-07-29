@@ -7,7 +7,7 @@ public class TimeZoneEnricher : ILogEventEnricher
 {
     private readonly TimeZoneInfo m_timeZone;
 
-    public TimeZoneEnricher(TimeZoneInfo timeZone)
+    public TimeZoneEnricher( TimeZoneInfo timeZone )
     {
         m_timeZone = timeZone;
     }
@@ -15,7 +15,8 @@ public class TimeZoneEnricher : ILogEventEnricher
     public void Enrich( LogEvent logEvent, ILogEventPropertyFactory propertyFactory )
     {
         DateTime localDatetime = TimeZoneInfo.ConvertTimeFromUtc( logEvent.Timestamp.UtcDateTime, m_timeZone );
-        logEvent.AddPropertyIfAbsent( propertyFactory.CreateProperty( name: "LocalTimestamp", value: localDatetime ) );
+
+        LogEventProperty localTimestampProp = propertyFactory.CreateProperty( name: "LocalTimestamp", value: localDatetime );
+        logEvent.AddPropertyIfAbsent( localTimestampProp );
     }
 }
-

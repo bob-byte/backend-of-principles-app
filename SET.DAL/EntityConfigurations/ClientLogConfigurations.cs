@@ -36,8 +36,9 @@ internal class ClientLogConfigurations : IEntityTypeConfiguration<ClientLog>
         builder.Property( c => c.DeviceType ).
             HasMaxLength( 100 ).
             IsRequired();
+
         builder.Property(c => c.CreatedAt).
-            HasDefaultValueSql( "now() at time zone 'UTC' at time zone 'Europe/Kiev'" ).
+            HasDefaultValueSql( "now() at time zone 'Europe/Kiev'" ).
             IsRequired();
     }
 }

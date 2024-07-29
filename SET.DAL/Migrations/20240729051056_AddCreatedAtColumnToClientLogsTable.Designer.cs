@@ -12,8 +12,8 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20240723082452_AddedCreatedAtFieldToClientLogsTable")]
-    partial class AddedCreatedAtFieldToClientLogsTable
+    [Migration("20240729051056_AddCreatedAtColumnToClientLogsTable")]
+    partial class AddCreatedAtColumnToClientLogsTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -64,7 +64,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("now() at time zone 'UTC' at time zone 'Europe/Kiev'");
+                        .HasDefaultValueSql("now() at time zone 'Europe/Kiev'");
 
                     b.Property<string>("DeviceManufacturer")
                         .IsRequired()

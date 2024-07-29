@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SET.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class AddedCreatedAtFieldToClientLogsTable : Migration
+    public partial class AddCreatedAtColumnToClientLogsTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,7 +17,7 @@ namespace SET.DataAccess.Migrations
                 table: "ClientLogs",
                 type: "timestamp with time zone",
                 nullable: false,
-                defaultValueSql: "now() at time zone 'UTC' at time zone 'Europe/Kiev'");
+                defaultValueSql: "now() at time zone 'Europe/Kiev'");
         }
 
         /// <inheritdoc />
