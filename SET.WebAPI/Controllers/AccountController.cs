@@ -264,11 +264,11 @@ public class AccountController : BaseController
 #endif
 
     [HttpPost("googleauthorization")]
-    public async Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
+    public Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
     {
-        return await TryCatchAsync( async () =>
+        return TryCatchAsync( async () =>
         {
-            var payload = await ValidateGoogleToken( request.IdToken );
+            GoogleJsonWebSignature.Payload payload = await ValidateGoogleTokenAsync( request.IdToken ).DefaultConfigureAwait();
             if (payload == null)
             {
                 return Unauthorized();
@@ -279,10 +279,10 @@ public class AccountController : BaseController
                 Email = payload.Email
             };
 
-            var (loginResult, loginError) = await m_authService.LoginAsync( userLogin );
+            (User loginResult, string loginError) = await m_authService.LoginAsync( userLogin ).DefaultConfigureAwait();
             if (loginResult == null)
             {
-                var gender = await GetGoogleUserGender( request.IdToken );
+                Gender gender = await GetGoogleUserGenderAsync( request.IdToken ).DefaultConfigureAwait();
 
                 var userRegister = new UserRegister()
                 {
@@ -291,14 +291,14 @@ public class AccountController : BaseController
                     Gender = gender
                 };
 
-                var registerResult = await m_authService.RegisterAsync( userRegister );
+                User registerResult = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
                 if (registerResult == null)
                 {
                     throw new Exception( "Failed to register user." );
                 }
             }
 
-            var token = m_jwtTokenService.GenerateJwtTokenForGoogleAuthorization( payload );
+            string token = m_jwtTokenService.GenerateJwtTokenForGoogleAuthorization( payload );
             return Ok( new { Token = token } );
         } );
     }
@@ -456,7 +456,7 @@ public class AccountController : BaseController
         return result;
     }
 
-    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleToken( string idToken )
+    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync( string idToken )
     {
         try
         {
@@ -474,7 +474,7 @@ public class AccountController : BaseController
         }
     }
 
-    private async Task<Gender> GetGoogleUserGender( string idToken )
+    private async Task<Gender> GetGoogleUserGenderAsync( string idToken )
     {
         var googleCredential = GoogleCredential.FromAccessToken( idToken )
         .CreateScoped( new[] { "https://www.googleapis.com/auth/user.gender.read" } );

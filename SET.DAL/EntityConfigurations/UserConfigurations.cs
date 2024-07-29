@@ -28,7 +28,7 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
         builder.Property(c => c.Password).
             HasColumnType(DbmsConstants.BYTE_ARRAY_TYPE).
             HasMaxLength(255).
-            IsRequired();
+            IsRequired(false);
 
         builder.Property( c => c.MainSlogan ).
             HasColumnType( DbmsConstants.TEXT_WITH_MAX_LENGTH_TYPE );
