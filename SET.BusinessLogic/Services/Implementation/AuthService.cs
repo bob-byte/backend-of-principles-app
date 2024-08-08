@@ -111,6 +111,11 @@ public class AuthService : IAuthService
             {
                 Name = "Sociality",
                 User = user
+            },
+            new()
+            {
+                Name = "Other",
+                User = user
             }
         };
 

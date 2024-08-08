@@ -93,6 +93,7 @@ public class BaseController : ControllerBase
             errorCode = 500;
         }
 
+        Log.Error( ex, ex.Message );
         return new WebExceptionResult( errorCode, ex.Message );
     }
 }
