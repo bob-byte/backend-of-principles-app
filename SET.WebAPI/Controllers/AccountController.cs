@@ -9,6 +9,7 @@ using Google.Apis.Auth;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.PeopleService.v1;
+using Microsoft.EntityFrameworkCore;
 
 namespace SET.WebAPI.Controllers;
 
@@ -19,17 +20,19 @@ public class AccountController : BaseController
     private const int MIN_PASSWORD_LENGTH = 8;
 
     private readonly Lazy<SmtpClient> m_smtpClient;
+    private readonly AppDbContext m_context;
 
     private readonly IAuthService m_authService;
     private readonly IJwtTokenService m_jwtTokenService;
     private readonly IConfiguration m_configuration;
 
-    public AccountController( IServiceProvider serviceProvider )
+    public AccountController( IServiceProvider serviceProvider, AppDbContext context )
         : base( serviceProvider )
     {
         m_authService = serviceProvider.GetRequiredService<IAuthService>();
         m_jwtTokenService = serviceProvider.GetRequiredService<IJwtTokenService>();
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        m_context = context;
 
         m_smtpClient = new Lazy<SmtpClient>( () =>
         {
@@ -263,27 +266,40 @@ public class AccountController : BaseController
     }
 #endif
 
-    [HttpPost("googleauthorization")]
+    [HttpPost("google")]
     public Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
     {
         return TryCatchAsync( async () =>
         {
-            GoogleJsonWebSignature.Payload payload = await ValidateGoogleTokenAsync( request.IdToken ).DefaultConfigureAwait();
-            if (payload == null)
+            Log.Information( "Started GoogleAuthorization" );
+
+            #region check parameter
+            if (request is null)
             {
-                return Unauthorized();
+                return BadRequest( "RequestBodyIsNull" );
             }
 
-            var userLogin = new UserLogin()
+            if (string.IsNullOrWhiteSpace( request.AccessToken ))
             {
-                Email = payload.Email
-            };
+                return BadRequest( "IdTokenIsNull" );
+            }
+            #endregion
 
-            (User loginResult, string loginError) = await m_authService.LoginAsync( userLogin ).DefaultConfigureAwait();
-            if (loginResult == null)
+            GoogleJsonWebSignature.Payload? payload = await ValidateGoogleTokenAsync( request.IdToken ).DefaultConfigureAwait();
+            if (payload == null)
             {
-                Gender gender = await GetGoogleUserGenderAsync( request.IdToken ).DefaultConfigureAwait();
+                return BadRequest( "GooglePayloadIsNull" );
+            }
 
+            User? user = await m_context.
+                    Users.
+                    FirstOrDefaultAsync( u => u.Email.ToLower() == payload.Email.ToLower() ).
+                    DefaultConfigureAwait();
+            Gender gender = await GetGoogleUserGenderAsync( request.AccessToken ).DefaultConfigureAwait();
+
+
+            if (user is null)
+            {
                 var userRegister = new UserRegister()
                 {
                     Email = payload.Email,
@@ -291,15 +307,13 @@ public class AccountController : BaseController
                     Gender = gender
                 };
 
-                User registerResult = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
-                if (registerResult == null)
-                {
-                    throw new Exception( "Failed to register user." );
-                }
+                user = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
             }
 
-            string token = m_jwtTokenService.GenerateJwtTokenForGoogleAuthorization( payload );
-            return Ok( new { Token = token } );
+            string token = m_jwtTokenService.GenerateJwtTokenForGoogleAuthorization( user.Id.ToString() );
+            Log.Information( "Finished GoogleAuthorization" );
+
+            return Ok( new { Token = token, UserId = user.Id, Message = "You are right" } );
         } );
     }
 
@@ -456,45 +470,50 @@ public class AccountController : BaseController
         return result;
     }
 
-    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync( string idToken )
+    private async Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync( string accessToken )
     {
-        try
-        {
-            var settings = new GoogleJsonWebSignature.ValidationSettings()
-            {
-                Audience = new[] { m_configuration["Google:ClientId"] }
-            };
+        string[] audience = new string[ 2 ];
+            audience[ 0 ] = m_configuration[ "Google:AndroidClientId" ]!;
+            audience[ 1 ] = m_configuration[ "Google:iOSClientId" ]!;
 
-            var payload = await GoogleJsonWebSignature.ValidateAsync( idToken, settings );
+            GoogleJsonWebSignature.ValidationSettings validationSettings = new()
+            {
+                Audience = audience
+            };
+            GoogleJsonWebSignature.Payload? payload = await GoogleJsonWebSignature.ValidateAsync(
+                accessToken,
+                validationSettings
+            ).DefaultConfigureAwait();
             return payload;
-        }
-        catch
-        {
-            return null;
-        }
     }
 
-    private async Task<Gender> GetGoogleUserGenderAsync( string idToken )
+    private async Task<Gender> GetGoogleUserGenderAsync( string accessToken )
     {
-        var googleCredential = GoogleCredential.FromAccessToken( idToken )
-        .CreateScoped( new[] { "https://www.googleapis.com/auth/user.gender.read" } );
+        GoogleCredential googleCredential = GoogleCredential.
+                FromAccessToken( accessToken ).
+                CreateScoped( scopes: "https://www.googleapis.com/auth/user.gender.read" );
 
         var service = new PeopleServiceService( new BaseClientService.Initializer
         {
             HttpClientInitializer = googleCredential,
-            ApplicationName = "MyHabits"
+            ApplicationName = "Principles"
         } );
 
-        var request = service.People.Get( "people/me" );
+        PeopleResource.GetRequest request = service.People.Get( "people/me" );
         request.PersonFields = "genders";
-        var response = await request.ExecuteAsync();
-        var gender = response.Genders?.FirstOrDefault()?.Value;
+        Google.Apis.PeopleService.v1.Data.Person response = await request.ExecuteAsync().DefaultConfigureAwait();
+        string? gender = (response.Genders?.FirstOrDefault()?.Value)
+            ?? throw new InvalidOperationException( message: "ReceivedGenderFromGoogleIsNull" );
 
-        return gender.ToLower() switch
+        Log.Information( $"User gender is: {gender}" );
+
+        Gender result = gender.ToLower() switch
         {
             "male" => Gender.Man,
             "female" => Gender.Woman,
-            "other" => Gender.Other
+            _ => Gender.Other
         };
+
+        return result;
     }
 }

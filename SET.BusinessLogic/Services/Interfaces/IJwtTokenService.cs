@@ -7,5 +7,5 @@ namespace BusinessLogic;
 public interface IJwtTokenService
 {
     string GetToken( User user );
-    string GenerateJwtTokenForGoogleAuthorization( GoogleJsonWebSignature.Payload payload );
+    string GenerateJwtTokenForGoogleAuthorization( string userId );
 }

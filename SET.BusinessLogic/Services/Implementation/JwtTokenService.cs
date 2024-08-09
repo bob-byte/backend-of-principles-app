@@ -40,24 +40,31 @@ public class JwtTokenService : IJwtTokenService
         return tokenHandler.WriteToken( token );
     }
 
-    public string GenerateJwtTokenForGoogleAuthorization( GoogleJsonWebSignature.Payload payload )
+    public string GenerateJwtTokenForGoogleAuthorization( string userId )
     {
-        var claims = new List<Claim>
-           {
-               new Claim(JwtRegisteredClaimNames.Email, payload.Email),
-               new Claim(JwtRegisteredClaimNames.Name, payload.Name)
-           };
+        string? jwtSecret = m_configuration[key: "JwtSettings:Secret"];
+        if (string.IsNullOrWhiteSpace( jwtSecret ))
+        {
+            jwtSecret = m_configuration["PRINCIPLES_SERVER_JWT_SECRET"];
 
-        var key = new SymmetricSecurityKey( Encoding.UTF8.GetBytes( m_configuration["JwtSettings:Secret"] ) );
-        var creds = new SigningCredentials( key, SecurityAlgorithms.HmacSha256 );
+            if (string.IsNullOrWhiteSpace( jwtSecret ))
+            {
+                throw new InvalidOperationException( "JWT secret is not set" );
+            }
+        }
 
-        var token = new JwtSecurityToken(
-            issuer: m_configuration["JwtSettings:Issuer"],
-            audience: m_configuration["JwtSettings:Audience"],
-            claims: claims,
-            expires: DateTime.MaxValue,
-            signingCredentials: creds );
-
-        return new JwtSecurityTokenHandler().WriteToken( token );
+        var tokenHandler = new JwtSecurityTokenHandler();
+        byte[] key = Encoding.ASCII.GetBytes( jwtSecret );
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity( new Claim[]
+            {
+                new Claim(ClaimTypes.Name, userId)
+            } ),
+            Expires = DateTime.MaxValue,//TODO: implement token refresh
+            SigningCredentials = new SigningCredentials( new SymmetricSecurityKey( key ), SecurityAlgorithms.HmacSha256Signature )
+        };
+        SecurityToken token = tokenHandler.CreateToken( tokenDescriptor );
+        return tokenHandler.WriteToken( token );
     }
 }
