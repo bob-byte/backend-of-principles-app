@@ -10,7 +10,7 @@ namespace SET.WebAPI.Extensions;
 
 public static class JwtAuthenticationExtension
 {
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory, IConfiguration configuration)
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory)
     {
         string secret = secretFactory();
 

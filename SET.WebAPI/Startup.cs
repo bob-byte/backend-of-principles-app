@@ -36,7 +36,7 @@ public class Startup
             AddNewtonsoftJson( options =>
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore );
 
-        services.AddJwtAuthentication(() =>
+        services.AddJwtAuthentication(secretFactory: () =>
         {
             string? jwtSecret = Configuration[key: "JwtSettings:Secret"];
             if (string.IsNullOrWhiteSpace( jwtSecret ))
@@ -50,7 +50,7 @@ public class Startup
             }
 
             return jwtSecret!;
-        }, Configuration );
+        });
 
         services.AddSwaggerWithBearer();
         services.AddAutoMapper();
