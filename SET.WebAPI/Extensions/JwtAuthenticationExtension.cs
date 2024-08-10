@@ -25,9 +25,11 @@ public static class JwtAuthenticationExtension
             c.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secret)),
+                IssuerSigningKey = new SymmetricSecurityKey( Encoding.ASCII.GetBytes( secret ) ),
                 RequireExpirationTime = false,
-                ValidateLifetime = false
+                ValidateLifetime = false,
+                ValidateIssuer = false,
+                ValidateAudience = false,
             };
         });
 
