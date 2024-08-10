@@ -27,8 +27,8 @@ public class JwtTokenService : IJwtTokenService
         {
             Subject = new ClaimsIdentity( new Claim[]
             {
-                new("Id", user.Id.ToString()),
-                new("Role", "FreeAccount")
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Role, "FreeAccount")
             } ),
             Expires = DateTime.Today.AddDays(7),//TODO: implement token refresh
             SigningCredentials = new SigningCredentials( new SymmetricSecurityKey( key ), SecurityAlgorithms.HmacSha256Signature )
