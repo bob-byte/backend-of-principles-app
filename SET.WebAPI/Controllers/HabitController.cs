@@ -1,23 +1,4 @@
-﻿using BusinessLogic;
-
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-
-using SET.Shared;
-using SET.Shared.Models;
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO.Pipelines;
-using System.Linq;
-using System.Text.Json;
-
-namespace SET.WebAPI.Controllers;
+﻿namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/habits")]
 [ApiController]

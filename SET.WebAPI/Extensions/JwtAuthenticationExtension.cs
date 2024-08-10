@@ -1,17 +1,16 @@
 ﻿using BusinessLogic;
 
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 
-using System;
 using System.Text;
 
 namespace SET.WebAPI.Extensions;
 
 public static class JwtAuthenticationExtension
 {
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory)
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, Func<string> secretFactory, IConfiguration configuration)
     {
         string secret = secretFactory();
 
@@ -26,11 +25,11 @@ public static class JwtAuthenticationExtension
             c.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secret)),
+                IssuerSigningKey = new SymmetricSecurityKey( Encoding.ASCII.GetBytes( secret ) ),
+                RequireExpirationTime = false,
+                ValidateLifetime = false,
                 ValidateIssuer = false,
                 ValidateAudience = false,
-                RequireExpirationTime = false,
-                ValidateLifetime = true
             };
         });
 

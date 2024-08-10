@@ -13,6 +13,7 @@ namespace SET.WebAPI.Controllers;
 public class AccountController : BaseController
 {
     private const int MIN_PASSWORD_LENGTH = 8;
+    private const int MAX_PASSWORD_LENGTH = 20;
 
     private readonly Lazy<SmtpClient> m_smtpClient;
 
@@ -54,6 +55,35 @@ public class AccountController : BaseController
         }
     }
 
+    [HttpPost( "googleauthorization" )]
+    public Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
+    {
+        return TryCatchAsync( async () =>
+        {
+            #region check parameter
+            if (request is null)
+            {
+                return BadRequest( "RequestBodyIsNull" );
+            }
+
+            if (string.IsNullOrWhiteSpace( request.AccessToken ))
+            {
+                return BadRequest( "AccessTokenIsNull" );
+            }
+
+            if (string.IsNullOrWhiteSpace( request.IdToken ))
+            {
+                return BadRequest( "IdTokenIsNull" );
+            }
+            #endregion
+
+            GoogleAuthResponse response = await m_authService.GoogleAuthAsync( request.IdToken, request.AccessToken ).DefaultConfigureAwait();
+
+            IActionResult result = Ok( response );
+            return result;
+        } );
+    }
+
     [AllowAnonymous]
     [HttpPost( "authentication" )]
     public Task<IActionResult> Register( [FromBody] UserRegister registerInfo )
@@ -69,6 +99,11 @@ public class AccountController : BaseController
             if (registerInfo.Email is null)
             {
                 return BadRequest( "EmailOfRegisterInfoIsNull" );
+            }
+
+            if (registerInfo.Password is null)
+            {
+                return BadRequest( "PasswordShoudBeFilled" );
             }
 
             bool isAlreadyRegistered = await DbContext.
@@ -100,13 +135,13 @@ public class AccountController : BaseController
             try
             {
                 string decryptedPassword = PasswordHelper.DecryptNewPassword( registerInfo.Password, firstKey, secondKey );
-                if (decryptedPassword?.Length >= MIN_PASSWORD_LENGTH)
+                if (MIN_PASSWORD_LENGTH <= decryptedPassword?.Length && decryptedPassword.Length <= MAX_PASSWORD_LENGTH)
                 {
                     registerInfo.Password = decryptedPassword;
                 }
                 else
                 {
-                    result = BadRequest( "PasswordLengthIsLessThanEightCharacters" );
+                    result = BadRequest( "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
                 }
             }
             catch
@@ -116,10 +151,8 @@ public class AccountController : BaseController
 
             if (result is null)
             {
-                User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
-
-                RegisterResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ) );
-                result = Ok( response );
+                await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
+                result = Ok();
             }
 
             return result;
@@ -131,6 +164,13 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async () =>
         {
+            #region Check parameter
+            if (userlogin.Password is null)
+            {
+                return BadRequest( "PasswordShouldBeFilled" );
+            }
+            #endregion
+
             IActionResult? result = null;
 
             string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
@@ -205,7 +245,6 @@ public class AccountController : BaseController
         } );
     }
 
-
     [AllowAnonymous]
     [HttpPost( "simpleauthentication" )]
     public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
@@ -232,21 +271,16 @@ public class AccountController : BaseController
             }
             #endregion
 
-            IActionResult? result = null;
+            User user = await m_authService.RegisterAsync( registerInfo ).ConfigureAwait( false );
+            var response = new { Token = m_jwtTokenService.GetToken( user ) };
 
-            if (result is null)
-            {
-                User user = await m_authService.RegisterAsync( registerInfo ).ConfigureAwait( false );
-
-                RegisterResponse response = new( "You are right", Token: m_jwtTokenService.GetToken( user ) );
-                result = Ok( response );
-            }
-
+            IActionResult result = Ok( response );
             return result;
         } );
     }
 #endif
 
+    [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
     [HttpDelete( "{userId}" )]
     public Task<IActionResult> Delete( long userId )
     {
@@ -368,13 +402,13 @@ public class AccountController : BaseController
                 {
                     string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
 
-                    if (decryptedPassword.Length >= MIN_PASSWORD_LENGTH)
+                    if (MIN_PASSWORD_LENGTH <= decryptedPassword?.Length && decryptedPassword.Length <= MAX_PASSWORD_LENGTH)
                     {
                         user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
                     }
                     else
                     {
-                        result = BadRequest( "PasswordLengthIsLessThanEightCharacters" );
+                        result = BadRequest( "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
                     }
                 }
                 catch
