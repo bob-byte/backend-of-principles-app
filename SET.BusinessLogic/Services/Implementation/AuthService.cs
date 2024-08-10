@@ -32,12 +32,21 @@ public class AuthService : IAuthService
 
         if (user is null)
         {
-            Gender gender = await GoogleUserGenderAsync( accessToken ).DefaultConfigureAwait();
+            Gender gender;
+            try
+            {
+                gender = await GoogleUserGenderAsync( accessToken ).DefaultConfigureAwait();
+            }
+            catch (Exception ex) //an user may not provide access to his/her gender
+            {
+                Log.Error( ex, ex.Message );
+                gender = Gender.Other;
+            }
 
             var userRegister = new UserRegister()
             {
                 Email = payload.Email,
-                Name = payload.Name,
+                Name = payload.GivenName,
                 Gender = gender
             };
 
