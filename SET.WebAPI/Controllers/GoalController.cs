@@ -25,6 +25,7 @@ public class GoalController : BaseController
                     Id = g.Id,
                     Name = g.Name
                 } ).
+                OrderBy( g => g.Id ).
                 ToListAsync().
                 DefaultConfigureAwait();
 
