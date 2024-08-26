@@ -13,13 +13,13 @@ public class AreaOfLifeController : BaseController
     }
 
     [HttpGet]
-    public Task<IActionResult> Index( [FromQuery] long userId )
+    public Task<IActionResult> Index( )
     {
-        return TryCatchAsync( userId, async ( user ) =>
+        return TryCatchAsync( async ( user ) =>
         {
             List<UserAreaOfLife> userAreasOfLife = await DbContext.
                 UserAreasOfLife.
-                Where( u => u.UserId == userId ).
+                Where( u => u.UserId == user.Id ).
                 ToListAsync();
 
             List<UserAreaOfLifeDto> result = Mapper.Map<List<UserAreaOfLifeDto>>( userAreasOfLife );

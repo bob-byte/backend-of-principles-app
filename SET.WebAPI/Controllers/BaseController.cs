@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
 
+using BusinessLogic;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,11 +22,13 @@ public class BaseController : ControllerBase
         ServiceProvider = serviceProvider;
         DbContext = ServiceProvider.GetService<AppDbContext>();
         Mapper = ServiceProvider.GetService<IMapper>();
+        m_jwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
     }
 
     protected IServiceProvider ServiceProvider { get; }
     protected AppDbContext DbContext { get; }
     protected IMapper Mapper { get; }
+    protected IJwtTokenService m_jwtTokenService { get; }
 
     protected async Task<IActionResult> CheckUserIdAsync(long userId)
     {
@@ -42,25 +47,34 @@ public class BaseController : ControllerBase
         return actionResult;
     }
 
-    protected async Task<IActionResult> TryCatchAsync( long userId, Func<User, Task<IActionResult>> action )
+    protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action )
     {
-        User? user = await DbContext.Users.FindAsync( userId );
-
         IActionResult result;
-        if (user == null)
+
+        try
         {
-            result = BadRequest( error: "UserIsNotFound" );
+            string? token = await HttpContext.GetTokenAsync( "access_token" ).DefaultConfigureAwait();
+
+            long userId = m_jwtTokenService.GetUserIdFromJwt( token );
+            if (userId == null)
+            {
+                return BadRequest( "User ID could not be retrieved from the token." );
+            }
+
+            User? user = await DbContext.Users.FindAsync( userId ).DefaultConfigureAwait();
+
+            if (user is null)
+            {
+                result = BadRequest( error: "UserIsNotFound" );
+            }
+            else
+            {
+                result = await action( user ).DefaultConfigureAwait();
+            }
         }
-        else
+        catch (Exception ex)
         {
-            try
-            {
-                result = await action(user);
-            }
-            catch (Exception ex)
-            {
-                result = WriteExceptionStatus( ex );
-            }
+            result = WriteExceptionStatus( ex );
         }
 
         return result;

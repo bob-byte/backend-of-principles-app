@@ -11,13 +11,13 @@ public class HabitController : BaseController
         //do nothing
     }
 
-    [HttpGet( template: "inprogress/{userId}" )]
-    public Task<IActionResult> InProgressIndex( long userId )
+    [HttpGet( template: "inprogress" )]
+    public Task<IActionResult> InProgressIndex( )
     {
-        return TryCatchAsync( userId, async ( user ) =>
+        return TryCatchAsync( async ( user ) =>
         {
             List<UserHabit> listOfHabits = await DbContext.UserHabits.
-                Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == userId ).
+                Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id ).
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
@@ -69,9 +69,9 @@ public class HabitController : BaseController
     }
 
     [HttpPost( template: "{habitId}" )]
-    public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto, [FromQuery] long userId )
+    public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto )
     {
-        return TryCatchAsync( userId, async (User user) =>
+        return TryCatchAsync( async (User user) =>
         {
             #region Check habitDto param
             bool isCorrectArg = habitDto != null;
@@ -89,7 +89,7 @@ public class HabitController : BaseController
 
             List<UserHabit> userHabitList = await DbContext.
                 UserHabits.
-                Where( h => h.UserId == userId ).
+                Where( h => h.UserId == user.Id ).
                 ToListAsync().
                 DefaultConfigureAwait();
 
@@ -110,7 +110,7 @@ public class HabitController : BaseController
             if (isNewHabit)
             {
                 habit = Mapper.Map<UserHabit>( habitDto );
-                habit.UserId = userId;
+                habit.UserId = user.Id;
                 habit.Goal = null;
                 habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
             }
@@ -194,10 +194,10 @@ public class HabitController : BaseController
         } );
     }
 
-    [HttpPut("priorities/{userId}")]
-    public Task<IActionResult> ResetPrioritiesAsync( long userId, [FromBody] List<UserHabitWithPriority> habits )
+    [HttpPut("priorities")]
+    public Task<IActionResult> ResetPrioritiesAsync( [FromBody] List<UserHabitWithPriority> habits )
     {
-        return TryCatchAsync( userId, async (user) =>
+        return TryCatchAsync( async (user) =>
         {
             #region Check param
             if (habits == null || habits.Count < 2)
@@ -208,7 +208,7 @@ public class HabitController : BaseController
 
             List<UserHabit> userHabitList = await DbContext.
                 UserHabits.
-                Where( h => h.UserId == userId ).
+                Where( h => h.UserId == user.Id ).
                 ToListAsync().
                 DefaultConfigureAwait();
 

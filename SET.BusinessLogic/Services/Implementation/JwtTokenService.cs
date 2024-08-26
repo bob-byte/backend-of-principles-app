@@ -5,6 +5,7 @@ using SET.Shared.Models;
 
 using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Text;
 
@@ -36,5 +37,29 @@ public class JwtTokenService : IJwtTokenService
 
         SecurityToken token = tokenHandler.CreateToken( tokenDescriptor );
         return tokenHandler.WriteToken( token );
+    }
+
+    public long GetUserIdFromJwt( string token )
+    {
+        if (string.IsNullOrWhiteSpace( token ))
+        {
+            throw new HttpRequestException( "Access token is null or whitespace" );
+        }
+
+        JwtSecurityTokenHandler handler = new();
+        var jsonToken = handler.ReadToken( token ) as JwtSecurityToken;
+
+        string userIdAsStr = jsonToken.Claims.FirstOrDefault( c => c.Type == "nameid" )?.Value;
+        bool isParsedUserId = long.TryParse( userIdAsStr, out long userId );
+        if (!isParsedUserId)
+        {
+            userIdAsStr = jsonToken?.Claims.FirstOrDefault( c => c.Type == "name" )?.Value;
+            isParsedUserId = long.TryParse( userIdAsStr, out userId );
+            if (!isParsedUserId)
+            {
+                throw new HttpRequestException( "User ID is not in Access token" );
+            }
+        }
+        return userId;
     }
 }

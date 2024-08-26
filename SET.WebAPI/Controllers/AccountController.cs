@@ -282,13 +282,13 @@ public class AccountController : BaseController
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
     [HttpDelete( "{userId}" )]
-    public Task<IActionResult> Delete( long userId )
+    public Task<IActionResult> Delete( )
     {
-        return TryCatchAsync( userId, async ( user ) =>
+        return TryCatchAsync( async ( user ) =>
         {
             List<UserHabit> habits = await DbContext.
                 UserHabits.
-                Where( u => u.UserId == userId ).
+                Where( u => u.UserId == user.Id ).
                 Include( u => u.Frequency ).
                 Include( u => u.Progresses ).
                 Include( u => u.AreasOfLife ).
@@ -302,9 +302,9 @@ public class AccountController : BaseController
             DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            await DbContext.UserAreasOfLife.Where( u => u.UserId == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
-            await DbContext.ClientLogs.Where( u => u.UserId == userId ).ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) ).DefaultConfigureAwait();
-            await DbContext.Users.Where( u => u.Id == userId ).ExecuteDeleteAsync().DefaultConfigureAwait();
+            await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
+            await DbContext.ClientLogs.Where( u => u.UserId == user.Id ).ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) ).DefaultConfigureAwait();
+            await DbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
 
             return Ok();
         } );

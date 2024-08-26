@@ -14,12 +14,12 @@ public class GoalController : BaseController
     }
 
     [HttpGet]
-    public Task<IActionResult> Index( [FromQuery] long userId )
+    public Task<IActionResult> Index( )
     {
-        return TryCatchAsync( async () =>
+        return TryCatchAsync( async (user) =>
         {
             List<UserGoalDto> userGoals = await DbContext.UserGoals.
-                Where( g => g.UserId == userId ).
+                Where( g => g.UserId == user.Id ).
                 Select( g => new UserGoalDto
                 {
                     Id = g.Id,
@@ -77,9 +77,9 @@ public class GoalController : BaseController
     }
 
     [HttpPost(template: "{goalId}")]
-    public Task<IActionResult> Update( [FromBody] UserGoalDto userGoal, [FromQuery( Name = "userId" )] long userId )
+    public Task<IActionResult> Update( [FromBody] UserGoalDto userGoal)
     {
-        return TryCatchAsync( userId, async (User _) =>
+        return TryCatchAsync( async (User user) =>
         {
             #region Check parameter
             if(userGoal is null)
@@ -103,7 +103,7 @@ public class GoalController : BaseController
                 var newGoal = new UserGoal
                 {
                     Name = userGoal.Name,
-                    UserId = userId
+                    UserId = user.Id
                 };
 
                 await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();

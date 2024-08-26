@@ -22,9 +22,9 @@ public class ProfileController : BaseController
     }
 
     [HttpGet( template: "{userId}" )]
-    public Task<IActionResult> LoadAsync(long userId)
+    public Task<IActionResult> LoadAsync( )
     {
-        return TryCatchAsync( userId, ( User user ) =>
+        return TryCatchAsync( ( User user ) =>
         {
             Profile data = Mapper.Map<Profile>( user );
             IActionResult actionResult = Ok( data );
@@ -33,9 +33,9 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "name/{userId}" )]
-    public Task<IActionResult> SaveNameAsync( long userId, [FromBody] string name )
+    public Task<IActionResult> SaveNameAsync( [FromBody] string name )
     {
-        return TryCatchAsync( userId, async ( User user ) =>
+        return TryCatchAsync( async ( User user ) =>
         {
             user.Name = name;
             DbContext.Users.Update( user );
@@ -47,9 +47,9 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mainslogan/{userId}" )]
-    public Task<IActionResult> SaveMainSloganAsync( long userId, [FromBody] string mainSlogan )
+    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string mainSlogan )
     {
-        return TryCatchAsync( userId, async ( User user ) =>
+        return TryCatchAsync( async ( User user ) =>
         {
             user.MainSlogan = mainSlogan;
             DbContext.Users.Update( user );
@@ -61,9 +61,9 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mission/{userId}" )]
-    public Task<IActionResult> SaveMissionAsync( long userId, [FromBody] string mission )
+    public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
-        return TryCatchAsync( userId, async ( User user ) =>
+        return TryCatchAsync( async ( User user ) =>
         {
             user.Mission = mission;
             DbContext.Users.Update( user );
