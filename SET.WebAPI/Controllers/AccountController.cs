@@ -206,6 +206,7 @@ public class AccountController : BaseController
                 {
                     User user = loginResult.user;
 
+                    //TODO: remove returning user.Id
                     LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
                     result = Ok( response );
                 }

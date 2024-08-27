@@ -55,6 +55,7 @@ public class AuthService : IAuthService
 
         string token = m_jwtTokenService.GetToken( user );
 
+        //TODO: remove returning user.Id
         GoogleAuthResponse response = new( user.Id, token );
         return response;
     }
@@ -78,7 +79,7 @@ public class AuthService : IAuthService
 
         await m_context.SaveChangesAsync().DefaultConfigureAwait();
 
-        Log.Information( "Successfully registered new user" );
+        Log.Information( $"Successfully registered new user with email {userRegister.Email}" );
 
         return user;
     }
