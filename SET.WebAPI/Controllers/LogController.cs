@@ -1,4 +1,6 @@
-﻿using Serilog.Events;
+﻿using Microsoft.AspNetCore.Authentication;
+
+using Serilog.Events;
 
 using System;
 namespace SET.WebAPI.Controllers;
@@ -20,6 +22,16 @@ public class LogController : BaseController
         {
             IActionResult? result = null;
             ClientLog newClientLog = Mapper.Map<ClientLog>( saveLogRequest );
+
+            try
+            {
+                string accessToken = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
+                newClientLog.UserId = m_jwtTokenService.GetUserIdFromJwt( accessToken );
+            }
+            catch
+            {
+                newClientLog.UserId = null;
+            }
 
             string email = string.Empty;
             if (newClientLog.UserId > 0)
@@ -47,7 +59,7 @@ public class LogController : BaseController
                     (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
                         ? string.Empty
                         : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
-                    (saveLogRequest.UserId is 0
+                    (newClientLog.UserId is null or 0
                         ? string.Empty
                         : $"User email = {email};{newLine}") +
                     $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +

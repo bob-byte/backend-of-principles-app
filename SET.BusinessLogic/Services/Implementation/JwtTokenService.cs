@@ -1,9 +1,6 @@
 ﻿
 using Microsoft.IdentityModel.Tokens;
 
-using SET.Shared.Models;
-
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
 using System.Security.Claims;
@@ -31,7 +28,7 @@ public class JwtTokenService : IJwtTokenService
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new(ClaimTypes.Role, "FreeAccount")
             } ),
-            Expires = DateTime.Today.AddDays(7),//TODO: implement token refresh
+            Expires = DateTime.Today.AddDays(7),
             SigningCredentials = new SigningCredentials( new SymmetricSecurityKey( key ), SecurityAlgorithms.HmacSha256Signature )
         };
 
@@ -43,13 +40,14 @@ public class JwtTokenService : IJwtTokenService
     {
         if (string.IsNullOrWhiteSpace( token ))
         {
-            throw new HttpRequestException( "Access token is null or whitespace" );
+            throw new HttpRequestException( "AccessTokenIsNullOrWhitespace" );
         }
 
         JwtSecurityTokenHandler handler = new();
-        var jsonToken = handler.ReadToken( token ) as JwtSecurityToken;
+        JwtSecurityToken jsonToken = handler.ReadToken( token ) as JwtSecurityToken
+            ?? throw new HttpRequestException( "JwtSecurityTokenIsNull" );
 
-        string userIdAsStr = jsonToken.Claims.FirstOrDefault( c => c.Type == "nameid" )?.Value;
+        string? userIdAsStr = jsonToken.Claims.FirstOrDefault( c => c.Type == "nameid" )?.Value;
         bool isParsedUserId = long.TryParse( userIdAsStr, out long userId );
         if (!isParsedUserId)
         {
@@ -57,9 +55,10 @@ public class JwtTokenService : IJwtTokenService
             isParsedUserId = long.TryParse( userIdAsStr, out userId );
             if (!isParsedUserId)
             {
-                throw new HttpRequestException( "User ID is not in Access token" );
+                throw new HttpRequestException( "UserIdIsNotInAccessToken" );
             }
         }
+
         return userId;
     }
 }

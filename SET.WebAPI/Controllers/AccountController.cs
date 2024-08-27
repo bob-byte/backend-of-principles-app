@@ -281,8 +281,8 @@ public class AccountController : BaseController
 #endif
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
-    [HttpDelete( "{userId}" )]
-    public Task<IActionResult> Delete( )
+    [HttpDelete]
+    public Task<IActionResult> Delete()
     {
         return TryCatchAsync( async ( user ) =>
         {

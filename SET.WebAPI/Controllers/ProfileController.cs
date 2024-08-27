@@ -21,8 +21,8 @@ public class ProfileController : BaseController
         //do nothing
     }
 
-    [HttpGet( template: "{userId}" )]
-    public Task<IActionResult> LoadAsync( )
+    [HttpGet]
+    public Task<IActionResult> LoadAsync()
     {
         return TryCatchAsync( ( User user ) =>
         {
@@ -32,7 +32,7 @@ public class ProfileController : BaseController
         } );
     }
 
-    [HttpPut( template: "name/{userId}" )]
+    [HttpPut( template: "name" )]
     public Task<IActionResult> SaveNameAsync( [FromBody] string name )
     {
         return TryCatchAsync( async ( User user ) =>
@@ -40,13 +40,13 @@ public class ProfileController : BaseController
             user.Name = name;
             DbContext.Users.Update( user );
 
-            await DbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             IActionResult actionResult = Ok();
             return actionResult;
         } );
     }
 
-    [HttpPut( template: "mainslogan/{userId}" )]
+    [HttpPut( template: "mainslogan" )]
     public Task<IActionResult> SaveMainSloganAsync( [FromBody] string mainSlogan )
     {
         return TryCatchAsync( async ( User user ) =>
@@ -54,13 +54,13 @@ public class ProfileController : BaseController
             user.MainSlogan = mainSlogan;
             DbContext.Users.Update( user );
 
-            await DbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             IActionResult actionResult = Ok();
             return actionResult;
         } );
     }
 
-    [HttpPut( template: "mission/{userId}" )]
+    [HttpPut( template: "mission" )]
     public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
         return TryCatchAsync( async ( User user ) =>
@@ -68,7 +68,7 @@ public class ProfileController : BaseController
             user.Mission = mission;
             DbContext.Users.Update( user );
 
-            await DbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             IActionResult actionResult = Ok();
             return actionResult;
         } );

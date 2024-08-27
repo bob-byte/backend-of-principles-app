@@ -53,12 +53,12 @@ public class BaseController : ControllerBase
 
         try
         {
-            string? token = await HttpContext.GetTokenAsync( "access_token" ).DefaultConfigureAwait();
+            string? token = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
 
             long userId = m_jwtTokenService.GetUserIdFromJwt( token );
-            if (userId == null)
+            if (userId <= 0)
             {
-                return BadRequest( "User ID could not be retrieved from the token." );
+                return BadRequest( "UserIdCouldNotBeRetrievedFromTheToken." );
             }
 
             User? user = await DbContext.Users.FindAsync( userId ).DefaultConfigureAwait();

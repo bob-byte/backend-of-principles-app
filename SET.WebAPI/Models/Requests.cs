@@ -8,7 +8,6 @@ public record GetAiAnswerRequest(string Prompt);
 
 public class SaveLogRequest
 {
-    public long UserId { get; set; }
     public string DeviceOs { get; set; }
     public string? DeviceModelName { get; set; }
     public string DeviceType { get; set; }
