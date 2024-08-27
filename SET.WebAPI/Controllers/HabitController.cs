@@ -11,8 +11,8 @@ public class HabitController : BaseController
         //do nothing
     }
 
-    [HttpGet( template: "inprogress" )]
-    public Task<IActionResult> InProgressIndex( )
+    [HttpGet( template: "inprogress/{userId}" )]
+    public Task<IActionResult> InProgressIndex()
     {
         return TryCatchAsync( async ( user ) =>
         {

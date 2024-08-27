@@ -32,7 +32,7 @@ public class ProfileController : BaseController
         } );
     }
 
-    [HttpPut( template: "name" )]
+    [HttpPut( template: "name/{userId}" )]
     public Task<IActionResult> SaveNameAsync( [FromBody] string name )
     {
         return TryCatchAsync( async ( User user ) =>
@@ -46,7 +46,7 @@ public class ProfileController : BaseController
         } );
     }
 
-    [HttpPut( template: "mainslogan" )]
+    [HttpPut( template: "mainslogan/{userId}" )]
     public Task<IActionResult> SaveMainSloganAsync( [FromBody] string mainSlogan )
     {
         return TryCatchAsync( async ( User user ) =>
@@ -60,7 +60,7 @@ public class ProfileController : BaseController
         } );
     }
 
-    [HttpPut( template: "mission" )]
+    [HttpPut( template: "mission/{userId}" )]
     public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
         return TryCatchAsync( async ( User user ) =>

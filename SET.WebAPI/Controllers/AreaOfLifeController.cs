@@ -12,8 +12,8 @@ public class AreaOfLifeController : BaseController
         //do nothing
     }
 
-    [HttpGet]
-    public Task<IActionResult> Index( )
+    [HttpGet( template: "{userId}" )]
+    public Task<IActionResult> Index()
     {
         return TryCatchAsync( async ( user ) =>
         {

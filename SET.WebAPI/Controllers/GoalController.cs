@@ -13,7 +13,7 @@ public class GoalController : BaseController
         //do nothing
     }
 
-    [HttpGet]
+    [HttpGet( template: "{userId}" )]
     public Task<IActionResult> Index( )
     {
         return TryCatchAsync( async (user) =>
