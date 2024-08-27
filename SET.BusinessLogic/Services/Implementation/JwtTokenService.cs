@@ -51,7 +51,7 @@ public class JwtTokenService : IJwtTokenService
         bool isParsedUserId = long.TryParse( userIdAsStr, out long userId );
         if (!isParsedUserId)
         {
-            userIdAsStr = jsonToken?.Claims.FirstOrDefault( c => c.Type == "name" )?.Value;
+            userIdAsStr = jsonToken?.Claims.FirstOrDefault( c => c.Type == "unique_name" )?.Value;
             isParsedUserId = long.TryParse( userIdAsStr, out userId );
             if (!isParsedUserId)
             {
