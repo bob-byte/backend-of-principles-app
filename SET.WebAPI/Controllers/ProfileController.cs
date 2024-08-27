@@ -21,7 +21,7 @@ public class ProfileController : BaseController
         //do nothing
     }
 
-    [HttpGet]
+    [HttpGet(template: "{userId}")]
     public Task<IActionResult> LoadAsync()
     {
         return TryCatchAsync( ( User user ) =>
