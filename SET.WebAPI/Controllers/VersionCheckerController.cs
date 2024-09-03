@@ -1,21 +1,30 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using SET.WebAPI.Resources.AppStrings;
+
+using System.Globalization;
+
 namespace SET.WebAPI.Controllers;
 
-public class VersionChecker : BaseController
+public class VersionCheckerController : BaseController
 {
     private readonly IConfiguration m_configuration;
-    public VersionChecker( IServiceProvider serviceProvider )
+    public VersionCheckerController( IServiceProvider serviceProvider )
        : base( serviceProvider )
     {
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
     }
 
-    [HttpGet( "versioncheck" )]
-    public async Task<IActionResult> GetAppVersionAsync()
+    [HttpGet( "version/frontendlatestversion/{language}" )]
+    public async Task<IActionResult> GetAppVersionAsync( string language )
     {
-        string appVersion = m_configuration["VersionSettings:CurrentVersion"];
-        return Ok( appVersion );
+        LocStrings.Culture = CultureInfo.GetCultureInfo( language );
+        LatestVersionResponse latestVersionResponse = new LatestVersionResponse()
+        {
+            AppVersion = m_configuration["VersionSettings:LatestVersion"],
+            VersionDescription = LocStrings.VersionDescription
+        };
+        return Ok( new { latestVersionResponse } );
     }
 }

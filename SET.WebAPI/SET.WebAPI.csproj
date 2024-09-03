@@ -33,4 +33,22 @@
     <ProjectReference Include="..\SET.BusinessLogic\SET.BusinessLogic.csproj" />
     <ProjectReference Include="..\SET.DAL\SET.DataAccess.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Resources\AppStrings\LocStrings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LocStrings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\AppStrings\LocStrings.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>LocStrings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\AppStrings\LocStrings.uk.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>
