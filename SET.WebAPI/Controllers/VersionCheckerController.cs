@@ -16,15 +16,14 @@ public class VersionCheckerController : BaseController
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
     }
 
-    [HttpGet( "version/frontendlatestversion/{language}" )]
-    public async Task<IActionResult> GetAppVersionAsync( string language )
+    [HttpGet( "version/frontendlatest" )]
+    public async Task<IActionResult> GetAppVersionAsync( [FromQuery] string language )
     {
-        LocStrings.Culture = CultureInfo.GetCultureInfo( language );
         LatestVersionResponse latestVersionResponse = new LatestVersionResponse()
         {
-            AppVersion = m_configuration["VersionSettings:LatestVersion"],
-            VersionDescription = LocStrings.VersionDescription
+            AppVersion = m_configuration["VersionSettings:LatestFrontendVersion"],
+            VersionDescription = LocStrings.ResourceManager.GetString( "VersionDescription", CultureInfo.GetCultureInfo( language ) )
         };
-        return Ok( new { latestVersionResponse } );
+        return Ok( latestVersionResponse );
     }
 }
