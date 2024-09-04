@@ -18,14 +18,12 @@ public class AccountController : BaseController
     private readonly Lazy<SmtpClient> m_smtpClient;
 
     private readonly IAuthService m_authService;
-    private readonly IJwtTokenService m_jwtTokenService;
     private readonly IConfiguration m_configuration;
 
     public AccountController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
         m_authService = serviceProvider.GetRequiredService<IAuthService>();
-        m_jwtTokenService = serviceProvider.GetRequiredService<IJwtTokenService>();
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
 
         m_smtpClient = new Lazy<SmtpClient>( () =>
@@ -207,7 +205,7 @@ public class AccountController : BaseController
                     User user = loginResult.user;
 
                     //TODO: remove returning user.Id
-                    LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
+                    LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ), user.Id );
                     result = Ok( response );
                 }
                 else
@@ -234,7 +232,7 @@ public class AccountController : BaseController
             {
                 User user = loginResult.user;
 
-                LoginResponse response = new( Message: "You are right", Token: m_jwtTokenService.GetToken( user ), user.Id );
+                LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ), user.Id );
                 result = Ok( response );
             }
             else
@@ -273,7 +271,7 @@ public class AccountController : BaseController
             #endregion
 
             User user = await m_authService.RegisterAsync( registerInfo ).ConfigureAwait( false );
-            var response = new { Token = m_jwtTokenService.GetToken( user ) };
+            var response = new { Token = JwtTokenService.GetToken( user ) };
 
             IActionResult result = Ok( response );
             return result;

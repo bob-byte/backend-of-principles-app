@@ -15,6 +15,7 @@ using System;
 
 namespace SET.WebAPI.Controllers;
 
+[Route("api")]
 public class BaseController : ControllerBase
 {
     public BaseController( IServiceProvider serviceProvider )
@@ -22,13 +23,13 @@ public class BaseController : ControllerBase
         ServiceProvider = serviceProvider;
         DbContext = ServiceProvider.GetService<AppDbContext>();
         Mapper = ServiceProvider.GetService<IMapper>();
-        m_jwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
+        JwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
     }
 
     protected IServiceProvider ServiceProvider { get; }
     protected AppDbContext DbContext { get; }
     protected IMapper Mapper { get; }
-    protected IJwtTokenService m_jwtTokenService { get; }
+    protected IJwtTokenService JwtTokenService { get; }
 
     protected async Task<IActionResult> CheckUserIdAsync(long userId)
     {
@@ -55,7 +56,7 @@ public class BaseController : ControllerBase
         {
             string? token = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
 
-            long userId = m_jwtTokenService.GetUserIdFromJwt( token );
+            long userId = JwtTokenService.GetUserIdFromJwt( token );
             if (userId <= 0)
             {
                 return BadRequest( "UserIdCouldNotBeRetrievedFromTheToken." );

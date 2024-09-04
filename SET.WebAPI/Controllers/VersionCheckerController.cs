@@ -10,6 +10,7 @@ namespace SET.WebAPI.Controllers;
 public class VersionCheckerController : BaseController
 {
     private readonly IConfiguration m_configuration;
+
     public VersionCheckerController( IServiceProvider serviceProvider )
        : base( serviceProvider )
     {

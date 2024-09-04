@@ -26,7 +26,7 @@ public class LogController : BaseController
             try
             {
                 string accessToken = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
-                newClientLog.UserId = m_jwtTokenService.GetUserIdFromJwt( accessToken );
+                newClientLog.UserId = JwtTokenService.GetUserIdFromJwt( accessToken );
             }
             catch
             {
