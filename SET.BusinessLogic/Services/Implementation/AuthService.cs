@@ -94,7 +94,7 @@ public class AuthService : IAuthService
         }
         else
         {
-            bool isCorrectPassword = PasswordHelper.VerifyPasswordHash( userLogin.Password, user.Password );
+            bool isCorrectPassword = user.Password is null || PasswordHelper.VerifyPasswordHash( userLogin.Password, user.Password );
             result = isCorrectPassword ? (user, null) : (user, "PasswordIsIncorrect" );
         }
 

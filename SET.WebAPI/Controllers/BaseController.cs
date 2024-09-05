@@ -15,7 +15,7 @@ using System;
 
 namespace SET.WebAPI.Controllers;
 
-[Route("api")]
+[Route( "api" )]
 public class BaseController : ControllerBase
 {
     public BaseController( IServiceProvider serviceProvider )
@@ -31,7 +31,7 @@ public class BaseController : ControllerBase
     protected IMapper Mapper { get; }
     protected IJwtTokenService JwtTokenService { get; }
 
-    protected async Task<IActionResult> CheckUserIdAsync(long userId)
+    protected async Task<IActionResult> CheckUserIdAsync( long userId )
     {
         User user = await DbContext.Users.FirstOrDefaultAsync( u => u.Id == userId ).DefaultConfigureAwait();
 
@@ -48,7 +48,7 @@ public class BaseController : ControllerBase
         return actionResult;
     }
 
-    protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action )
+    protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action, object? request = null )
     {
         IActionResult result;
 
@@ -75,28 +75,28 @@ public class BaseController : ControllerBase
         }
         catch (Exception ex)
         {
-            result = WriteExceptionStatus( ex );
+            result = WriteExceptionStatus( ex, request );
         }
 
         return result;
     }
 
-    protected async Task<IActionResult> TryCatchAsync(Func<Task<IActionResult>> action)
+    protected async Task<IActionResult> TryCatchAsync( Func<Task<IActionResult>> action, object? request = null )
     {
         IActionResult result;
         try
         {
             result = await action();
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            result = WriteExceptionStatus( ex );
+            result = WriteExceptionStatus( ex, request );
         }
 
         return result;
     }
 
-    protected IActionResult WriteExceptionStatus( Exception ex, int errorCode = 0 )
+    protected IActionResult WriteExceptionStatus( Exception ex, object? request = null, int errorCode = 0 )
     {
         if (ex.InnerException != null)
         {
@@ -108,7 +108,13 @@ public class BaseController : ControllerBase
             errorCode = 500;
         }
 
-        Log.Error( ex, ex.Message );
+        string errMsg = ex.Message;
+        if (request is not null)
+        {
+            errMsg = string.IsNullOrWhiteSpace( errMsg ) ? request.GetPropsAsStr() : $"{Environment.NewLine}{request}";
+        }
+
+        Log.Error( ex, errMsg );
         return new WebExceptionResult( errorCode, ex.Message );
     }
 }

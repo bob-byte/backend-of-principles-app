@@ -41,7 +41,7 @@ public static class PasswordHelper
             throw new ArgumentNullException(nameof(password));
         }
 
-        if (storedPasswordHash.Length != 192)
+        if (storedPasswordHash?.Length != 192)
         {
             throw new ArgumentException("Invalid length of password hash", nameof(storedPasswordHash));
         }
