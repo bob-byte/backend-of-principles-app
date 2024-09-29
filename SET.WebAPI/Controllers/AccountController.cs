@@ -205,7 +205,7 @@ public class AccountController : BaseController
                     User user = loginResult.user;
 
                     //TODO: remove returning user.Id
-                    LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ), user.Id );
+                    LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ) );
                     result = Ok( response );
                 }
                 else
@@ -232,7 +232,7 @@ public class AccountController : BaseController
             {
                 User user = loginResult.user;
 
-                LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ), user.Id );
+                LoginResponse response = new( Message: "You are right", Token: JwtTokenService.GetToken( user ) );
                 result = Ok( response );
             }
             else
@@ -280,7 +280,7 @@ public class AccountController : BaseController
 #endif
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
-    [HttpDelete(template: "{userId}")]
+    [HttpDelete]
     public Task<IActionResult> Delete()
     {
         return TryCatchAsync( async ( user ) =>

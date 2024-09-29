@@ -31,23 +31,6 @@ public class BaseController : ControllerBase
     protected IMapper Mapper { get; }
     protected IJwtTokenService JwtTokenService { get; }
 
-    protected async Task<IActionResult> CheckUserIdAsync( long userId )
-    {
-        User user = await DbContext.Users.FirstOrDefaultAsync( u => u.Id == userId ).DefaultConfigureAwait();
-
-        IActionResult actionResult;
-        if (user == null)
-        {
-            actionResult = BadRequest( error: "UserIsNotFound" );
-        }
-        else
-        {
-            actionResult = null;
-        }
-
-        return actionResult;
-    }
-
     protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action, object? request = null )
     {
         IActionResult result;
