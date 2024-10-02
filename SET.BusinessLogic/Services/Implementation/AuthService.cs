@@ -55,8 +55,7 @@ public class AuthService : IAuthService
 
         string token = m_jwtTokenService.GetToken( user );
 
-        //TODO: remove returning user.Id
-        GoogleAuthResponse response = new( user.Id, token );
+        GoogleAuthResponse response = new( token );
         return response;
     }
 
