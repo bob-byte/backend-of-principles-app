@@ -100,6 +100,8 @@
 	</resheader>
 
 	<data name="VersionDescription" xml:space="preserve">
-    <value>Here will be some new cool staff</value>
+    <value>It is one of the latest version before publishing to Google Play and App Store, so we ask you to test this version. We will be very grateful! In this version:
+		1. Information button added to the "Helper" tab;
+		2. the description of the main slogan and mission in the "Profile" tab has been implemented.</value>
   </data>
 </root>

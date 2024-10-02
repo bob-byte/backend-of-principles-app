@@ -48,8 +48,5 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>LocStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <EmbeddedResource Update="Resources\AppStrings\LocStrings.uk.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-    </EmbeddedResource>
   </ItemGroup>
 </Project>
