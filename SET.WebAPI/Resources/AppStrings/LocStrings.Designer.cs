@@ -58,9 +58,9 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to It is one of the latest version before publishing to Google Play and App Store, so we ask you to test this version. We will be very grateful! In this version:
-        ///		1. Information button added to the &quot;Helper&quot; tab;
-        ///		2. the description of the main slogan and mission in the &quot;Profile&quot; tab has been implemented..
+        ///   Looks up a localized string similar to It is one of the latest app version before publishing to Google Play and App Store, so we ask you to test this version. We will be grateful! In this version:
+        ///	1. Information button added to the &quot;Helper&quot; tab;
+        ///	2. the description of the main slogan and mission in the &quot;Profile&quot; tab has been implemented..
         /// </summary>
         internal static string VersionDescription {
             get {
