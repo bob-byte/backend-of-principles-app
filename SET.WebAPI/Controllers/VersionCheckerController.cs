@@ -24,7 +24,7 @@ public class VersionCheckerController : BaseController
         {
             var appClientCulture = CultureInfo.GetCultureInfo( language );
 
-            bool isClientAppAndroid = osPlatform is not null && osPlatform.ToLower().Contains( "android" );
+            bool isClientAppAndroid = osPlatform is null || osPlatform.ToLower().Contains( "android" );
             string pathToLocalizedVersionDescr = isClientAppAndroid ? "AndroidVersionDescription" : "IosVersionDescription";
 
             LatestVersionResponse latestVersionResponse = new()
