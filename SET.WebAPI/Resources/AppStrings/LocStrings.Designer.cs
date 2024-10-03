@@ -58,13 +58,20 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to It is one of the latest app version before publishing to Google Play and App Store, so we ask you to test this version. We will be grateful! In this version:
-        ///	1. Information button added to the &quot;Helper&quot; tab;
-        ///	2. the description of the main slogan and mission in the &quot;Profile&quot; tab has been implemented..
+        ///   Looks up a localized string similar to Fixed bugs and improved the update window..
         /// </summary>
-        internal static string VersionDescription {
+        internal static string AndroidVersionDescription {
             get {
-                return ResourceManager.GetString("VersionDescription", resourceCulture);
+                return ResourceManager.GetString("AndroidVersionDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fixed bugs and improved the update window..
+        /// </summary>
+        internal static string IosVersionDescription {
+            get {
+                return ResourceManager.GetString("IosVersionDescription", resourceCulture);
             }
         }
     }

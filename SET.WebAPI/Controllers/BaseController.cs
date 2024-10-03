@@ -21,8 +21,8 @@ public class BaseController : ControllerBase
     public BaseController( IServiceProvider serviceProvider )
     {
         ServiceProvider = serviceProvider;
-        DbContext = ServiceProvider.GetService<AppDbContext>();
-        Mapper = ServiceProvider.GetService<IMapper>();
+        DbContext = ServiceProvider.GetRequiredService<AppDbContext>();
+        Mapper = ServiceProvider.GetRequiredService<IMapper>();
         JwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
     }
 
@@ -69,7 +69,55 @@ public class BaseController : ControllerBase
         IActionResult result;
         try
         {
-            result = await action();
+            result = await action().DefaultConfigureAwait();
+        }
+        catch (Exception ex)
+        {
+            result = WriteExceptionStatus( ex, request );
+        }
+
+        return result;
+    }
+
+    protected async Task<IActionResult> TryCatch( Func<User, IActionResult> action, object? request = null )
+    {
+        IActionResult result;
+
+        try
+        {
+            string? token = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
+
+            long userId = JwtTokenService.GetUserIdFromJwt( token );
+            if (userId <= 0)
+            {
+                return BadRequest( "UserIdCouldNotBeRetrievedFromTheToken." );
+            }
+
+            User? user = await DbContext.Users.FindAsync( userId ).DefaultConfigureAwait();
+
+            if (user is null)
+            {
+                result = BadRequest( error: "UserIsNotFound" );
+            }
+            else
+            {
+                result = action( user );
+            }
+        }
+        catch (Exception ex)
+        {
+            result = WriteExceptionStatus( ex, request );
+        }
+
+        return result;
+    }
+
+    protected IActionResult TryCatch( Func<IActionResult> action, object? request = null )
+    {
+        IActionResult result;
+        try
+        {
+            result = action();
         }
         catch (Exception ex)
         {

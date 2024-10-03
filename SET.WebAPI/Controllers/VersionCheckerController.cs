@@ -18,13 +18,21 @@ public class VersionCheckerController : BaseController
     }
 
     [HttpGet( "version/frontendlatest" )]
-    public async Task<IActionResult> GetAppVersionAsync( [FromQuery] string language )
+    public IActionResult GetLatestClientAppVersionAsStr( [FromQuery] string language, [FromQuery] string? osPlatform )
     {
-        LatestVersionResponse latestVersionResponse = new LatestVersionResponse()
+        return TryCatch( () =>
         {
-            AppVersion = m_configuration["VersionSettings:LatestFrontendVersion"],
-            VersionDescription = LocStrings.ResourceManager.GetString( "VersionDescription", CultureInfo.GetCultureInfo( language ) )
-        };
-        return Ok( latestVersionResponse );
+            var appClientCulture = CultureInfo.GetCultureInfo( language );
+
+            bool isClientAppAndroid = osPlatform is not null && osPlatform.ToLower().Contains( "android" );
+            string pathToLocalizedVersionDescr = isClientAppAndroid ? "AndroidVersionDescription" : "IosVersionDescription";
+
+            LatestVersionResponse latestVersionResponse = new()
+            {
+                AppVersion = isClientAppAndroid ? m_configuration["ClientVersions:Android"] : m_configuration["ClientVersions:iOS"],
+                VersionDescription = LocStrings.ResourceManager.GetString( pathToLocalizedVersionDescr, appClientCulture )
+            };
+            return Ok( latestVersionResponse );
+        } );
     }
 }
