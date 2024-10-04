@@ -100,7 +100,7 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-      <value>Fixing login and registration using google.</value>
+      <value>Fixing splash screen and returning to the app after logging in to Google.</value>
     </data>
     <data name="IosVersionDescription" xml:space="preserve">
       <value>Fixed bugs and improved the update window.</value>
