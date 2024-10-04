@@ -22,6 +22,8 @@ public class HabitController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
+                Include( u => u.Reminders ).
+                ThenInclude(u => u.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -59,8 +61,18 @@ public class HabitController : BaseController
                     ToListAsync().
                     DefaultConfigureAwait();
 
+                UserHabitReminder reminder = await DbContext.UserHabitReminders
+                .Where( r => r.UserHabitId == habitId )
+                .FirstOrDefaultAsync()
+                .DefaultConfigureAwait();
+
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
                 resultData.AreasOfLife = Mapper.Map<List<UserAreaOfLifeDto>>( areasOfLife );
+                resultData.UserHabitReminders = new List<UserHabitReminderDto>
+                {
+                    Mapper.Map<UserHabitReminderDto>( reminder )
+                };
+
                 result = Ok( resultData );
             }
 
@@ -172,6 +184,81 @@ public class HabitController : BaseController
 
             if (isNewHabit)
             {
+                if (habitDto.UserHabitReminders?.Any() == true)
+                {
+                    List<UserHabitReminderDto> currentReminders = habitDto.UserHabitReminders.ToList();
+                    foreach (UserHabitReminderDto reminder in currentReminders)
+                    {
+                        await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
+                        {
+                            UserHabit = habit,
+                            Title = reminder.Title,
+                            Description = reminder.Description,
+                            Time = reminder.Time,
+                            IsEnabled = reminder.IsEnabled,
+                            DaysOfWeek = reminder.DaysOfWeek.Select( day => new WeekDay
+                            {
+                                Type = day
+                            } ).ToList()
+                        } );
+                    }
+                }
+            }
+            else
+            {
+                IEnumerable<long> sourceRemindersIds = habitDto.UserHabitReminders is null
+                    ? Enumerable.Empty<long>()
+                    : habitDto.UserHabitReminders.Select( s => s.Id );
+
+                UserHabitReminder[] targetReminders = DbContext.UserHabitReminders
+                    .Where( u => u.UserHabitId == habit.Id )
+                    .ToArray();
+
+                IEnumerable<UserHabitReminder> remindersToDelete = targetReminders
+                    .Where( s => !sourceRemindersIds.Contains( s.Id ) );
+                DbContext.UserHabitReminders.RemoveRange( remindersToDelete );
+
+                IEnumerable<UserHabitReminder> remindersToAdd = habitDto.UserHabitReminders is null
+                    ? Enumerable.Empty<UserHabitReminder>()
+                    : habitDto.UserHabitReminders
+                    .Where( r => r.Id == 0 )
+                    .Select( r => new UserHabitReminder
+                    {
+                        Title = r.Title,
+                        Description = r.Description,
+                        Time = r.Time,
+                        IsEnabled = r.IsEnabled,
+                        UserHabitId = habit.Id,
+                        DaysOfWeek = r.DaysOfWeek.Select( day => new WeekDay
+                        {
+                            Type = day
+                        } ).ToList()
+                    } );
+
+                await DbContext.UserHabitReminders.AddRangeAsync( remindersToAdd ).DefaultConfigureAwait();
+
+                foreach (UserHabitReminderDto reminderDto in habitDto.UserHabitReminders.Where( r => r.Id != 0 ))
+                {
+                    UserHabitReminder existingReminder = targetReminders.FirstOrDefault( r => r.Id == reminderDto.Id );
+                    if (existingReminder != null)
+                    {
+                        existingReminder.Title = reminderDto.Title;
+                        existingReminder.Description = reminderDto.Description;
+                        existingReminder.Time = reminderDto.Time;
+                        existingReminder.IsEnabled = reminderDto.IsEnabled;
+                        existingReminder.DaysOfWeek.Clear();
+                        existingReminder.DaysOfWeek = reminderDto.DaysOfWeek.Select( day => new WeekDay
+                        {
+                            Type = day
+                        } ).ToList();
+
+                        DbContext.UserHabitReminders.Update( existingReminder );
+                    }
+                }
+            }
+
+            if (isNewHabit)
+            {
                 await DbContext.UserHabits.AddOrUpdateAsync( habit ).DefaultConfigureAwait();
             }
             else
@@ -184,10 +271,16 @@ public class HabitController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
+            List<long> reminderIds = DbContext.UserHabitReminders
+            .Where( r => r.UserHabitId == habit.Id )
+            .Select( r => r.Id )
+            .ToList();
+
             var result = new
             {
                 habit.Id,
-                habit.FrequencyId
+                habit.FrequencyId,
+                reminderIds
             };
 
             return Ok( result );
@@ -251,6 +344,7 @@ public class HabitController : BaseController
                 await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
                 await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync();
                 await DbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync();
+                await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).ExecuteDeleteAsync();
 
                 result = Ok();
             }

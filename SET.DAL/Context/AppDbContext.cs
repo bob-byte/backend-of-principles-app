@@ -27,6 +27,10 @@ public class AppDbContext : DbContext
     public DbSet<Frequency> Frequencies { get; set; }
     public DbSet<ClientLog> ClientLogs { get; set; }
     public DbSet<UserGoal> UserGoals { get; set; }
+    public DbSet<UserReminder> UserReminders { get; set; }
+    public DbSet<WeekDay> WeekDays { get; set; }
+    public DbSet<UserHabitReminder> UserHabitReminders { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
@@ -37,6 +41,9 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ClientLogConfigurations() );
         modelBuilder.ApplyConfiguration( new UserGoalConfigurations() );
+        modelBuilder.ApplyConfiguration( new UserReminderConfigurations() );
+        modelBuilder.ApplyConfiguration( new WeekDayConfigurations() );
+        modelBuilder.ApplyConfiguration( new UserHabitReminderConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -67,6 +74,18 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__user_goals", Schemas.GOAL ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__user_reminders", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__week_days", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__user_habit_reminders", Schemas.HABITS ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }
