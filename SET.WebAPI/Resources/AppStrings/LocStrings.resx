@@ -100,7 +100,7 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-      <value>Fixed bugs and improved the update window.</value>
+      <value>Fixing login and registration using google.</value>
     </data>
     <data name="IosVersionDescription" xml:space="preserve">
       <value>Fixed bugs and improved the update window.</value>

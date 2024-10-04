@@ -58,7 +58,7 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fixed bugs and improved the update window..
+        ///   Looks up a localized string similar to Fixing login and registration using google..
         /// </summary>
         internal static string AndroidVersionDescription {
             get {

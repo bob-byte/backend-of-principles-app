@@ -100,7 +100,7 @@
 	</resheader>
 
   <data name="AndroidVersionDescription" xml:space="preserve">
-    <value>Виправлено помилки, покращено вікно оновлення.</value>
+    <value>Виправлення входу та реєстрації за допомогою Google.</value>
   </data>
   <data name="IosVersionDescription" xml:space="preserve">
     <value>Виправлено помилки, покращено вікно оновлення.</value>
