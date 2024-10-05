@@ -75,11 +75,11 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "generalreminder/{userId}" )]
-    public Task<IActionResult> SaveReminderAsync( [FromBody] UserReminder userReminder )
+    public Task<IActionResult> SaveReminderAsync( [FromBody] UserReminderDto userReminder )
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.GeneralReminder = userReminder;
+            user.GeneralReminder = Mapper.Map<UserReminder>( userReminder );
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();

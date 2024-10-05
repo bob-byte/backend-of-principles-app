@@ -22,8 +22,6 @@ public class HabitController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
-                Include( u => u.Reminders ).
-                ThenInclude(u => u.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -61,17 +59,25 @@ public class HabitController : BaseController
                     ToListAsync().
                     DefaultConfigureAwait();
 
-                UserHabitReminder reminder = await DbContext.UserHabitReminders
-                .Where( r => r.UserHabitId == habitId )
-                .FirstOrDefaultAsync()
-                .DefaultConfigureAwait();
-
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
                 resultData.AreasOfLife = Mapper.Map<List<UserAreaOfLifeDto>>( areasOfLife );
-                resultData.UserHabitReminders = new List<UserHabitReminderDto>
+
+                UserHabitReminder? reminder = await DbContext.UserHabitReminders
+                    .Where( r => r.UserHabitId == habitId )
+                    .Include( r => r.DaysOfWeek )
+                    .FirstOrDefaultAsync()
+                    .DefaultConfigureAwait();
+
+                if (reminder is not null)
                 {
-                    Mapper.Map<UserHabitReminderDto>( reminder )
-                };
+                    UserHabitReminderDto dtoReminder = Mapper.Map<UserHabitReminderDto>( reminder );
+                    dtoReminder.DaysOfWeek = reminder.DaysOfWeek.Select( d => d.Type ).ToArray();
+
+                    resultData.UserHabitReminders = new List<UserHabitReminderDto>
+                    {
+                        dtoReminder
+                    };
+                }
 
                 result = Ok( resultData );
             }
@@ -272,15 +278,15 @@ public class HabitController : BaseController
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
             List<long> reminderIds = DbContext.UserHabitReminders
-            .Where( r => r.UserHabitId == habit.Id )
-            .Select( r => r.Id )
-            .ToList();
+                .Where( r => r.UserHabitId == habit.Id )
+                .Select( r => r.Id )
+                .ToList();
 
             var result = new
             {
                 habit.Id,
                 habit.FrequencyId,
-                reminderIds
+                ReminderIds = reminderIds
             };
 
             return Ok( result );
