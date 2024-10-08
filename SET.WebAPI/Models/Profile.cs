@@ -11,4 +11,6 @@ public class Profile
     public string Mission { get; set; }
 
     public Gender Gender { get; set; }
+
+    public UserReminderDto? GeneralReminder { get; set; }
 }

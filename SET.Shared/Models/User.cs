@@ -16,6 +16,7 @@ public class User
 
     public string MainSlogan { get; set; }
     public string Mission { get; set; }
+    public UserReminder? GeneralReminder { get; set; }
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }
     public ICollection<UserHabit> Habits { get; set; }
     public ICollection<ClientLog> ClientLogs { get; set; }

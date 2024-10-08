@@ -28,4 +28,5 @@ public class UserHabit
     public string ColorName { get; set; }
     public long? GoalId { get; set; }
     public UserGoal? Goal { get; set; }
+    public ICollection<UserHabitReminder> Reminders { get; set; }
 }
