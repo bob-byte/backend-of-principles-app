@@ -9,5 +9,5 @@ public class UserHabitReminderDto
     public string Description { get; set; }
     public TimeOnly Time { get; set; }
     public bool IsEnabled { get; set; }
-    public ICollection<DayOfWeek> DaysOfWeek { get; set; }
+    public IEnumerable<DayOfWeek> DaysOfWeek { get; set; }
 }

@@ -22,6 +22,8 @@ public class HabitController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
+                Include( u => u.Reminders).
+                ThenInclude( r => r.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -71,9 +73,8 @@ public class HabitController : BaseController
                 if (reminder is not null)
                 {
                     UserHabitReminderDto dtoReminder = Mapper.Map<UserHabitReminderDto>( reminder );
-                    dtoReminder.DaysOfWeek = reminder.DaysOfWeek.Select( d => d.Type ).ToArray();
 
-                    resultData.UserHabitReminders = new List<UserHabitReminderDto>
+                    resultData.Reminders = new List<UserHabitReminderDto>
                     {
                         dtoReminder
                     };
@@ -190,9 +191,9 @@ public class HabitController : BaseController
 
             if (isNewHabit)
             {
-                if (habitDto.UserHabitReminders?.Any() == true)
+                if (habitDto.Reminders?.Any() == true)
                 {
-                    List<UserHabitReminderDto> currentReminders = habitDto.UserHabitReminders.ToList();
+                    List<UserHabitReminderDto> currentReminders = habitDto.Reminders.ToList();
                     foreach (UserHabitReminderDto reminder in currentReminders)
                     {
                         await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
@@ -212,9 +213,9 @@ public class HabitController : BaseController
             }
             else
             {
-                IEnumerable<long> sourceRemindersIds = habitDto.UserHabitReminders is null
+                IEnumerable<long> sourceRemindersIds = habitDto.Reminders is null
                     ? Enumerable.Empty<long>()
-                    : habitDto.UserHabitReminders.Select( s => s.Id );
+                    : habitDto.Reminders.Select( s => s.Id );
 
                 UserHabitReminder[] targetReminders = DbContext.UserHabitReminders
                     .Where( u => u.UserHabitId == habit.Id )
@@ -224,9 +225,9 @@ public class HabitController : BaseController
                     .Where( s => !sourceRemindersIds.Contains( s.Id ) );
                 DbContext.UserHabitReminders.RemoveRange( remindersToDelete );
 
-                IEnumerable<UserHabitReminder> remindersToAdd = habitDto.UserHabitReminders is null
+                IEnumerable<UserHabitReminder> remindersToAdd = habitDto.Reminders is null
                     ? Enumerable.Empty<UserHabitReminder>()
-                    : habitDto.UserHabitReminders
+                    : habitDto.Reminders
                     .Where( r => r.Id == 0 )
                     .Select( r => new UserHabitReminder
                     {
@@ -243,7 +244,7 @@ public class HabitController : BaseController
 
                 await DbContext.UserHabitReminders.AddRangeAsync( remindersToAdd ).DefaultConfigureAwait();
 
-                foreach (UserHabitReminderDto reminderDto in habitDto.UserHabitReminders.Where( r => r.Id != 0 ))
+                foreach (UserHabitReminderDto reminderDto in habitDto.Reminders.Where( r => r.Id != 0 ))
                 {
                     UserHabitReminder existingReminder = targetReminders.FirstOrDefault( r => r.Id == reminderDto.Id );
                     if (existingReminder != null)

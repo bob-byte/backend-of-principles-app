@@ -28,8 +28,8 @@ public static class AutoMapperExtension
             cfg.CreateMap<UserGoalDto, UserGoal>();
             cfg.CreateMap<UserReminder, UserReminderDto>();
             cfg.CreateMap<UserReminderDto, UserReminder>();
-            cfg.CreateMap<UserHabitReminder, UserHabitReminderDto>().ForMember( u => u.DaysOfWeek, opt => opt.Ignore() );
-            cfg.CreateMap<UserHabitReminderDto, UserHabitReminder>().ForMember( u => u.DaysOfWeek, opt => opt.Ignore() );
+            cfg.CreateMap<UserHabitReminder, UserHabitReminderDto>().ForMember( destinationMember: u => u.DaysOfWeek, memberOptions: opt => opt.MapFrom( src => src.DaysOfWeek.Select( d => d.Type ) ) );
+            cfg.CreateMap<UserHabitReminderDto, UserHabitReminder>().ForMember( destinationMember: u => u.DaysOfWeek, memberOptions: opt => opt.Ignore() );
         } );
 
         IMapper mapper = mapperConfig.CreateMapper();

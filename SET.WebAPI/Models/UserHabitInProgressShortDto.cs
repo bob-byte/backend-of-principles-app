@@ -25,4 +25,5 @@ public class UserHabitInProgressShortDto
     public int Complexity { get; set; }
     public int Priority { get; set; }
     public UserGoalDto? Goal { get; set; }
+    public IEnumerable<UserHabitReminderDto> Reminders { get; set; }
 }

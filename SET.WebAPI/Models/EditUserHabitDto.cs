@@ -25,5 +25,5 @@ public class EditUserHabitDto
     public string ColorName { get; set; }
     public UserGoalDto? Goal { get; set; }
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
-    public List<UserHabitReminderDto> UserHabitReminders { get; set; }
+    public List<UserHabitReminderDto> Reminders { get; set; }
 }
