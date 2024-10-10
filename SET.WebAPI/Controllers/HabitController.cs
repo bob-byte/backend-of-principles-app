@@ -219,6 +219,7 @@ public class HabitController : BaseController
 
                 UserHabitReminder[] targetReminders = DbContext.UserHabitReminders
                     .Where( u => u.UserHabitId == habit.Id )
+                    .Include( r => r.DaysOfWeek )
                     .ToArray();
 
                 IEnumerable<UserHabitReminder> remindersToDelete = targetReminders
@@ -253,7 +254,7 @@ public class HabitController : BaseController
                         existingReminder.Description = reminderDto.Description;
                         existingReminder.Time = reminderDto.Time;
                         existingReminder.IsEnabled = reminderDto.IsEnabled;
-                        existingReminder.DaysOfWeek.Clear();
+                        existingReminder.DaysOfWeek?.Clear();
                         existingReminder.DaysOfWeek = reminderDto.DaysOfWeek.Select( day => new WeekDay
                         {
                             Type = day
