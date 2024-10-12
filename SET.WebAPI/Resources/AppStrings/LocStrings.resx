@@ -99,10 +99,10 @@
 		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
 	</resheader>
 
-	<data name="AndroidVersionDescription" xml:space="preserve">
-      <value>Fixing splash screen and returning to the app after logging in to Google.</value>
-    </data>
     <data name="IosVersionDescription" xml:space="preserve">
       <value>Fixed bugs and improved the update window.</value>
+    </data>
+	<data name="AndroidVersionDescription" xml:space="preserve">
+      <value>Fixed Google authorisation for some devices, but everyone needs to test it.</value>
     </data>
 </root>

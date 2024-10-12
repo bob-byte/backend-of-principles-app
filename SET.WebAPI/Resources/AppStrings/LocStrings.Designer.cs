@@ -58,7 +58,7 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fixing splash screen and returning to the app after logging in to Google..
+        ///   Looks up a localized string similar to Fixed Google authorisation for some devices, but everyone needs to test it..
         /// </summary>
         internal static string AndroidVersionDescription {
             get {

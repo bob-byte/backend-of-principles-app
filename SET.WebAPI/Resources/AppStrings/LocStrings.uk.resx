@@ -99,10 +99,10 @@
 		<value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.3500.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
 	</resheader>
 
-  <data name="AndroidVersionDescription" xml:space="preserve">
-    <value>Виправлення вікна заставки та повернення в додаток після входу за допомогою Google.</value>
-  </data>
   <data name="IosVersionDescription" xml:space="preserve">
     <value>Виправлено помилки, покращено вікно оновлення.</value>
+  </data>
+  <data name="AndroidVersionDescription" xml:space="preserve">
+    <value>Виправлення входу за допомогою Google для деяких пристроїв, але слід протестувати на кожному.</value>
   </data>
 </root>
