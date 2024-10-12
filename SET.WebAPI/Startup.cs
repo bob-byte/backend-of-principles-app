@@ -51,8 +51,9 @@ public class Startup
 
             return jwtSecret!;
         });
-
+#if DEBUG
         services.AddSwaggerWithBearer();
+#endif
         services.AddAutoMapper();
         services.AddDbContext<AppDbContext>(options =>
         {
@@ -72,10 +73,10 @@ public class Startup
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         Log.Information( "Start of Startup.Configure" );
-
+#if DEBUG
         app.UseSwagger();
         app.UseSwaggerUI( setupAction: opts => opts.SwaggerEndpoint( url: "/swagger/v1/swagger.json", name: "Principles.WebAPI v1" ) );
-        
+#endif
         app.UseDeveloperExceptionPage();
 
         app.UseRouting();
