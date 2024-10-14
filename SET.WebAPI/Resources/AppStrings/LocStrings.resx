@@ -100,7 +100,9 @@
 	</resheader>
 
     <data name="IosVersionDescription" xml:space="preserve">
-      <value>Fixed bugs and improved the update window.</value>
+      <value>1) Improved the appearance of the home page when you are not logged in.
+	2) Fixed adding a new column when a new day starts.
+    3) Now the update window is also shown when the app is restored.</value>
     </data>
 	<data name="AndroidVersionDescription" xml:space="preserve">
       <value>Fixed Google authorisation for some devices, but everyone needs to test it.</value>

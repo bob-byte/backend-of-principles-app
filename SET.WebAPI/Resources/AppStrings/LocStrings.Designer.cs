@@ -67,7 +67,9 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fixed bugs and improved the update window..
+        ///   Looks up a localized string similar to 1) Improved the appearance of the home page when you are not logged in.
+        ///	2) Fixed adding a new column when a new day starts.
+        ///    3) Now the update window is also shown when the app is restored..
         /// </summary>
         internal static string IosVersionDescription {
             get {
