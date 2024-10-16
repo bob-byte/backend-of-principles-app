@@ -58,7 +58,7 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Fixed Google authorisation for some devices, but everyone needs to test it..
+        ///   Looks up a localized string similar to Fix adding a new column when a new day comes. Improved view..
         /// </summary>
         internal static string AndroidVersionDescription {
             get {
@@ -67,9 +67,7 @@ namespace SET.WebAPI.Resources.AppStrings {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to 1) Improved the appearance of the home page when you are not logged in.
-        ///	2) Fixed adding a new column when a new day starts.
-        ///    3) Now the update window is also shown when the app is restored..
+        ///   Looks up a localized string similar to Fix adding a new column when a new day comes. Improved view..
         /// </summary>
         internal static string IosVersionDescription {
             get {

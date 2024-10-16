@@ -105,6 +105,9 @@
     3) Now the update window is also shown when the app is restored.</value>
     </data>
 	<data name="AndroidVersionDescription" xml:space="preserve">
-      <value>Fixed Google authorisation for some devices, but everyone needs to test it.</value>
+      <value>Fix adding a new column when a new day comes. Improved view.</value>
+    </data>
+    <data name="IosVersionDescription" xml:space="preserve">
+      <value>Fix adding a new column when a new day comes. Improved view.</value>
     </data>
 </root>
