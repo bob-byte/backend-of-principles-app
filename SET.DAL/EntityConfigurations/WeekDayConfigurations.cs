@@ -20,5 +20,7 @@ internal class WeekDayConfigurations : IEntityTypeConfiguration<WeekDay>
 
         builder.Property( c => c.Type ).
             IsRequired();
+
+        builder.Property( c => c.UserNotificationRequestId );
     }
 }

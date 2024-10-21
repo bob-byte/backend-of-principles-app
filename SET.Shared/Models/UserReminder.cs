@@ -14,4 +14,5 @@ public class UserReminder
     public bool IsEnabled { get; set; }
     public long UserId { get; set; }
     public User User { get; set; }
+    public long UserNotificationRequestId { get; set; }
 }

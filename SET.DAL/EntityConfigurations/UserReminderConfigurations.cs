@@ -26,5 +26,7 @@ internal class UserReminderConfigurations : IEntityTypeConfiguration<UserReminde
 
         builder.Property( c => c.Time ).
             IsRequired();
+
+        builder.Property( c => c.UserNotificationRequestId );
     }
 }

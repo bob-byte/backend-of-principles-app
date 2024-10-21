@@ -28,6 +28,7 @@ internal class UserHabitReminderConfigurations : IEntityTypeConfiguration<UserHa
             IsRequired();
 
         builder.HasMany( uh => uh.DaysOfWeek )
-            .WithMany( wd => wd.Reminders );
+             .WithOne( wd => wd.UserHabitReminder )
+             .HasForeignKey( wd => wd.UserHabitReminderId );
     }
 }
