@@ -9,5 +9,5 @@ public class WeekDayDto
 {
     public long Id { get; set; }
     public DayOfWeek Type { get; set; }
-    public long UserNotificationRequestId { get; set; }
+    public int UserNotificationRequestId { get; set; }
 }

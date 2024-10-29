@@ -11,5 +11,5 @@ public class WeekDay
     public DayOfWeek Type { get; set; }
     public long UserHabitReminderId { get; set; }
     public UserHabitReminder UserHabitReminder { get; set; }
-    public long UserNotificationRequestId { get; set; }
+    public int UserNotificationRequestId { get; set; }
 }

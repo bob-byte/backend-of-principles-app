@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     public DbSet<UserReminder> UserReminders { get; set; }
     public DbSet<WeekDay> WeekDays { get; set; }
     public DbSet<UserHabitReminder> UserHabitReminders { get; set; }
+    public DbSet<TrackingOfUserNotificationRequests> TrackingOfUserNotificationRequests { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,6 +45,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new UserReminderConfigurations() );
         modelBuilder.ApplyConfiguration( new WeekDayConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitReminderConfigurations() );
+        modelBuilder.ApplyConfiguration( new TrackingOfUserNotificationRequestsConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -86,6 +88,10 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__user_habit_reminders", Schemas.HABITS ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__tracking__of__user__notification__requests", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }

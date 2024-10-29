@@ -21,4 +21,5 @@ public class User
     public ICollection<UserHabit> Habits { get; set; }
     public ICollection<ClientLog> ClientLogs { get; set; }
     public ICollection<UserGoal> Goals { get; set; }
+    public ICollection<TrackingOfUserNotificationRequests> TrackingOfUserNotificationRequests { get; set; }
 }

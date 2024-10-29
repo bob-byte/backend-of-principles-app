@@ -203,6 +203,15 @@ public class HabitController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
+            foreach (UserHabitReminderDto reminder in habitDto.Reminders)
+            {
+                TrackingOfUserNotificationRequests notificationRequest = await GetNextOrderAsync( user.Id );
+                foreach (WeekDayDto day in reminder.DaysOfWeek)
+                {
+                    day.UserNotificationRequestId = notificationRequest.MaxNotificationRequestId;
+                }
+            }
+
             if (isNewHabit)
             {
                 if (habitDto.Reminders?.Any() == true)
@@ -260,20 +269,52 @@ public class HabitController : BaseController
                 ).DefaultConfigureAwait();
             }
 
-            List<long> reminderIds = DbContext.UserHabitReminders
-                .Where( r => r.UserHabitId == habit.Id )
-                .Select( r => r.Id )
-                .ToList();
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+            List<ReminderIds> reminderDetails = DbContext.UserHabitReminders
+                 .Where( r => r.UserHabitId == habit.Id )
+                 .Select( r => new ReminderIds
+                 {
+                     Id = r.Id,
+                     DaysOfWeek = r.DaysOfWeek.Select( d => new WeekDayIds
+                     {
+                         Id = d.Id,
+                         NotificationRequestId = d.UserNotificationRequestId
+                     } ).ToList()
+                 } )
+                 .ToList();
 
             var result = new
             {
                 habit.Id,
                 habit.FrequencyId,
-                ReminderIds = reminderIds
+                ReminderIds = reminderDetails
             };
 
             return Ok( result );
         } );
+    }
+
+    public async Task<TrackingOfUserNotificationRequests> GetNextOrderAsync(long userId )
+    {
+        TrackingOfUserNotificationRequests trackingOfNotifications = await DbContext.TrackingOfUserNotificationRequests.FirstOrDefaultAsync( u => u.UserId == userId );
+
+        if(trackingOfNotifications == null)
+        {
+            trackingOfNotifications = new TrackingOfUserNotificationRequests
+            {
+                UserId = userId,
+                MaxNotificationRequestId = 100
+            };
+
+            DbContext.TrackingOfUserNotificationRequests.Add( trackingOfNotifications );
+        }
+        else
+        {
+            trackingOfNotifications.MaxNotificationRequestId += 1;
+        }
+
+        return trackingOfNotifications;
     }
 
     [HttpPut("priorities")]
