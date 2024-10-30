@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
 using SET.Shared.Extensions;
-using SET.Shared.Models;
 
 using System.Threading.Tasks;
 

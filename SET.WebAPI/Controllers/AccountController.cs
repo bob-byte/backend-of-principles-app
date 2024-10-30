@@ -15,6 +15,7 @@ public class AccountController : BaseController
     private const int MIN_PASSWORD_LENGTH = 8;
     private const int MAX_PASSWORD_LENGTH = 20;
 
+    //TODO: make it static
     private readonly Lazy<SmtpClient> m_smtpClient;
 
     private readonly IAuthService m_authService;
