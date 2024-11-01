@@ -79,7 +79,7 @@ public class ProfileController : BaseController
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.GeneralReminder = Mapper.Map<UserReminder>( userReminder );
+            user.HabitsReportReminder = Mapper.Map<UserReminder>( userReminder );
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();

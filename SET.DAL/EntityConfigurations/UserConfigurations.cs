@@ -57,7 +57,7 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             IsRequired().
             OnDelete( DeleteBehavior.Cascade );
 
-        builder.HasOne( u => u.GeneralReminder )
+        builder.HasOne( u => u.HabitsReportReminder )
             .WithOne( r => r.User )
             .HasForeignKey<UserReminder>( r => r.UserId )
             .OnDelete( DeleteBehavior.Cascade );
