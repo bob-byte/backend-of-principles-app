@@ -91,7 +91,7 @@ public class AppDbContext : DbContext
         StartsAt( 100 ).
         IncrementsBy( 1 );
 
-        modelBuilder.HasSequence<long>( "sq__tracking__of__user__notification__requests", Schemas.APP ).
+        modelBuilder.HasSequence<long>( "sq__tracking_of_user_notification_requests", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }

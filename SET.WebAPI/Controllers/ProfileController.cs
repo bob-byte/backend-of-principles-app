@@ -74,7 +74,7 @@ public class ProfileController : BaseController
         } );
     }
 
-    [HttpPut( template: "generalreminder/{userId}" )]
+    [HttpPut( template: "habitsreportreminder" )]
     public Task<IActionResult> SaveReminderAsync( [FromBody] UserReminderDto userReminder )
     {
         return TryCatchAsync( async ( User user ) =>
