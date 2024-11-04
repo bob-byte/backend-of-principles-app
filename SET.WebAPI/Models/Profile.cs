@@ -12,5 +12,5 @@ public class Profile
 
     public Gender Gender { get; set; }
 
-    public UserReminderDto? GeneralReminder { get; set; }
+    public UserReminderDto? HabitsReportReminder { get; set; }
 }
