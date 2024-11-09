@@ -249,7 +249,7 @@ public class HabitController : BaseController
                     sourceReminders,
                     ( remindersToInsert ) =>
                     {
-                        return remindersToInsert.Select(
+                        return remindersToInsert.Select( 
                             reminder => new UserHabitReminder()
                             {
                                 Id = reminder.Id,
@@ -257,18 +257,35 @@ public class HabitController : BaseController
                                 Description = reminder.Description,
                                 Time = reminder.Time,
                                 IsEnabled = reminder.IsEnabled,
-                                UserHabitId = habit.Id,
-                                DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
-                                {
-                                    Id = d.Id,
-                                    Type = d.Type,
-                                    UserNotificationRequestId = d.UserNotificationRequestId
-                                } ).ToList()
-                            }
-                        );
+                                UserHabitId = habit.Id
+                            } );
                     },
                     targetIdProp: "Id"
                 ).DefaultConfigureAwait();
+
+                foreach (UserHabitReminder targetReminder in targetReminders)
+                {
+                    UserHabitReminderDto sourceReminder = sourceReminders.FirstOrDefault( r => r.Id == targetReminder.Id );
+                    if (sourceReminder != null)
+                    {
+                        await DbContext.WeekDays.MergeAsync(
+                            targetReminder.DaysOfWeek.ToArray(),
+                            sourceReminder.DaysOfWeek,
+                            ( daysToInsert ) =>
+                            {
+                                return daysToInsert.Select( d => new WeekDay
+                                {
+                                    Id = d.Id,
+                                    Type = d.Type,
+                                    UserNotificationRequestId = d.UserNotificationRequestId,
+                                    UserHabitReminderId = targetReminder.Id
+                                } );
+                            },
+                            targetIdProp: "Id",
+                            sourceIdProp: "Id"
+                        ).DefaultConfigureAwait();
+                    }
+                }
             }
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
