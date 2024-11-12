@@ -210,39 +210,40 @@ public class HabitController : BaseController
 
                 foreach (WeekDayDto weekDay in habitDto.Reminders.SelectMany( r => r.DaysOfWeek ))
                 {
-                    weekDay.UserNotificationRequestId = ++notificationRequest.MaxNotificationRequestId;
+                    if (weekDay.UserNotificationRequestId == 0)
+                    {
+                        weekDay.UserNotificationRequestId = ++notificationRequest.MaxNotificationRequestId;
+                    }
                 }
             }
 
-            if (isNewHabit)
+            if (isNewHabit ||
+                (habitDto.Reminders?.Any() == true && habitDto.Reminders?.All( r => r.Id == 0 ) == true))
             {
-                if (habitDto.Reminders?.Any() == true)
+                foreach (UserHabitReminderDto reminder in habitDto.Reminders)
                 {
-                    foreach (UserHabitReminderDto reminder in habitDto.Reminders)
+                    await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
                     {
-                        await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
+                        UserHabitId = habit.Id,
+                        Title = reminder.Title,
+                        Description = reminder.Description,
+                        Time = reminder.Time,
+                        IsEnabled = reminder.IsEnabled,
+                        DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
                         {
-                            UserHabitId = habit.Id,
-                            Title = reminder.Title,
-                            Description = reminder.Description,
-                            Time = reminder.Time,
-                            IsEnabled = reminder.IsEnabled,
-                            DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
-                            {
-                                Type = d.Type,
-                                UserNotificationRequestId = d.UserNotificationRequestId
-                            } ).ToList()
-                        } );
-                    }
+                            Type = d.Type, UserNotificationRequestId = d.UserNotificationRequestId
+                        } ).ToList()
+                    } ).DefaultConfigureAwait();
                 }
             }
             else
             {
                 IEnumerable<UserHabitReminderDto> sourceReminders = habitDto.Reminders;
-                UserHabitReminder[] targetReminders = DbContext.UserHabitReminders
+                UserHabitReminder[] targetReminders = await DbContext.UserHabitReminders
                     .Where( u => u.UserHabitId == habit.Id )
                     .Include( r => r.DaysOfWeek )
-                    .ToArray();
+                    .ToArrayAsync()
+                    .DefaultConfigureAwait();
 
                 await DbContext.UserHabitReminders.MergeAsync(
                     targetReminders,
@@ -252,7 +253,6 @@ public class HabitController : BaseController
                         return remindersToInsert.Select( 
                             reminder => new UserHabitReminder()
                             {
-                                Id = reminder.Id,
                                 Title = reminder.Title,
                                 Description = reminder.Description,
                                 Time = reminder.Time,
@@ -262,11 +262,19 @@ public class HabitController : BaseController
                     },
                     targetIdProp: "Id"
                 ).DefaultConfigureAwait();
+                
+                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                
+                targetReminders = await DbContext.UserHabitReminders
+                    .Where( u => u.UserHabitId == habit.Id )
+                    .Include( r => r.DaysOfWeek )
+                    .ToArrayAsync()
+                    .DefaultConfigureAwait();
 
                 foreach (UserHabitReminder targetReminder in targetReminders)
                 {
-                    UserHabitReminderDto sourceReminder = sourceReminders.FirstOrDefault( r => r.Id == targetReminder.Id );
-                    if (sourceReminder != null)
+                    UserHabitReminderDto? sourceReminder = sourceReminders?.FirstOrDefault( r => r.Id == targetReminder.Id );
+                    if (sourceReminder is not null)
                     {
                         await DbContext.WeekDays.MergeAsync(
                             targetReminder.DaysOfWeek.ToArray(),
@@ -275,14 +283,11 @@ public class HabitController : BaseController
                             {
                                 return daysToInsert.Select( d => new WeekDay
                                 {
-                                    Id = d.Id,
                                     Type = d.Type,
                                     UserNotificationRequestId = d.UserNotificationRequestId,
                                     UserHabitReminderId = targetReminder.Id
                                 } );
-                            },
-                            targetIdProp: "Id",
-                            sourceIdProp: "Id"
+                            }
                         ).DefaultConfigureAwait();
                     }
                 }
