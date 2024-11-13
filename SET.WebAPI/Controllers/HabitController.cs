@@ -273,6 +273,7 @@ public class HabitController : BaseController
 
                 foreach (UserHabitReminder targetReminder in targetReminders)
                 {
+                    //TODO: fix it because it won't work for new reminders
                     UserHabitReminderDto? sourceReminder = sourceReminders?.FirstOrDefault( r => r.Id == targetReminder.Id );
                     if (sourceReminder is not null)
                     {

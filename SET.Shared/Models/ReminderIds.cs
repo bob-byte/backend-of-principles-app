@@ -14,5 +14,6 @@ public class ReminderIds
 public class WeekDayIds
 {
     public long Id { get; set; }
+    public DayOfWeek Type { get; set; }
     public int NotificationRequestId { get; set; }
 }
