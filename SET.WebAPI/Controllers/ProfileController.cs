@@ -73,18 +73,4 @@ public class ProfileController : BaseController
             return actionResult;
         } );
     }
-
-    [HttpPut( template: "habitsreportreminder" )]
-    public Task<IActionResult> SaveReminderAsync( [FromBody] UserReminderDto userReminder )
-    {
-        return TryCatchAsync( async ( User user ) =>
-        {
-            user.HabitsReportReminder = Mapper.Map<UserReminder>( userReminder );
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
-        } );
-    }
 }
