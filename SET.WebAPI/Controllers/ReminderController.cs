@@ -13,24 +13,24 @@ public class ReminderController : BaseController
         //do nothing
     }
 
-    [HttpGet( "generalreminder" )]
+    [HttpGet( "habitsreport" )]
     public Task<IActionResult> LoadReminder()
     {
         return TryCatchAsync( async ( user ) =>
         {
-            List<UserReminder> reminders = await DbContext.UserReminders
+            UserReminder? reminder = await DbContext.UserReminders
                 .Where( r => r.UserId == user.Id )
-                .ToListAsync()
+                .FirstOrDefaultAsync()
                 .ConfigureAwait( false );
 
-            List<UserReminderDto> reminderDtos = Mapper.Map<List<UserReminderDto>>( reminders );
+            UserReminderDto reminderDto = reminder is null ? null : Mapper.Map<UserReminderDto>( reminder );
 
-            return Ok( reminderDtos );
+            return Ok( reminderDto );
         } );
     }
 
-    [HttpGet( "allreminder" )]
-    public Task<IActionResult> LoadAllReminders( )
+    [HttpGet( "all" )]
+    public Task<IActionResult> LoadAllReminders()
     {
         return TryCatchAsync( async (user) =>
         {
@@ -56,18 +56,25 @@ public class ReminderController : BaseController
         } );
     }
 
-
-
-    [HttpPut( template: "habitsreportreminder" )]
+    [HttpPost( template: "habitsreport/{id}" )]
     public Task<IActionResult> SaveReminderAsync( [FromBody] UserReminderDto userReminder )
     {
         return TryCatchAsync( async ( User user ) =>
         {
+            #region check parameter
+            if (userReminder is null)
+            {
+                return BadRequest( "HabitsReportReminderIsNullInSaveReminderEndpoint" );
+            }
+            #endregion
+            
             user.HabitsReportReminder = Mapper.Map<UserReminder>( userReminder );
-            DbContext.Users.Update( user );
+            await DbContext.Users.AddOrUpdateAsync( user ).DefaultConfigureAwait();
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
+
+            var result = new { Id = user.HabitsReportReminder!.Id };
+            IActionResult actionResult = Ok( result );
             return actionResult;
         } );
     }
