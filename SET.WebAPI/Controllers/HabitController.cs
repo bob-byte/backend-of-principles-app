@@ -304,6 +304,7 @@ public class HabitController : BaseController
                      DaysOfWeek = r.DaysOfWeek.Select( d => new WeekDayIds
                      {
                          Id = d.Id,
+                         Type = d.Type,
                          NotificationRequestId = d.UserNotificationRequestId
                      } ).ToList()
                  } )
