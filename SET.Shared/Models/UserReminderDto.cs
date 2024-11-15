@@ -8,4 +8,5 @@ public class UserReminderDto
     public string Description { get; set; }
     public TimeOnly Time { get; set; }
     public bool IsEnabled { get; set; }
+    public int UserNotificationRequestId { get; set; }
 }

@@ -71,11 +71,17 @@ public class ReminderController : BaseController
             #endregion
             
             user.HabitsReportReminder = Mapper.Map<UserReminder>( userReminder );
+            user.HabitsReportReminder!.UserNotificationRequestId = 1;
+            
             await DbContext.Users.AddOrUpdateAsync( user ).DefaultConfigureAwait();
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            var result = new { Id = user.HabitsReportReminder!.Id };
+            var result = new
+            {
+                Id = user.HabitsReportReminder!.Id, 
+                UserNotificationRequestId = user.HabitsReportReminder!.UserNotificationRequestId
+            };
             IActionResult actionResult = Ok( result );
             return actionResult;
         } );
