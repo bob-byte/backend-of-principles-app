@@ -39,24 +39,36 @@ public static class DbSetExtension
     }
 
     public static async Task MergeAsync<TEntity, TDto>(
-        this DbSet<TEntity> targetSet,
-        TEntity[] filteredTargetEntities,
-        IEnumerable<TDto> source,
-        Func<TDto[], IEnumerable<TEntity>> getItemsToInsertInTarget,
-        string targetIdProp = "Id",
-        string sourceIdProp = "Id"
-    ) where TEntity : class
-      where TDto : class
+    this DbSet<TEntity> targetSet,
+    TEntity[] filteredTargetEntities,
+    IEnumerable<TDto> source,
+    Func<TDto[], IEnumerable<TEntity>> getItemsToInsertInTarget,
+    Action<TEntity, TDto>? updateExistingItem = null,
+    string targetIdProp = "Id",
+    string sourceIdProp = "Id"
+) where TEntity : class
+  where TDto : class
     {
-        //delete from database items that were removed by client 
-        IEnumerable<TEntity> elemsNotFoundInSource = filteredTargetEntities.Where( t => !source.Any( s => s.PropValue( sourceIdProp ) == t.PropValue( targetIdProp ) ) );
+        foreach (TEntity targetItem in filteredTargetEntities)
+        {
+            TDto sourceItem = source.FirstOrDefault( s =>
+                s.PropValue( sourceIdProp )?.Equals( targetItem.PropValue( targetIdProp ) ) == true );
+            if (sourceItem != null)
+            {
+                updateExistingItem?.Invoke( targetItem, sourceItem );
+            }
+        }
+
+        IEnumerable<TEntity> elemsNotFoundInSource = filteredTargetEntities
+            .Where( t => !source.Any( s => s.PropValue( sourceIdProp )?.Equals( t.PropValue( targetIdProp ) ) == true ) );
         targetSet.RemoveRange( elemsNotFoundInSource );
 
-        //insert new items that was added by client 
-        TDto[] itemsThatNotExistInTarget = source.Where( s => !filteredTargetEntities.Any( t => t.PropValue( targetIdProp ) == s.PropValue( sourceIdProp ) ) ).ToArray();
+        TDto[] itemsThatNotExistInTarget = source
+            .Where( s => !filteredTargetEntities.Any( t => t.PropValue( targetIdProp )?.Equals( s.PropValue( sourceIdProp ) ) == true ) )
+            .ToArray();
 
         IEnumerable<TEntity> toInsertItems = getItemsToInsertInTarget( itemsThatNotExistInTarget );
-        await targetSet.AddRangeAsync( toInsertItems ).DefaultConfigureAwait();
+        await targetSet.AddRangeAsync( toInsertItems ).ConfigureAwait( false );
     }
 
     public static void Merge<TEntity, TDto>(
