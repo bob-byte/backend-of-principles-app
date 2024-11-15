@@ -23,8 +23,7 @@ public class ReminderController : BaseController
                 .FirstOrDefaultAsync()
                 .ConfigureAwait( false );
 
-            UserReminderDto dto = Mapper.Map<UserReminderDto>( reminder );
-            dto ??= new UserReminderDto();
+            UserReminderDto dto = Mapper.Map<UserReminderDto>( reminder ) ?? new UserReminderDto();
 
             return Ok( dto );
         } );
@@ -37,15 +36,17 @@ public class ReminderController : BaseController
         {
             List<UserReminder> generalReminders = await DbContext.UserReminders
                 .Where( r => r.UserId == user.Id )
-                .ToListAsync();
+                .ToListAsync()
+                .ConfigureAwait( false );
 
             List<UserHabitReminder> habitReminders = await DbContext.UserHabitReminders
                 .Where( r => r.UserHabit.User.Id == user.Id )
                 .Include( r => r.DaysOfWeek )
-                .ToListAsync();
+                .ToListAsync()
+                .ConfigureAwait( false );
 
-            List<UserReminderDto> reminderDtos = Mapper.Map<List<UserReminderDto>>( generalReminders );
-            List<UserHabitReminderDto> habitReminderDtos = Mapper.Map<List<UserHabitReminderDto>>( habitReminders );
+            List<UserReminderDto> reminderDtos = Mapper.Map<List<UserReminderDto>>( generalReminders ) ?? new List<UserReminderDto>();
+            List<UserHabitReminderDto> habitReminderDtos = Mapper.Map<List<UserHabitReminderDto>>( habitReminders ) ?? new List<UserHabitReminderDto>();
 
             var result = new
             {

@@ -1,5 +1,4 @@
-﻿using SET.BusinessLogic.Services;
-
+﻿
 namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/habits")]
@@ -7,8 +6,9 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class HabitController : BaseController
 {
-    private readonly ReminderService m_reminderService;
-    public HabitController( IServiceProvider serviceProvider, ReminderService reminderService )
+    private readonly IReminderService m_reminderService;
+    
+    public HabitController( IServiceProvider serviceProvider, IReminderService reminderService )
         : base( serviceProvider )
     {
         m_reminderService = reminderService;
@@ -65,7 +65,7 @@ public class HabitController : BaseController
                     DefaultConfigureAwait();
 
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
-                resultData.AreasOfLife = Mapper.Map<List<UserAreaOfLifeDto>>( areasOfLife );
+                resultData.AreasOfLife = Mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
 
                 UserHabitReminder? reminder = await DbContext.UserHabitReminders
                     .Where( r => r.UserHabitId == habitId )
@@ -156,8 +156,7 @@ public class HabitController : BaseController
             {
                 if (habitDto.AreasOfLife?.Any() == true)
                 {
-                    List<UserAreaOfLifeDto> currentAreas = habitDto.AreasOfLife.ToList();
-                    foreach (UserAreaOfLifeDto area in currentAreas)
+                    foreach (UserAreaOfLifeDto area in habitDto.AreasOfLife)
                     {
                         await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
                         {
@@ -169,7 +168,8 @@ public class HabitController : BaseController
             }
             else
             {
-                IEnumerable<UserAreaOfLifeDto> sourceAreas = habitDto.AreasOfLife;
+                UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
+                
                 UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits.
                     Where( u => u.HabitId == habit.Id ).
                     ToArray();
@@ -220,28 +220,29 @@ public class HabitController : BaseController
                 }
             }
 
-            if (isNewHabit ||
-                (habitDto.Reminders?.Any() == true && habitDto.Reminders?.All( r => r.Id == 0 ) == true))
+            if ((isNewHabit && habitDto.Reminders is not null) ||
+                habitDto.Reminders?.All( r => r.Id == 0 ) == true)
             {
-                    foreach (UserHabitReminderDto reminder in habitDto.Reminders)
-                    {
+                foreach (UserHabitReminderDto reminder in habitDto.Reminders)
+                {
                     await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
+                    {
+                        UserHabitId = habit.Id,
+                        Title = reminder.Title,
+                        Description = reminder.Description,
+                        Time = reminder.Time,
+                        IsEnabled = reminder.IsEnabled,
+                        DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
                         {
-                            UserHabitId = habit.Id,
-                            Title = reminder.Title,
-                            Description = reminder.Description,
-                            Time = reminder.Time,
-                            IsEnabled = reminder.IsEnabled,
-                            DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
-                            {
                             Type = d.Type, UserNotificationRequestId = d.UserNotificationRequestId
-                            } ).ToList()
+                        } ).ToList()
                     } ).DefaultConfigureAwait();
-                    }
                 }
+            }
             else
             {
-                IEnumerable<UserHabitReminderDto> sourceReminders = habitDto.Reminders ?? Enumerable.Empty<UserHabitReminderDto>();
+                UserHabitReminderDto[] sourceReminders = habitDto.Reminders?.ToArray() ?? Array.Empty<UserHabitReminderDto>();
+                
                 UserHabitReminder[] targetReminders = await DbContext.UserHabitReminders
                     .Where( u => u.UserHabitId == habit.Id )
                     .Include( r => r.DaysOfWeek )
@@ -273,8 +274,7 @@ public class HabitController : BaseController
                         existingReminder.Description = updatedReminder.Description;
                         existingReminder.Time = updatedReminder.Time;
                         existingReminder.IsEnabled = updatedReminder.IsEnabled;
-                    },
-                    targetIdProp: "Id"
+                    }
                 ).ConfigureAwait( false );
 
                 foreach (UserHabitReminder targetReminder in targetReminders)
@@ -295,8 +295,7 @@ public class HabitController : BaseController
                             {
                                 existingDay.Type = updatedDay.Type;
                                 existingDay.UserNotificationRequestId = updatedDay.UserNotificationRequestId;
-                            },
-                            targetIdProp: "Id"
+                            }
                         ).ConfigureAwait( false );
                     }
                 }

@@ -32,7 +32,7 @@ public static class ObjectExtension
         }
         else
         {
-            object result = propertyInfo.GetValue( obj );
+            object? result = propertyInfo.GetValue( obj );
             return result;
         }
     }

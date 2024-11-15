@@ -65,6 +65,7 @@ public class Startup
             options.UseNpgsql( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IReminderService, ReminderService>();
 
         Log.Information( "End of Startup.ConfigureServices" );
     }
