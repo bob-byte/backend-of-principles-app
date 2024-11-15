@@ -67,14 +67,13 @@ public static class DbSetExtension
         }
 
         IEnumerable<TEntity> elemsNotFoundInSource = filteredTargetEntities.Where(
-            t => !source.All( s => t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) )
-        );
+            t => source.All( s => !t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) );
         
         targetSet.RemoveRange( elemsNotFoundInSource );
 
         //insert new items that was added by client 
         TDto[] itemsThatNotExistInTarget = source
-            .Where( s => !filteredTargetEntities.All( t => t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) )
+            .Where( s => filteredTargetEntities.All( t => !t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) )
             .ToArray();
 
         IEnumerable<TEntity> toInsertItems = getItemsToInsertInTarget( itemsThatNotExistInTarget );
@@ -111,13 +110,13 @@ public static class DbSetExtension
 
         //delete from database items that were removed by client 
         IEnumerable<TEntity> elemsNotFoundInSource = filteredTargetEntities.Where(
-            t => !source.All( s => t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) )
-        );
+            t => source.All( s => !t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) );
+        
         targetSet.RemoveRange( elemsNotFoundInSource );
 
         //insert new items that was added by client 
         TDto[] itemsThatNotExistInTarget = source
-            .Where( s => !filteredTargetEntities.All( t => t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) )
+            .Where( s => filteredTargetEntities.All( t => !t.PropValue( targetIdProp )!.Equals( s.PropValue( sourceIdProp ) ) ) )
             .ToArray();
 
         IEnumerable<TEntity> toInsertItems = getItemsToInsertInTarget( itemsThatNotExistInTarget );
