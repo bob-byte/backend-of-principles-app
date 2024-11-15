@@ -1,14 +1,17 @@
-﻿namespace SET.WebAPI.Controllers;
+﻿using SET.BusinessLogic.Services;
+
+namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/habits")]
 [ApiController]
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class HabitController : BaseController
 {
-    public HabitController( IServiceProvider serviceProvider )
+    private readonly ReminderService m_reminderService;
+    public HabitController( IServiceProvider serviceProvider, ReminderService reminderService )
         : base( serviceProvider )
     {
-        //do nothing
+        m_reminderService = reminderService;
     }
 
     [HttpGet( template: "inprogress" )]
@@ -206,7 +209,7 @@ public class HabitController : BaseController
             if (habitDto.Reminders?.Any() == true)
             {
                 TrackingOfUserNotificationRequests notificationRequest =
-                    await GetNotificationTrackingAsync( user.Id ).DefaultConfigureAwait();
+                    await m_reminderService.GetNotificationTrackingAsync( user.Id ).DefaultConfigureAwait();
 
                 foreach (WeekDayDto weekDay in habitDto.Reminders.SelectMany( r => r.DaysOfWeek ))
                 {
@@ -326,24 +329,6 @@ public class HabitController : BaseController
 
             return Ok( result );
         } );
-    }
-    [HttpGet]
-    public async Task<TrackingOfUserNotificationRequests> GetNotificationTrackingAsync(long userId )
-    {
-        TrackingOfUserNotificationRequests? trackingOfNotifications = await DbContext.TrackingOfUserNotificationRequests.FirstOrDefaultAsync( u => u.UserId == userId ).DefaultConfigureAwait();
-
-        if(trackingOfNotifications == null)
-        {
-            trackingOfNotifications = new TrackingOfUserNotificationRequests
-            {
-                UserId = userId,
-                MaxNotificationRequestId = 99//not 100, because we will increment it
-            };
-
-            DbContext.TrackingOfUserNotificationRequests.Add( trackingOfNotifications );
-        }
-
-        return trackingOfNotifications;
     }
 
     [HttpPut("priorities")]

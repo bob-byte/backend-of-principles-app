@@ -23,9 +23,10 @@ public class ReminderController : BaseController
                 .FirstOrDefaultAsync()
                 .ConfigureAwait( false );
 
-            UserReminderDto reminderDto = reminder is null ? null : Mapper.Map<UserReminderDto>( reminder );
+            UserReminderDto dto = Mapper.Map<UserReminderDto>( reminder );
+            dto ??= new UserReminderDto();
 
-            return Ok( reminderDto );
+            return Ok( dto );
         } );
     }
 
