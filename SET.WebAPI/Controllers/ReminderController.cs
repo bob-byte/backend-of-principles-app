@@ -19,7 +19,7 @@ public class ReminderController : BaseController
         return TryCatchAsync( async ( user ) =>
         {
             UserReminder? reminder = await DbContext.UserReminders
-                .Where( r => r.UserId == user.Id )
+                .Where( r => r.UserId == user.Id && r.UserNotificationRequestId == 1 )
                 .FirstOrDefaultAsync()
                 .ConfigureAwait( false );
 
