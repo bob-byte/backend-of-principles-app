@@ -27,6 +27,11 @@ public class AppDbContext : DbContext
     public DbSet<Frequency> Frequencies { get; set; }
     public DbSet<ClientLog> ClientLogs { get; set; }
     public DbSet<UserGoal> UserGoals { get; set; }
+    public DbSet<UserReminder> UserReminders { get; set; }
+    public DbSet<WeekDay> WeekDays { get; set; }
+    public DbSet<UserHabitReminder> UserHabitReminders { get; set; }
+    public DbSet<TrackingOfUserNotificationRequests> TrackingOfUserNotificationRequests { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
@@ -37,6 +42,10 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ClientLogConfigurations() );
         modelBuilder.ApplyConfiguration( new UserGoalConfigurations() );
+        modelBuilder.ApplyConfiguration( new UserReminderConfigurations() );
+        modelBuilder.ApplyConfiguration( new WeekDayConfigurations() );
+        modelBuilder.ApplyConfiguration( new UserHabitReminderConfigurations() );
+        modelBuilder.ApplyConfiguration( new TrackingOfUserNotificationRequestsConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -69,6 +78,22 @@ public class AppDbContext : DbContext
         modelBuilder.HasSequence<long>( "sq__user_goals", Schemas.GOAL ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__user_reminders", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__week_days", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__user_habit_reminders", Schemas.HABITS ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__tracking_of_user_notification_requests", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
     }
 
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )
@@ -78,7 +103,7 @@ public class AppDbContext : DbContext
 #if DEBUG
         connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
 #else
-        connectionString = "Host=principles_database;Port=5432;Username=postgres;Password=76193db1d01e34743d5c;Database=principles;";
+        connectionString = "Host=principles_test_database;Port=5432;Username=postgres;Password=dfe6e8498d92855f0efe;Database=principles;";
 #endif
         optionsBuilder.UseNpgsql( connectionString );
     }

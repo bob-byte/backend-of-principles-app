@@ -15,7 +15,7 @@ public class EditUserHabitDto
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
     public string? ReasonToFollow { get; set; }
-    public ICollection<UserAreaOfLifeDto> AreasOfLife { get; set; }
+    public UserAreaOfLifeDto[] AreasOfLife { get; set; }
     public string? Description { get; set; }
     public int Complexity { get; set; }
     public string? Question { get; set; }
@@ -25,4 +25,5 @@ public class EditUserHabitDto
     public string ColorName { get; set; }
     public UserGoalDto? Goal { get; set; }
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
+    public List<UserHabitReminderDto> Reminders { get; set; }
 }

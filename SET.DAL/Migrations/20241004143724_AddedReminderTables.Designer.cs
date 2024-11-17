@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SET.DataAccess;
@@ -11,9 +12,11 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241004143724_AddedReminderTables")]
+    partial class AddedReminderTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -29,9 +32,6 @@ namespace SET.DataAccess.Migrations
                 .StartsAt(100L);
 
             modelBuilder.HasSequence("sq__progresses_of_habits", "hbt")
-                .StartsAt(100L);
-
-            modelBuilder.HasSequence("sq__tracking__of__user__notification__requests", "app")
                 .StartsAt(100L);
 
             modelBuilder.HasSequence("sq__user_areas_of_life", "arlf")
@@ -158,26 +158,6 @@ namespace SET.DataAccess.Migrations
                     b.HasIndex("HabitId");
 
                     b.ToTable("ProgressesOfHabits", "hbt");
-                });
-
-            modelBuilder.Entity("SET.Shared.Models.TrackingOfUserNotificationRequests", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('app.sq__tracking__of__user__notification__requests')");
-
-                    b.Property<int>("MaxNotificationRequestId")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TrackingOfUserNotificationRequests", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.User", b =>
@@ -353,8 +333,8 @@ namespace SET.DataAccess.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
-                    b.Property<TimeOnly>("Time")
-                        .HasColumnType("time without time zone");
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -384,8 +364,8 @@ namespace SET.DataAccess.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
-                    b.Property<TimeOnly>("Time")
-                        .HasColumnType("time without time zone");
+                    b.Property<DateTime>("Time")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -393,9 +373,6 @@ namespace SET.DataAccess.Migrations
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
-
-                    b.Property<int>("UserNotificationRequestId")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -415,17 +392,24 @@ namespace SET.DataAccess.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
-                    b.Property<long>("UserHabitReminderId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int>("UserNotificationRequestId")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserHabitReminderId");
-
                     b.ToTable("WeekDays", "app");
+                });
+
+            modelBuilder.Entity("UserHabitReminderWeekDay", b =>
+                {
+                    b.Property<long>("DaysOfWeekId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("RemindersId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("DaysOfWeekId", "RemindersId");
+
+                    b.HasIndex("RemindersId");
+
+                    b.ToTable("UserHabitReminderWeekDay");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.ClientLog", b =>
@@ -447,17 +431,6 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Habit");
-                });
-
-            modelBuilder.Entity("SET.Shared.Models.TrackingOfUserNotificationRequests", b =>
-                {
-                    b.HasOne("SET.Shared.Models.User", "User")
-                        .WithMany("TrackingOfUserNotificationRequests")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -549,15 +522,19 @@ namespace SET.DataAccess.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SET.Shared.Models.WeekDay", b =>
+            modelBuilder.Entity("UserHabitReminderWeekDay", b =>
                 {
-                    b.HasOne("SET.Shared.Models.UserHabitReminder", "UserHabitReminder")
-                        .WithMany("DaysOfWeek")
-                        .HasForeignKey("UserHabitReminderId")
+                    b.HasOne("SET.Shared.Models.WeekDay", null)
+                        .WithMany()
+                        .HasForeignKey("DaysOfWeekId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("UserHabitReminder");
+                    b.HasOne("SET.Shared.Models.UserHabitReminder", null)
+                        .WithMany()
+                        .HasForeignKey("RemindersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SET.Shared.Models.Frequency", b =>
@@ -576,8 +553,6 @@ namespace SET.DataAccess.Migrations
                     b.Navigation("Goals");
 
                     b.Navigation("Habits");
-
-                    b.Navigation("TrackingOfUserNotificationRequests");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.UserAreaOfLife", b =>
@@ -597,11 +572,6 @@ namespace SET.DataAccess.Migrations
                     b.Navigation("Progresses");
 
                     b.Navigation("Reminders");
-                });
-
-            modelBuilder.Entity("SET.Shared.Models.UserHabitReminder", b =>
-                {
-                    b.Navigation("DaysOfWeek");
                 });
 #pragma warning restore 612, 618
         }

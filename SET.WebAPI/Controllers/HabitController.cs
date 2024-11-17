@@ -1,14 +1,17 @@
-﻿namespace SET.WebAPI.Controllers;
+﻿
+namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/habits")]
 [ApiController]
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class HabitController : BaseController
 {
-    public HabitController( IServiceProvider serviceProvider )
+    private readonly IReminderService m_reminderService;
+    
+    public HabitController( IServiceProvider serviceProvider, IReminderService reminderService )
         : base( serviceProvider )
     {
-        //do nothing
+        m_reminderService = reminderService;
     }
 
     [HttpGet( template: "inprogress" )]
@@ -60,7 +63,24 @@ public class HabitController : BaseController
                     DefaultConfigureAwait();
 
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
-                resultData.AreasOfLife = Mapper.Map<List<UserAreaOfLifeDto>>( areasOfLife );
+                resultData.AreasOfLife = Mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
+
+                UserHabitReminder? reminder = await DbContext.UserHabitReminders
+                    .Where( r => r.UserHabitId == habitId )
+                    .Include( r => r.DaysOfWeek )
+                    .FirstOrDefaultAsync()
+                    .DefaultConfigureAwait();
+
+                if (reminder is not null)
+                {
+                    UserHabitReminderDto dtoReminder = Mapper.Map<UserHabitReminderDto>( reminder );
+
+                    resultData.Reminders = new List<UserHabitReminderDto>
+                    {
+                        dtoReminder
+                    };
+                }
+
                 result = Ok( resultData );
             }
 
@@ -134,8 +154,7 @@ public class HabitController : BaseController
             {
                 if (habitDto.AreasOfLife?.Any() == true)
                 {
-                    List<UserAreaOfLifeDto> currentAreas = habitDto.AreasOfLife.ToList();
-                    foreach (UserAreaOfLifeDto area in currentAreas)
+                    foreach (UserAreaOfLifeDto area in habitDto.AreasOfLife)
                     {
                         await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
                         {
@@ -147,27 +166,28 @@ public class HabitController : BaseController
             }
             else
             {
-                //this block is an analog to MERGE operator which inserts and deletes
-
-                IEnumerable<long> sourceAreasIds = habitDto.AreasOfLife.Select( s => s.Id );
+                UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
+                
                 UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits.
                     Where( u => u.HabitId == habit.Id ).
                     ToArray();
 
-                //delete from database items that were removed by client
-                IEnumerable<UserAreaOfLifeUserHabit> elemsNotFoundInSource = targetAreasAndHabits.Where( s => !sourceAreasIds.Contains( s.AreaOfLifeId ) );
-                DbContext.UserAreasOfLifeUserHabits.RemoveRange( elemsNotFoundInSource );
-
-                //insert new areas of life that was added by client
-                long[] itemsThatNotExistInSource = sourceAreasIds.Where( sourceAreaId => !targetAreasAndHabits.Any( a => a.AreaOfLifeId == sourceAreaId ) ).ToArray();
-                IEnumerable<UserAreaOfLifeUserHabit> toInsertAreas = itemsThatNotExistInSource.Select(
-                    areaId => new UserAreaOfLifeUserHabit()
+                await DbContext.UserAreasOfLifeUserHabits.MergeAsync(
+                    targetAreasAndHabits,
+                    sourceAreas,
+                    ( areasToInsert ) =>
                     {
-                        AreaOfLifeId = areaId,
-                        HabitId = habit.Id
-                    }
-                );
-                await DbContext.UserAreasOfLifeUserHabits.AddRangeAsync( toInsertAreas ).DefaultConfigureAwait();
+                        return areasToInsert.Select(
+                            area => new UserAreaOfLifeUserHabit()
+                            {
+                                AreaOfLifeId = area.Id,
+                                HabitId = habit.Id
+                            }
+                        );
+                    },
+                    targetIdProp: "AreaOfLifeId"
+                ).DefaultConfigureAwait();
+
             }
 
             if (isNewHabit)
@@ -184,10 +204,124 @@ public class HabitController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
+            if (habitDto.Reminders?.Any() == true)
+            {
+                TrackingOfUserNotificationRequests notificationRequest =
+                    await m_reminderService.GetNotificationTrackingAsync( user.Id ).DefaultConfigureAwait();
+
+                foreach (WeekDayDto weekDay in habitDto.Reminders.SelectMany( r => r.DaysOfWeek ))
+                {
+                    if (weekDay.UserNotificationRequestId == 0)
+                    {
+                        weekDay.UserNotificationRequestId = ++notificationRequest.MaxNotificationRequestId;
+                    }
+                }
+            }
+
+            if ((isNewHabit && habitDto.Reminders is not null) ||
+                habitDto.Reminders?.All( r => r.Id == 0 ) == true)
+            {
+                foreach (UserHabitReminderDto reminder in habitDto.Reminders)
+                {
+                    await DbContext.UserHabitReminders.AddAsync( new UserHabitReminder
+                    {
+                        UserHabitId = habit.Id,
+                        Title = reminder.Title,
+                        Description = reminder.Description,
+                        Time = reminder.Time,
+                        IsEnabled = reminder.IsEnabled,
+                        DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
+                        {
+                            Type = d.Type, UserNotificationRequestId = d.UserNotificationRequestId
+                        } ).ToList()
+                    } ).DefaultConfigureAwait();
+                }
+            }
+            else
+            {
+                UserHabitReminderDto[] sourceReminders = habitDto.Reminders?.ToArray() ?? Array.Empty<UserHabitReminderDto>();
+                
+                UserHabitReminder[] targetReminders = await DbContext.UserHabitReminders
+                    .Where( u => u.UserHabitId == habit.Id )
+                    .Include( r => r.DaysOfWeek )
+                    .ToArrayAsync()
+                    .ConfigureAwait( false );
+
+                await DbContext.UserHabitReminders.MergeAsync(
+                    targetReminders,
+                    sourceReminders,
+                    remindersToInsert =>
+                    {
+                        return remindersToInsert.Select( reminder => new UserHabitReminder
+                        {
+                            Title = reminder.Title,
+                            Description = reminder.Description,
+                            Time = reminder.Time,
+                            IsEnabled = reminder.IsEnabled,
+                            UserHabitId = habit.Id,
+                            DaysOfWeek = reminder.DaysOfWeek.Select( d => new WeekDay
+                            {
+                                Type = d.Type,
+                                UserNotificationRequestId = d.UserNotificationRequestId
+                            } ).ToList()
+                        } );
+                    },
+                    ( existingReminder, updatedReminder ) =>
+                    {
+                        existingReminder.Title = updatedReminder.Title;
+                        existingReminder.Description = updatedReminder.Description;
+                        existingReminder.Time = updatedReminder.Time;
+                        existingReminder.IsEnabled = updatedReminder.IsEnabled;
+                    }
+                ).ConfigureAwait( false );
+
+                foreach (UserHabitReminder targetReminder in targetReminders)
+                {
+                    UserHabitReminderDto sourceReminder = sourceReminders.FirstOrDefault( r => r.Id == targetReminder.Id );
+                    if (sourceReminder != null)
+                    {
+                        await DbContext.WeekDays.MergeAsync(
+                            targetReminder.DaysOfWeek.ToArray(),
+                            sourceReminder.DaysOfWeek,
+                            daysToInsert => daysToInsert.Select( d => new WeekDay
+                            {
+                                Type = d.Type,
+                                UserNotificationRequestId = d.UserNotificationRequestId,
+                                UserHabitReminderId = targetReminder.Id
+                            } ),
+                            ( existingDay, updatedDay ) =>
+                            {
+                                existingDay.Type = updatedDay.Type;
+                                existingDay.UserNotificationRequestId = updatedDay.UserNotificationRequestId;
+                            }
+                        ).ConfigureAwait( false );
+                    }
+                }
+
+                await DbContext.SaveChangesAsync().ConfigureAwait( false );
+            }
+
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+            List<ReminderIds>? reminderDetails = await DbContext.UserHabitReminders
+                 .Where( r => r.UserHabitId == habit.Id )
+                 .Select( r => new ReminderIds
+                 {
+                     Id = r.Id,
+                     DaysOfWeek = r.DaysOfWeek.Select( d => new WeekDayIds
+                     {
+                         Id = d.Id,
+                         Type = d.Type,
+                         NotificationRequestId = d.UserNotificationRequestId
+                     } ).ToList()
+                 } )
+                 .ToListAsync().DefaultConfigureAwait();
+
             var result = new
             {
                 habit.Id,
-                habit.FrequencyId
+                habit.FrequencyId,
+                ReminderIds = reminderDetails
             };
 
             return Ok( result );
@@ -251,6 +385,7 @@ public class HabitController : BaseController
                 await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
                 await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync();
                 await DbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync();
+                await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).ExecuteDeleteAsync();
 
                 result = Ok();
             }

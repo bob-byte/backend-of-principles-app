@@ -43,5 +43,11 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             WithOne( p => p.Habit ).
             IsRequired().
             OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany( u => u.Reminders )
+            .WithOne( r => r.UserHabit )
+            .HasForeignKey( r => r.UserHabitId )
+            .IsRequired()
+            .OnDelete( DeleteBehavior.Cascade );
     }
 }
