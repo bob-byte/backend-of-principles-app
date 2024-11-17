@@ -14,7 +14,7 @@ public class ReminderController : BaseController
     }
 
     [HttpGet( "habitsreport" )]
-    public Task<IActionResult> LoadReminder()
+    public Task<IActionResult> LoadReminder() 
     {
         return TryCatchAsync( async ( user ) =>
         {
