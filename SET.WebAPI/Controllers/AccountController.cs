@@ -50,7 +50,14 @@ public class AccountController : BaseController
     {
         if (m_smtpClient.IsValueCreated)
         {
-            m_smtpClient.Value.Dispose();
+            try
+            {
+                m_smtpClient.Value.Dispose();
+            }
+            catch(Exception ex)
+            {
+                Log.Error( ex, ex.Message );
+            }
         }
     }
 

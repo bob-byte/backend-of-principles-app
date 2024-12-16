@@ -385,9 +385,21 @@ public class HabitController : BaseController
                 await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
                 await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync();
                 await DbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync();
+                
+                long[] reminderIds = await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).Select( r => r.Id ).ToArrayAsync().DefaultConfigureAwait();
+                List<HabitDeletionResponse.NotificationRequest> notificationRequests = new();
+                foreach (long idOfReminder in reminderIds)
+                {
+                    List<WeekDay> weekDaysOfReminder = await DbContext.WeekDays.Where( w => w.UserHabitReminderId == idOfReminder ).ToListAsync().DefaultConfigureAwait();
+                    notificationRequests.AddRange( weekDaysOfReminder.Select( w => new HabitDeletionResponse.NotificationRequest( w.UserNotificationRequestId ) ) );
+                }
+                
+                HabitDeletionResponse response = new();
+                response.DeletedNotifications = notificationRequests;
+                
                 await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).ExecuteDeleteAsync();
 
-                result = Ok();
+                result = Ok(response);
             }
             else
             {
