@@ -381,11 +381,6 @@ public class HabitController : BaseController
             IActionResult result;
             if (isCorrectArg)
             {
-                await DbContext.ProgressesOfHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
-                await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
-                await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync();
-                await DbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync();
-                
                 long[] reminderIds = await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).Select( r => r.Id ).ToArrayAsync().DefaultConfigureAwait();
                 List<HabitDeletionResponse.NotificationRequest> notificationRequests = new();
                 foreach (long idOfReminder in reminderIds)
@@ -397,7 +392,9 @@ public class HabitController : BaseController
                 HabitDeletionResponse response = new();
                 response.DeletedNotifications = notificationRequests;
                 
-                await DbContext.UserHabitReminders.Where( r => r.UserHabitId == habitId ).ExecuteDeleteAsync();
+                await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync();
+                await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync();
+                await DbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync();
 
                 result = Ok(response);
             }
