@@ -103,7 +103,8 @@ public class GoalController : BaseController
                 var newGoal = new UserGoal
                 {
                     Name = userGoal.Name,
-                    UserId = user.Id
+                    UserId = user.Id,
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
@@ -114,6 +115,7 @@ public class GoalController : BaseController
             else
             {
                 existingGoal.Name = userGoal.Name;
+                existingGoal.UpdatedAt = DateTime.UtcNow;
 
                 DbContext.UserGoals.Update( existingGoal );
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();
