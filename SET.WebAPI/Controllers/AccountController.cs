@@ -417,6 +417,21 @@ public class AccountController : BaseController
         } );
     }
 
+    [HttpGet( "key" )]
+    public IActionResult GetOpenAIKey()
+    {
+        return TryCatch( () =>
+        {
+            string apiKey = m_configuration["OpenAIApiKey"];
+            if (string.IsNullOrEmpty( apiKey ))
+            {
+                throw new Exception( "API key not found in configuration." );
+            }
+
+            return Ok( apiKey );
+        } );
+    }
+
     [HttpPut( "password" )]
     public Task<IActionResult> ChangePassword( [FromBody] UserNewPassword request )
     {
