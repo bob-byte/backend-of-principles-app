@@ -5,6 +5,11 @@ using System.Net.Mail;
 using System.Net;
 using SET.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+
+using System.IdentityModel.Tokens.Jwt;
+using System.Net.Http;
+using System.Security.Claims;
 
 namespace SET.WebAPI.Controllers;
 
@@ -212,7 +217,6 @@ public class AccountController : BaseController
                 {
                     User user = loginResult.user;
 
-                    //TODO: remove returning user.Id
                     LoginResponse response = new( Token: JwtTokenService.GetToken( user ) );
                     result = Ok( response );
                 }
@@ -286,6 +290,62 @@ public class AccountController : BaseController
         } );
     }
 #endif
+
+    [HttpPost( "appleauthorization" )]
+    public Task<IActionResult> AppleAuth( [FromBody] AppleAuthRequest authRequest )
+    {
+        return TryCatchAsync( async () =>
+        {
+            if (authRequest == null || string.IsNullOrEmpty( authRequest.IdToken ))
+            {
+                return BadRequest( "Identity token is required to auth using apple." );
+            }
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            using var client = new HttpClient();
+            string keys = await client.GetStringAsync( "https://appleid.apple.com/auth/keys" ).DefaultConfigureAwait();
+            IList<SecurityKey>? signingKeys = new JsonWebKeySet( keys ).GetSigningKeys();
+
+            // Validate the token
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = "https://appleid.apple.com",
+                ValidateAudience = true,
+                ValidAudience = "com.set.principles",
+                ValidateLifetime = true,
+                RequireSignedTokens = true,
+                IssuerSigningKeyResolver = ( _, _, _, _ ) => signingKeys
+            };
+
+            // Validate and decode the token
+            ClaimsPrincipal? principal =
+                tokenHandler.ValidateToken( authRequest.IdToken, validationParameters, out _ );
+            string fullName = principal.FindFirst( ClaimTypes.Name )?.Value ?? string.Empty;
+            string? email = principal.FindFirst( ClaimTypes.Email )?.Value;
+
+            if (string.IsNullOrWhiteSpace( email ))
+            {
+                return BadRequest( "Invalid token, because no email address was found." );
+            }
+
+            // Check if the user already exists
+            User? user = await DbContext.Users.FirstOrDefaultAsync( u => u.Email.ToLower() == email.ToLower() )
+                .DefaultConfigureAwait();
+
+            if (user is null)
+            {
+                UserRegister userRegister = new() { Email = email, Name = fullName, };
+                user = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
+            }
+
+            LoginResponse response = new(Token: JwtTokenService.GetToken( user ));
+            IActionResult result = Ok( response );
+
+            return result;
+        } );
+    }
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
     [HttpDelete]

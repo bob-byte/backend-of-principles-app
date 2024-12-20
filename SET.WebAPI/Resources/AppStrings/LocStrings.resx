@@ -100,8 +100,8 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-      <value>Fix adding a new column when a new day comes. Improved view.</value>
-    </data>
+		<value>Fix selection of habit in the progress tab</value>
+	</data>
     <data name="IosVersionDescription" xml:space="preserve">
       <value>Fix adding a new column when a new day comes. Improved view.</value>
     </data>
