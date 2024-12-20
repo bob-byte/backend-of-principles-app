@@ -5,6 +5,7 @@ using System.Net.Mail;
 using System.Net;
 using SET.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Protocols.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
 using System.IdentityModel.Tokens.Jwt;
@@ -95,7 +96,6 @@ public class AccountController : BaseController
         } );
     }
 
-    [AllowAnonymous]
     [HttpPost( "authentication" )]
     public Task<IActionResult> Register( [FromBody] UserRegister registerInfo )
     {
@@ -256,7 +256,6 @@ public class AccountController : BaseController
         } );
     }
 
-    [AllowAnonymous]
     [HttpPost( "simpleauthentication" )]
     public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
     {
@@ -417,18 +416,22 @@ public class AccountController : BaseController
         } );
     }
 
-    [HttpGet( "key" )]
-    public IActionResult GetOpenAIKey()
+    [HttpGet( "apikey" )]
+    [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
+    public IActionResult GetOpenAiKey()
     {
         return TryCatch( () =>
         {
-            string apiKey = m_configuration["OpenAIApiKey"];
-            if (string.IsNullOrEmpty( apiKey ))
+            string? apiKey = m_configuration["OpenAIApiKey"];
+            if (string.IsNullOrWhiteSpace( apiKey ))
             {
-                throw new Exception( "API key not found in configuration." );
+                throw new InvalidConfigurationException( "API key not found in configuration." );
             }
-
-            return Ok( apiKey );
+            else
+            {
+                var response = new { Value = apiKey };
+                return Ok( response );
+            }
         } );
     }
 
