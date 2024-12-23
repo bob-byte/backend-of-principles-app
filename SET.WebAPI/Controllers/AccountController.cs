@@ -423,13 +423,22 @@ public class AccountController : BaseController
         return TryCatch( () =>
         {
             string? apiKey = m_configuration["OpenAIApiKey"];
-            if (string.IsNullOrWhiteSpace( apiKey ))
+
+            string firstKey = m_configuration["EncryptionSettingsForApi:FirstKey"] ??
+               m_configuration["FIRST_KEY_OF_API_ENCRYPTION"];
+
+            string secondKey = m_configuration["EncryptionSettingsForApi:FirstKey"] ??
+               m_configuration["SECOND_KEY_OF_API_ENCRYPTION"];
+
+            string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
+
+            if (string.IsNullOrWhiteSpace( encryptedApiKey ))
             {
                 throw new InvalidConfigurationException( "API key not found in configuration." );
             }
             else
             {
-                var response = new { Value = apiKey };
+                var response = new { Value = encryptedApiKey };
                 return Ok( response );
             }
         } );
