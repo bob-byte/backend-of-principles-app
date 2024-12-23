@@ -113,8 +113,8 @@ public class GoalController : BaseController
             }
             else
             {
-                List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders
-                    .Where( h => h.Title == existingGoal.Name )
+                List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
+                Where( h => h.Title == existingGoal.Name && existingGoal.UserId == user.Id )
                     .ToListAsync();
 
                 foreach (UserHabitReminder reminder in remindersToUpdate)
