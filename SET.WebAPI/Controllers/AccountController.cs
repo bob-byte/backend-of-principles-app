@@ -354,25 +354,19 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async ( user ) =>
         {
-            List<UserHabit> habits = await DbContext.
-                UserHabits.
-                Where( u => u.UserId == user.Id ).
-                Include( u => u.Frequency ).
-                Include( u => u.Progresses ).
-                Include( u => u.AreasOfLife ).
-                AsSplitQuery().
-                ToListAsync().
-                DefaultConfigureAwait();
-
-            DbContext.ProgressesOfHabits.RemoveRange( habits.SelectMany( u => u.Progresses ) );
-            DbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
-            DbContext.UserHabits.RemoveRange( habits );
-            DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
-
             await using IDbContextTransaction tran = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
             try
             {
+                List<UserHabit> habits = await DbContext.UserHabits.Where( u => u.UserId == user.Id )
+                    .Include( u => u.Frequency ).Include( u => u.Progresses ).Include( u => u.AreasOfLife )
+                    .AsSplitQuery().ToListAsync().DefaultConfigureAwait();
+
+                DbContext.ProgressesOfHabits.RemoveRange( habits.SelectMany( u => u.Progresses ) );
+                DbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
+                DbContext.UserHabits.RemoveRange( habits );
+                DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
+
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();
                 await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync()
                     .DefaultConfigureAwait();
@@ -380,7 +374,7 @@ public class AccountController : BaseController
                     .ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) )
                     .DefaultConfigureAwait();
                 await DbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
-                
+
                 await tran.CommitAsync().DefaultConfigureAwait();
             }
             catch

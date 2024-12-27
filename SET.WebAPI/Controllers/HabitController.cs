@@ -110,106 +110,96 @@ public class HabitController : BaseController
                 return BadRequest( "FrequencyIsNull" );
             }
             #endregion
-
-            List<UserHabit> userHabitList = await DbContext.
-                UserHabits.
-                Where( h => h.UserId == user.Id ).
-                ToListAsync().
-                DefaultConfigureAwait();
-
-            foreach (UserHabit userHabit in userHabitList.Where( h => h.Id != habitDto.Id ))
-            {
-                int? updatedPriority = habitDto.PrioritizedHabits?.Find(h => h.Id == userHabit.Id )?.Priority;
-                if(updatedPriority != null)
-                {
-                    userHabit.Priority = (int)updatedPriority;
-                }
-            }
-
-            UserHabit? habit = habitDto.Id == 0
-                ? null
-                : userHabitList.Find( h => h.Id == habitDto.Id );
-            bool isNewHabit = habit == null;
-
-            if (isNewHabit)
-            {
-                habit = Mapper.Map<UserHabit>( habitDto );
-                habit.UserId = user.Id;
-                habit.Goal = null;
-                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
-            }
-            else
-            {
-                habit.Name = habitDto.Name;
-                habit.FrequencyId = habitDto.Frequency.Id;
-                habit.Frequency = Mapper.Map<Frequency>(habitDto.Frequency);
-                habit.ColorName = habitDto.ColorName;
-                habit.ReasonToFollow = habitDto.ReasonToFollow;
-                habit.Description = habitDto.Description;
-                habit.Question = habitDto.Question;
-                habit.Complexity = habitDto.Complexity;
-                habit.Type = habitDto.Type;
-                habit.Priority = habitDto.Priority;
-                habit.Goal = null;
-                habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
-            }
-
-            if (isNewHabit)
-            {
-                if (habitDto.AreasOfLife?.Any() == true)
-                {
-                    foreach (UserAreaOfLifeDto area in habitDto.AreasOfLife)
-                    {
-                        await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
-                        {
-                            Habit = habit,
-                            AreaOfLifeId = area.Id
-                        } );
-                    }
-                }
-            }
-            else
-            {
-                UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
-                
-                UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits.
-                    Where( u => u.HabitId == habit.Id ).
-                    ToArray();
-
-                await DbContext.UserAreasOfLifeUserHabits.MergeAsync(
-                    targetAreasAndHabits,
-                    sourceAreas,
-                    ( areasToInsert ) =>
-                    {
-                        return areasToInsert.Select(
-                            area => new UserAreaOfLifeUserHabit()
-                            {
-                                AreaOfLifeId = area.Id,
-                                HabitId = habit.Id
-                            }
-                        );
-                    },
-                    targetIdProp: "AreaOfLifeId"
-                ).DefaultConfigureAwait();
-
-            }
-
-            if (isNewHabit)
-            {
-                await DbContext.UserHabits.AddOrUpdateAsync( habit ).DefaultConfigureAwait();
-            }
-            else
-            {
-                userHabitList.Remove( habit );
-            }
-
-            await DbContext.Frequencies.AddOrUpdateAsync( habit.Frequency ).DefaultConfigureAwait();
-            DbContext.UserHabits.UpdateRange( userHabitList );
             
             await using IDbContextTransaction transaction = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
             try
             {
+                List<UserHabit> userHabitList = await DbContext.UserHabits.Where( h => h.UserId == user.Id )
+                    .ToListAsync().DefaultConfigureAwait();
+
+                foreach (UserHabit userHabit in userHabitList.Where( h => h.Id != habitDto.Id ))
+                {
+                    int? updatedPriority = habitDto.PrioritizedHabits?.Find( h => h.Id == userHabit.Id )?.Priority;
+                    if (updatedPriority != null)
+                    {
+                        userHabit.Priority = (int)updatedPriority;
+                    }
+                }
+
+                UserHabit? habit = habitDto.Id == 0
+                    ? null
+                    : userHabitList.Find( h => h.Id == habitDto.Id );
+                bool isNewHabit = habit == null;
+
+                if (isNewHabit)
+                {
+                    habit = Mapper.Map<UserHabit>( habitDto );
+                    habit.UserId = user.Id;
+                    habit.Goal = null;
+                    habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                }
+                else
+                {
+                    habit.Name = habitDto.Name;
+                    habit.FrequencyId = habitDto.Frequency.Id;
+                    habit.Frequency = Mapper.Map<Frequency>( habitDto.Frequency );
+                    habit.ColorName = habitDto.ColorName;
+                    habit.ReasonToFollow = habitDto.ReasonToFollow;
+                    habit.Description = habitDto.Description;
+                    habit.Question = habitDto.Question;
+                    habit.Complexity = habitDto.Complexity;
+                    habit.Type = habitDto.Type;
+                    habit.Priority = habitDto.Priority;
+                    habit.Goal = null;
+                    habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                }
+
+                if (isNewHabit)
+                {
+                    if (habitDto.AreasOfLife?.Any() == true)
+                    {
+                        foreach (UserAreaOfLifeDto area in habitDto.AreasOfLife)
+                        {
+                            await DbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
+                            {
+                                Habit = habit, AreaOfLifeId = area.Id
+                            } );
+                        }
+                    }
+                }
+                else
+                {
+                    UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
+
+                    UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits
+                        .Where( u => u.HabitId == habit.Id ).ToArray();
+
+                    await DbContext.UserAreasOfLifeUserHabits.MergeAsync(
+                        targetAreasAndHabits,
+                        sourceAreas,
+                        ( areasToInsert ) =>
+                        {
+                            return areasToInsert.Select(
+                                area => new UserAreaOfLifeUserHabit() { AreaOfLifeId = area.Id, HabitId = habit.Id }
+                            );
+                        },
+                        targetIdProp: "AreaOfLifeId"
+                    ).DefaultConfigureAwait();
+
+                }
+
+                if (isNewHabit)
+                {
+                    await DbContext.UserHabits.AddOrUpdateAsync( habit ).DefaultConfigureAwait();
+                }
+                else
+                {
+                    userHabitList.Remove( habit );
+                }
+
+                await DbContext.Frequencies.AddOrUpdateAsync( habit.Frequency ).DefaultConfigureAwait();
+                DbContext.UserHabits.UpdateRange( userHabitList );
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
                 if (habitDto.Reminders?.Any() == true)
@@ -312,36 +302,29 @@ public class HabitController : BaseController
 
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
+                List<ReminderIds>? reminderDetails = await DbContext.UserHabitReminders
+                    .Where( r => r.UserHabitId == habit.Id )
+                    .Select( r => new ReminderIds
+                    {
+                        Id = r.Id,
+                        DaysOfWeek = r.DaysOfWeek.Select( d => new WeekDayIds
+                        {
+                            Id = d.Id, Type = d.Type, NotificationRequestId = d.UserNotificationRequestId
+                        } ).ToList()
+                    } )
+                    .ToListAsync().DefaultConfigureAwait();
+                
                 await transaction.CommitAsync().DefaultConfigureAwait();
+                
+                var result = new { habit.Id, habit.FrequencyId, ReminderIds = reminderDetails };
+
+                return Ok( result );
             }
             catch
             {
                 await transaction.RollbackAsync().DefaultConfigureAwait();
                 throw;
             }
-
-            List<ReminderIds>? reminderDetails = await DbContext.UserHabitReminders
-                 .Where( r => r.UserHabitId == habit.Id )
-                 .Select( r => new ReminderIds
-                 {
-                     Id = r.Id,
-                     DaysOfWeek = r.DaysOfWeek.Select( d => new WeekDayIds
-                     {
-                         Id = d.Id,
-                         Type = d.Type,
-                         NotificationRequestId = d.UserNotificationRequestId
-                     } ).ToList()
-                 } )
-                 .ToListAsync().DefaultConfigureAwait();
-
-            var result = new
-            {
-                habit.Id,
-                habit.FrequencyId,
-                ReminderIds = reminderDetails
-            };
-
-            return Ok( result );
         } );
     }
 
