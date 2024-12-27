@@ -422,13 +422,14 @@ public class AccountController : BaseController
     {
         return TryCatch( () =>
         {
-            string? apiKey = m_configuration["OpenAIApiKey"];
+            string? apiKey = m_configuration["AI_API_KEY"] ?? 
+                             m_configuration["AiApiKey"];
 
-            string firstKey = m_configuration["EncryptionSettingsForApi:FirstKey"] ??
-               m_configuration["FIRST_KEY_OF_API_ENCRYPTION"];
+            string firstKey = m_configuration["FIRST_KEY_OF_API_ENCRYPTION"] ??
+                              m_configuration["EncryptionSettingsForApi:FirstKey"];
 
-            string secondKey = m_configuration["EncryptionSettingsForApi:FirstKey"] ??
-               m_configuration["SECOND_KEY_OF_API_ENCRYPTION"];
+            string secondKey = m_configuration["SECOND_KEY_OF_API_ENCRYPTION"] ??
+                               m_configuration["EncryptionSettingsForApi:SecondKey"];
 
             string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
 
