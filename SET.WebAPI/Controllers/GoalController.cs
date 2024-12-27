@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace SET.WebAPI.Controllers;
 
@@ -53,18 +54,24 @@ public class GoalController : BaseController
             IActionResult result;
             if (isCorrectArg)
             {
-                await DbContext.
-                    UserHabits.
-                    Where( u => u.GoalId == goalId ).
-                    ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.GoalId, c => null ) ).
-                    DefaultConfigureAwait();
+                await using IDbContextTransaction tran = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
-                await DbContext.
-                    UserGoals.
-                    Where( p => p.Id == goalId ).
-                    ExecuteDeleteAsync().
-                    DefaultConfigureAwait();
-          
+                try
+                {
+                    await DbContext.UserHabits.Where( u => u.GoalId == goalId )
+                        .ExecuteUpdateAsync(
+                            setPropDelegate => setPropDelegate.SetProperty( c => c.GoalId, c => null ) )
+                        .DefaultConfigureAwait();
+
+                    await DbContext.UserGoals.Where( p => p.Id == goalId ).ExecuteDeleteAsync().DefaultConfigureAwait();
+                    await tran.CommitAsync().DefaultConfigureAwait();
+                }
+                catch
+                {
+                    await tran.RollbackAsync().DefaultConfigureAwait();
+                    throw;
+                }
+
                 result = Ok();
             }
             else
@@ -77,7 +84,7 @@ public class GoalController : BaseController
     }
 
     [HttpPost(template: "{goalId}")]
-    public Task<IActionResult> Update( [FromBody] UserGoalDto userGoal)
+    public Task<IActionResult> Save( [FromBody] UserGoalDto userGoal)
     {
         return TryCatchAsync( async (User user) =>
         {

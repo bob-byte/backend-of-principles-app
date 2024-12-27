@@ -1,4 +1,6 @@
 ﻿using BusinessLogic;
+
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using SET.Shared.Models.Auth;
 using System.Net.Mail;
@@ -367,10 +369,25 @@ public class AccountController : BaseController
             DbContext.UserHabits.RemoveRange( habits );
             DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
 
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
-            await DbContext.ClientLogs.Where( u => u.UserId == user.Id ).ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) ).DefaultConfigureAwait();
-            await DbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
+            await using IDbContextTransaction tran = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
+
+            try
+            {
+                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync()
+                    .DefaultConfigureAwait();
+                await DbContext.ClientLogs.Where( u => u.UserId == user.Id )
+                    .ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) )
+                    .DefaultConfigureAwait();
+                await DbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
+                
+                await tran.CommitAsync().DefaultConfigureAwait();
+            }
+            catch
+            {
+                await tran.RollbackAsync().DefaultConfigureAwait();
+                throw;
+            }
 
             return Ok();
         } );
