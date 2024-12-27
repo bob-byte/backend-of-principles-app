@@ -51,12 +51,12 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             .OnDelete( DeleteBehavior.Cascade );
 
         builder.Property( u => u.CreatedAt ).
-            HasColumnType( "timestamp without time zone" ).
+            HasColumnType( "timestamp with time zone" ).
             HasDefaultValueSql( "now()" ).
             IsRequired();
 
         builder.Property( u => u.UpdatedAt ).
-            HasColumnType( "timestamp without time zone" ).
+            HasColumnType( "timestamp with time zone" ).
             IsRequired(false);
     }
 }
