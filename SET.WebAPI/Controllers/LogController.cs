@@ -54,39 +54,55 @@ public class LogController : BaseController
             if (result is null)
             {
                 string newLine = Environment.NewLine;
-                string convertedLog =
-                    $"{nameof( SaveLogRequest.LogMessage )} = {saveLogRequest.LogMessage};{newLine}" +
-                    (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
-                        ? string.Empty
-                        : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
-                    (newClientLog.UserId is null or 0
-                        ? string.Empty
-                        : $"User email = {email};{newLine}") +
-                    $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +
-                    $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
-                    $"{nameof( SaveLogRequest.DeviceModelName )} = {saveLogRequest.DeviceModelName};{newLine}" +
-                    $"{nameof( SaveLogRequest.DeviceManufacturer )} = {saveLogRequest.DeviceManufacturer};{newLine}" +
-                    $"{nameof( SaveLogRequest.DeviceType )} = {saveLogRequest.DeviceType}.";
+                string convertedLog;
                 
+                if (newClientLog.LogType == "Information")
+                {
+                    convertedLog = $"{(string.IsNullOrWhiteSpace(email) ? "Somebody" : email)} uses the app. Log message: {newClientLog.LogMessage}";
+                }
+                else
+                {
+                    convertedLog = $"{nameof( SaveLogRequest.LogMessage )} = {saveLogRequest.LogMessage};{newLine}" +
+                                   (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
+                                       ? string.Empty
+                                       : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
+                                   (newClientLog.UserId is null or 0
+                                       ? string.Empty
+                                       : $"User email = {email};{newLine}") +
+                                   $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceModelName )} = {saveLogRequest.DeviceModelName};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceManufacturer )} = {saveLogRequest.DeviceManufacturer};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceType )} = {saveLogRequest.DeviceType}.";
+                }
+
                 try
                 {
-                    await DbContext.ClientLogs.AddAsync( newClientLog ).DefaultConfigureAwait();
-                    await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                    if (newClientLog.LogType != "Information")
+                    {
+                        await DbContext.ClientLogs.AddAsync( newClientLog ).DefaultConfigureAwait();
+                        await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                    }
 
-                    bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true, out LogEventLevel logEventLevel );
+                    bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true,
+                        out LogEventLevel logEventLevel );
                     if (!isParsedLogEventLevel)
                     {
+                        Log.Error( "Cannot parse log event level." );
                         logEventLevel = LogEventLevel.Error;
                     }
 
-                    convertedLog = $"{newLine}!!!ADDED NEW CLIENT LOG INTO DATABASE!!!{newLine}Its short description:{newLine}{convertedLog}";
+                    convertedLog = logEventLevel == LogEventLevel.Information ? 
+                        convertedLog :
+                        $"{newLine}!!!ADDED NEW CLIENT LOG INTO DATABASE!!!{newLine}Its short description:{newLine}{convertedLog}";
                     Log.Write( logEventLevel, convertedLog );
 
                     result = Ok();
                 }
                 catch (Exception ex)
                 {
-                    convertedLog = $"{newLine}!!!CANNOT ADD NEW CLIENT LOG INTO DATABASE!!!{newLine}Its full description:{newLine}{convertedLog}";
+                    convertedLog =
+                        $"{newLine}!!!CANNOT ADD NEW CLIENT LOG INTO DATABASE!!!{newLine}Its full description:{newLine}{convertedLog}";
                     Log.Error( ex, convertedLog );
 
                     throw;
