@@ -15,7 +15,7 @@ internal class TrackingOfUserNotificationRequestsConfigurations : IEntityTypeCon
 
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
-            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__tracking_of_user_notification_requests')" ).
+            HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__tracking__of__user__notification__requests')" ).
             IsRequired();
 
         builder.Property(u => u.MaxNotificationRequestId).

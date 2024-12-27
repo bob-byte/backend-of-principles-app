@@ -6,38 +6,39 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SET.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class AddedCreatedAtAndUpdatedAtFieldsToUserHabit : Migration
+    public partial class ToUserHabitsAddedCreatedAtAndUpdatedAtFields : Migration
     {
         /// <inheritdoc />
-        protected override void Up( MigrationBuilder migrationBuilder )
+        protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<DateTime>(
                 name: "CreatedAt",
                 schema: "hbt",
                 table: "UserHabits",
-                type: "timestamp with time zone",
+                type: "timestamp",
                 nullable: false,
-                defaultValue: new DateTime( 1, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc ) );
+                defaultValueSql: "now()");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "UpdatedAt",
                 schema: "hbt",
                 table: "UserHabits",
-                type: "timestamp with time zone",
-                nullable: true );
+                type: "timestamp",
+                nullable: true);
         }
 
-        protected override void Down( MigrationBuilder migrationBuilder )
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
                 name: "CreatedAt",
                 schema: "hbt",
-                table: "UserHabits" );
+                table: "UserHabits");
 
             migrationBuilder.DropColumn(
                 name: "UpdatedAt",
                 schema: "hbt",
-                table: "UserHabits" );
+                table: "UserHabits");
         }
     }
 }

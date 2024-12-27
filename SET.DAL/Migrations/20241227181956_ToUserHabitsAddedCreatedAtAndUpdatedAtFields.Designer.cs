@@ -12,8 +12,8 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241220172204_AddedCreatedAtAndUpdatedAtFieldsToUserHabit")]
-    partial class AddedCreatedAtAndUpdatedAtFieldsToUserHabit
+    [Migration("20241227181956_ToUserHabitsAddedCreatedAtAndUpdatedAtFields")]
+    partial class ToUserHabitsAddedCreatedAtAndUpdatedAtFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -34,7 +34,7 @@ namespace SET.DataAccess.Migrations
             modelBuilder.HasSequence("sq__progresses_of_habits", "hbt")
                 .StartsAt(100L);
 
-            modelBuilder.HasSequence("sq__tracking_of_user_notification_requests", "app")
+            modelBuilder.HasSequence("sq__tracking__of__user__notification__requests", "app")
                 .StartsAt(100L);
 
             modelBuilder.HasSequence("sq__user_areas_of_life", "arlf")
@@ -168,7 +168,7 @@ namespace SET.DataAccess.Migrations
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
-                        .HasDefaultValueSql("nextval('app.sq__tracking_of_user_notification_requests')");
+                        .HasDefaultValueSql("nextval('app.sq__tracking__of__user__notification__requests')");
 
                     b.Property<int>("MaxNotificationRequestId")
                         .HasColumnType("integer");
@@ -296,7 +296,9 @@ namespace SET.DataAccess.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp")
+                        .HasDefaultValueSql("now()");
 
                     b.Property<string>("Description")
                         .HasColumnType("text");
@@ -332,7 +334,7 @@ namespace SET.DataAccess.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
