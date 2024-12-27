@@ -425,11 +425,11 @@ public class AccountController : BaseController
             string? apiKey = m_configuration["AI_API_KEY"] ?? 
                              m_configuration["AiApiKey"];
 
-            string firstKey = m_configuration["FIRST_KEY_OF_API_ENCRYPTION"] ??
-                              m_configuration["EncryptionSettingsForApi:FirstKey"];
+            string firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
+                              m_configuration["EncryptionSettingsForAiApi:FirstKey"];
 
-            string secondKey = m_configuration["SECOND_KEY_OF_API_ENCRYPTION"] ??
-                               m_configuration["EncryptionSettingsForApi:SecondKey"];
+            string secondKey = m_configuration["SECOND_KEY_OF_AI_API_ENCRYPTION"] ??
+                               m_configuration["EncryptionSettingsForAiApi:SecondKey"];
 
             string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
 
