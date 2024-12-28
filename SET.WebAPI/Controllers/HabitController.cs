@@ -138,6 +138,7 @@ public class HabitController : BaseController
                     habit.UserId = user.Id;
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                    habit.CreatedAt = DateTime.UtcNow;
                 }
                 else
                 {
@@ -153,6 +154,7 @@ public class HabitController : BaseController
                     habit.Priority = habitDto.Priority;
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                    habit.UpdatedAt = DateTime.UtcNow;
                 }
 
                 if (isNewHabit)

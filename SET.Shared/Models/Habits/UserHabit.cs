@@ -29,4 +29,6 @@ public class UserHabit
     public long? GoalId { get; set; }
     public UserGoal? Goal { get; set; }
     public ICollection<UserHabitReminder> Reminders { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

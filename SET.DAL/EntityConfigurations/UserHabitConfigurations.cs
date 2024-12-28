@@ -49,5 +49,14 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
             .HasForeignKey( r => r.UserHabitId )
             .IsRequired()
             .OnDelete( DeleteBehavior.Cascade );
+
+        builder.Property( u => u.CreatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
+
+        builder.Property( u => u.UpdatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            IsRequired(false);
     }
 }
