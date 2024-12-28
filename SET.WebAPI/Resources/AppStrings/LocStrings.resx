@@ -100,9 +100,9 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Fix selection of habit in the progress tab</value>
+		<value>Reminder, security, AI improvements</value>
 	</data>
-    <data name="IosVersionDescription" xml:space="preserve">
-      <value>Fix adding a new column when a new day comes. Improved view.</value>
-    </data>
+	<data name="IosVersionDescription" xml:space="preserve">
+		<value>Fix reminder duplication, Apple auth is implemented </value>
+	</data>
 </root>
