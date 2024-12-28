@@ -120,6 +120,21 @@ public class GoalController : BaseController
             }
             else
             {
+                List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
+                    Where( h => h.Title == existingGoal.Name && existingGoal.UserId == user.Id ).
+                    ToListAsync().
+                    DefaultConfigureAwait();
+
+                if (remindersToUpdate?.Count > 0)
+                {
+                    foreach (UserHabitReminder reminder in remindersToUpdate)
+                    {
+                        reminder.Title = userGoal.Name;
+                    }
+                    
+                    DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
+                }
+
                 existingGoal.Name = userGoal.Name;
 
                 DbContext.UserGoals.Update( existingGoal );
