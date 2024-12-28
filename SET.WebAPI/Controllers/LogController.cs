@@ -32,6 +32,14 @@ public class LogController : BaseController
             {
                 newClientLog.UserId = null;
             }
+            
+            bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true,
+                out LogEventLevel logEventLevel );
+            if (!isParsedLogEventLevel)
+            {
+                Log.Error( "Cannot parse log event level." );
+                logEventLevel = LogEventLevel.Error;
+            }
 
             string email = string.Empty;
             if (newClientLog.UserId > 0)
@@ -45,6 +53,11 @@ public class LogController : BaseController
                 {
                     email = user.Email;
                 }
+
+                if (logEventLevel == LogEventLevel.Information && (email is "batsbohdan@gmail.com" or "bac.bogdan222@gmail.com"))
+                {
+                    result = Ok();
+                }
             }
             else
             {
@@ -56,7 +69,7 @@ public class LogController : BaseController
                 string newLine = Environment.NewLine;
                 string convertedLog;
                 
-                if (newClientLog.LogType == "Information")
+                if (logEventLevel == LogEventLevel.Information)
                 {
                     convertedLog = $"{(string.IsNullOrWhiteSpace(email) ? "Somebody" : email)} uses the app. Log message: {newClientLog.LogMessage}";
                 }
@@ -78,18 +91,10 @@ public class LogController : BaseController
 
                 try
                 {
-                    if (newClientLog.LogType != "Information")
+                    if (logEventLevel != LogEventLevel.Information)
                     {
                         await DbContext.ClientLogs.AddAsync( newClientLog ).DefaultConfigureAwait();
                         await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-                    }
-
-                    bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true,
-                        out LogEventLevel logEventLevel );
-                    if (!isParsedLogEventLevel)
-                    {
-                        Log.Error( "Cannot parse log event level." );
-                        logEventLevel = LogEventLevel.Error;
                     }
 
                     convertedLog = logEventLevel == LogEventLevel.Information ? 
