@@ -9,7 +9,7 @@ namespace SET.DataAccess.Migrations
     public partial class AddedCreatedAtAndUpdatedAtFieldsToUserGoals : Migration
     {
         /// <inheritdoc />
-        protected override void Up( MigrationBuilder migrationBuilder )
+        protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<DateTime>(
                 name: "CreatedAt",
@@ -17,27 +17,28 @@ namespace SET.DataAccess.Migrations
                 table: "UserGoals",
                 type: "timestamp with time zone",
                 nullable: false,
-                defaultValue: new DateTime( 1, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc ) );
+                defaultValueSql: "now()");
 
             migrationBuilder.AddColumn<DateTime>(
                 name: "UpdatedAt",
                 schema: "goal",
                 table: "UserGoals",
                 type: "timestamp with time zone",
-                nullable: true );
+                nullable: true);
         }
 
-        protected override void Down( MigrationBuilder migrationBuilder )
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
                 name: "CreatedAt",
                 schema: "goal",
-                table: "UserGoals" );
+                table: "UserGoals");
 
             migrationBuilder.DropColumn(
                 name: "UpdatedAt",
                 schema: "goal",
-                table: "UserGoals" );
+                table: "UserGoals");
         }
     }
 }
