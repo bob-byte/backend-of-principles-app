@@ -25,6 +25,13 @@ internal class UserGoalConfigurations : IEntityTypeConfiguration<UserGoal>
             .HasColumnType( "bigint" )
             .IsRequired();
 
+        builder.Property( u => u.CreatedAt ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
+
+        builder.Property( u => u.UpdatedAt ).
+            IsRequired(false);
+
         builder.HasMany( u => u.UserHabits ).
             WithOne( u => u.Goal ).
             HasForeignKey( u => u.GoalId ).
