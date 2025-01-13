@@ -67,5 +67,10 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             HasForeignKey( u => u.UserId ).
             IsRequired().
             OnDelete( DeleteBehavior.Cascade );
+
+        builder.Property( u => u.CreatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
     }
 }
