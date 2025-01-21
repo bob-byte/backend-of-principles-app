@@ -100,9 +100,9 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Reminder, security, AI improvements</value>
+		<value>“Areas of habit” element has been fixed</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>Fix reminder duplication, Apple auth is implemented </value>
+		<value>“Areas of habit” element has been fixed</value>
 	</data>
 </root>

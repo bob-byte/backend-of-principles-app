@@ -100,9 +100,9 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Покращення нагадувань, безпеки, ШІ</value>
+		<value>Виправлено елемент "Сфери звички"</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>Виправлено дублювання нагадувань, реалізовано Apple auth </value>
+		<value>Виправлено елемент "Сфери звички"</value>
 	</data>
 </root>

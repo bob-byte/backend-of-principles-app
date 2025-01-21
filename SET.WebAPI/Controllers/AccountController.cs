@@ -62,9 +62,9 @@ public class AccountController : BaseController
             {
                 m_smtpClient.Value.Dispose();
             }
-            catch(Exception ex)
+            catch
             {
-                Log.Error( ex, ex.Message );
+                //do nothing
             }
         }
     }
@@ -116,8 +116,10 @@ public class AccountController : BaseController
 
             if (registerInfo.Password is null)
             {
-                return BadRequest( "PasswordShoudBeFilled" );
+                return BadRequest( "PasswordShouldBeFilled" );
             }
+
+            registerInfo.Name ??= string.Empty;
 
             bool isAlreadyRegistered = await DbContext.
                 Users.
@@ -178,6 +180,14 @@ public class AccountController : BaseController
         return TryCatchAsync( async () =>
         {
             #region Check parameter
+            if (userlogin is null)
+            {
+                return BadRequest( "UserLoginRequestObjectIsNull" );
+            }
+            if (userlogin.Email is null)
+            {
+                return BadRequest( "EmailShouldBeFilled" );
+            }
             if (userlogin.Password is null)
             {
                 return BadRequest( "PasswordShouldBeFilled" );

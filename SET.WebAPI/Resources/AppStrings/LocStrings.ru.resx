@@ -100,9 +100,9 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Улучшение напоминаний, безопасности, ИИ</value>
+		<value>Исправлен элемент "Сферы привычки" и переводы на русский язык</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>Исправлено дублирование напоминаний, реализован Apple auth </value>
+		<value>Исправлен элемент "Сферы привычки" и переводы на русский язык</value>
 	</data>
 </root>
