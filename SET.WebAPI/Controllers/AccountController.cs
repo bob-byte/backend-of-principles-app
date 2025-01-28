@@ -234,7 +234,14 @@ public class AccountController : BaseController
                 }
                 else
                 {
-                    result = BadRequest( loginResult.errorMsg );
+                    if (loginResult.errorMsg == "EmailIsIncorrect" || loginResult.errorMsg == "PasswordIsIncorrect")
+                    {
+                        result = BadRequest( "InvalidEmailOrPassword" );
+                    }
+                    else
+                    {
+                        result = BadRequest( loginResult.errorMsg );
+                    }
                 }
             }
 
