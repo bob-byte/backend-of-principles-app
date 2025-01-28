@@ -69,7 +69,8 @@ public class AuthService : IAuthService
             Gender = userRegister.Gender,
             Password = userRegister.Password is null ? null : PasswordHelper.CreatePasswordHash( userRegister.Password ),
             MainSlogan = userRegister.MainSlogan,
-            Mission = userRegister.Mission
+            Mission = userRegister.Mission,
+            CreatedAt = DateTime.UtcNow
         };
 
         await m_context.Users.AddAsync( user ).DefaultConfigureAwait();
