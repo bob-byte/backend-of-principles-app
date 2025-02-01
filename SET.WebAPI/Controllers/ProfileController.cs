@@ -66,9 +66,10 @@ public class ProfileController : BaseController
         return TryCatchAsync( async ( User user ) =>
         {
             List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
-                    Where( h => h.Title == user.Mission && h.UserHabit.User.Id == user.Id ).
-                    ToListAsync().
-                    DefaultConfigureAwait();
+                Include( r => r.UserHabit ).
+                Where( r => r.Title == user.Mission && r.UserHabit.UserId == user.Id ).
+                ToListAsync().
+                DefaultConfigureAwait();
             user.Mission = mission;
 
             if (remindersToUpdate?.Count > 0)
