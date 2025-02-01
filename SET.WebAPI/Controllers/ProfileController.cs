@@ -65,11 +65,15 @@ public class ProfileController : BaseController
     {
         return TryCatchAsync( async ( User user ) =>
         {
+            string oldMission = (string)user.Mission.Clone();
+            
             List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
                 Include( r => r.UserHabit ).
-                Where( r => r.Title == user.Mission && r.UserHabit.UserId == user.Id ).
+                Where( r => r.Title == oldMission && r.UserHabit.UserId == user.Id ).
                 ToListAsync().
                 DefaultConfigureAwait();
+            List<UserReminder> userReminders =
+                await DbContext.UserReminders.Where( r => r.UserId == user.Id && (r.Title == oldMission || r.Description == oldMission) ).ToListAsync().DefaultConfigureAwait();
             user.Mission = mission;
 
             if (remindersToUpdate?.Count > 0)
@@ -80,6 +84,24 @@ public class ProfileController : BaseController
                 }
 
                 DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
+            }
+
+            if (userReminders?.Count > 0)
+            {
+                foreach (UserReminder reminder in userReminders)
+                {
+                    if (reminder.Title == oldMission)
+                    {
+                        reminder.Title = mission;
+                    }
+
+                    if (reminder.Description == oldMission)
+                    {
+                        reminder.Description = mission;
+                    }
+                }
+                
+                DbContext.UserReminders.UpdateRange( userReminders );
             }
 
             DbContext.Users.Update( user );
