@@ -14,8 +14,8 @@ public class User
 
     public Gender Gender { get; set; }
 
-    public string MainSlogan { get; set; }
-    public string Mission { get; set; }
+    public string? MainSlogan { get; set; }
+    public string? Mission { get; set; }
     public UserReminder? HabitsReportReminder { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }

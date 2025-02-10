@@ -47,7 +47,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mainslogan" )]
-    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string mainSlogan )
+    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string? mainSlogan = null )
     {
         return TryCatchAsync( async ( User user ) =>
         {
@@ -61,47 +61,50 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mission" )]
-    public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
+    public Task<IActionResult> SaveMissionAsync( [FromBody] string? mission = null )
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            string oldMission = (string)user.Mission.Clone();
-            
-            List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
-                Include( r => r.UserHabit ).
-                Where( r => r.Title == oldMission && r.UserHabit.UserId == user.Id ).
-                ToListAsync().
-                DefaultConfigureAwait();
-            List<UserReminder> userReminders =
-                await DbContext.UserReminders.Where( r => r.UserId == user.Id && (r.Title == oldMission || r.Description == oldMission) ).ToListAsync().DefaultConfigureAwait();
+            string? oldMission = (string)user.Mission?.Clone();
             user.Mission = mission;
 
-            if (remindersToUpdate?.Count > 0)
+            if (oldMission is not null)
             {
-                foreach (UserHabitReminder reminder in remindersToUpdate)
-                {
-                    reminder.Title = mission;
-                }
+                List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
+                    Include( r => r.UserHabit ).
+                    Where( r => r.Title == oldMission && r.UserHabit.UserId == user.Id ).
+                    ToListAsync().
+                    DefaultConfigureAwait();
+                List<UserReminder> userReminders =
+                    await DbContext.UserReminders.Where( r => r.UserId == user.Id && (r.Title == oldMission || r.Description == oldMission) ).ToListAsync().DefaultConfigureAwait();
 
-                DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
-            }
-
-            if (userReminders?.Count > 0)
-            {
-                foreach (UserReminder reminder in userReminders)
+                if (remindersToUpdate?.Count > 0)
                 {
-                    if (reminder.Title == oldMission)
+                    foreach (UserHabitReminder reminder in remindersToUpdate)
                     {
                         reminder.Title = mission;
                     }
 
-                    if (reminder.Description == oldMission)
-                    {
-                        reminder.Description = mission;
-                    }
+                    DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
                 }
+
+                if (userReminders?.Count > 0)
+                {
+                    foreach (UserReminder reminder in userReminders)
+                    {
+                        if (reminder.Title == oldMission)
+                        {
+                            reminder.Title = mission;
+                        }
+
+                        if (reminder.Description == oldMission)
+                        {
+                            reminder.Description = mission;
+                        }
+                    }
                 
-                DbContext.UserReminders.UpdateRange( userReminders );
+                    DbContext.UserReminders.UpdateRange( userReminders );
+                }
             }
 
             DbContext.Users.Update( user );
