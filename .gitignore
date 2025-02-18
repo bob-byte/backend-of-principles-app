@@ -218,6 +218,9 @@ project.lock.json
 *.feature.xlsx.*
 *.Specs_*.html
 
+# Environment Variables
+.env
+
 # UWP Projects
 AppPackages/
 

@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
 using System.Security.Claims;
+using DotNetEnv;
 
 namespace SET.WebAPI.Controllers;
 
@@ -450,8 +451,9 @@ public class AccountController : BaseController
     {
         return TryCatch( () =>
         {
-            string? apiKey = m_configuration["AI_API_KEY"] ?? 
-                             m_configuration["AiApiKey"];
+            Env.Load();
+            string? apiKey = m_configuration["AI_API_KEY"] ??
+                             Environment.GetEnvironmentVariable( "Ai_Api_Key" );
 
             string firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
                               m_configuration["EncryptionSettingsForAiApi:FirstKey"];
