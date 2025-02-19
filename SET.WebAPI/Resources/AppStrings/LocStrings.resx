@@ -103,6 +103,9 @@
 		<value>“Areas of habit” element has been fixed</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>“Areas of habit” element has been fixed</value>
+		<value>1) Error correction
+2) Multi-line text editor in the AI-Helper page
+3) Security improvements
+4) Added buttons “Join Telegram channel” and “Change language” in the settings page</value>
 	</data>
 </root>
