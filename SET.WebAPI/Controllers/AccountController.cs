@@ -450,8 +450,7 @@ public class AccountController : BaseController
     {
         return TryCatch( () =>
         {
-            string? apiKey = m_configuration["AI_API_KEY"] ?? 
-                             m_configuration["AiApiKey"];
+            string? apiKey = m_configuration["AI_API_KEY"];
 
             string firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
                               m_configuration["EncryptionSettingsForAiApi:FirstKey"];

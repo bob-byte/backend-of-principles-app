@@ -1,4 +1,7 @@
+using DotNetEnv;
+
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 
 using SET.WebAPI.Helpers;
@@ -48,12 +51,19 @@ public static class Program
         }
     }
 
-    public static IHostBuilder CreateHostBuilder(string[] args)
+    public static IHostBuilder CreateHostBuilder( string[] args )
     {
-        return Host.CreateDefaultBuilder(args)
-                   .ConfigureWebHostDefaults( webBuilder =>
-                   {
-                       webBuilder.UseStartup<Startup>();
-                   } );
+        return Host.CreateDefaultBuilder( args )
+#if DEBUG
+            .ConfigureAppConfiguration( ( hostingContext, config ) =>
+            {
+                Env.Load();
+                config.AddEnvironmentVariables();
+            } )
+#endif
+            .ConfigureWebHostDefaults( webBuilder =>
+            {
+                webBuilder.UseStartup<Startup>();
+            } );
     }
 }
