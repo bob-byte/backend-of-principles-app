@@ -219,7 +219,7 @@ project.lock.json
 *.Specs_*.html
 
 # Environment Variables
-.env
+*.env
 
 # UWP Projects
 AppPackages/
