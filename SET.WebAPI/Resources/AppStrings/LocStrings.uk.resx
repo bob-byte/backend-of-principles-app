@@ -100,7 +100,10 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Виправлено елемент "Сфери звички"</value>
+		<value>1) Виправлення помилок
+2) Багаторядковий текстовий ввід на сторінці ШІ-помічник
+3) Покращення безпеки
+4) Додано кнопки «Приєднуйтесь до телеграм-каналу» та «Змінити мову» на сторінці налаштувань</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
 		<value>1) Зменшено розмір додатку вдвічі
