@@ -100,16 +100,15 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>1) Bug fix
-2) Multi-line text input on the AI assistant page
-3) Improved security
-4) Added “Join Telegram channel” and “Change language” buttons on the settings page</value>
+		<value>    Its description:
+1) The tab bar has been improved. Now it looks great;
+2) fixed some bugs;
+3) added the “Email” field to the “Profile” tab.</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>1) Reduced the size of the app by half
-2) Bug fix
-3) Multi-line text input on the AI assistant page
-4) Improved security
-5) Added “Join Telegram channel” and “Change language” buttons on the settings page</value>
+		<value>    Its description:
+1) The tab bar has been improved. Now it looks great;
+2) fixed some bugs;
+3) added the “Email” field to the “Profile” tab.</value>
 	</data>
 </root>
