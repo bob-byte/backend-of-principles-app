@@ -22,9 +22,9 @@ public class HabitController : BaseController
         return TryCatchAsync( async ( user ) =>
         {
             //TODO: load only last 66 progresses of habits
-            
+
             List<UserHabit> listOfHabits = await DbContext.UserHabits.
-                Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id ).
+                Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id && !u.IsArchived ).
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
@@ -39,6 +39,38 @@ public class HabitController : BaseController
             return result;
         } );
     }
+
+    [HttpGet( template: "archive" )]
+    public Task<IActionResult> GetArchiveHabits()
+    {
+        return TryCatchAsync( async ( user ) =>
+        {
+
+            OkObjectResult result =  Ok( await DbContext.UserHabits
+                .Where( u => u.IsArchived && u.UserId == user.Id )
+                .Select( h => new { h.Id, h.Name } )
+                .ToListAsync()
+                .DefaultConfigureAwait() );
+            return result;
+        } );
+    }
+
+    [HttpGet( template: "progresses/{habitId}" )]
+    public Task<IActionResult> GetProgresses( long habitId )
+    {
+        return TryCatchAsync( async () =>
+        {
+            ICollection<ProgressOfHabit> progresses = await DbContext.UserHabits
+                .Where( u => u.Id == habitId )
+                .Include( u => u.Progresses )
+                .Select( u => u.Progresses )
+                .FirstOrDefaultAsync()
+                .DefaultConfigureAwait();
+
+            return Ok( progresses ?? new List<ProgressOfHabit>() );
+        } );
+    }
+
 
     [HttpGet(template: "{habitId}")]
     public Task<IActionResult> Load( long habitId )
@@ -92,6 +124,28 @@ public class HabitController : BaseController
         } );
     }
 
+
+
+    [HttpPost( template: "archivestatus" )]
+    public async Task<IActionResult> SetHabitArchiveStatus( [FromBody] HabitArchiveStatus habitArchiveStatus )
+    {
+        return await TryCatchAsync( async () =>
+        {
+            UserHabit habit = await DbContext.UserHabits
+                .Where( u => u.Id == habitArchiveStatus.HabitId )
+                .FirstOrDefaultAsync()
+                .DefaultConfigureAwait();
+
+
+            habit.IsArchived = habitArchiveStatus.IsArchived;
+            habit.UpdatedAt = DateTime.UtcNow;
+
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
+            return Ok();
+        } );
+    }
+
     [HttpPost( template: "{habitId}" )]
     public Task<IActionResult> Update( [FromBody] EditUserHabitDto habitDto )
     {
@@ -138,6 +192,7 @@ public class HabitController : BaseController
                     habit.UserId = user.Id;
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                    habit.IsArchived = habitDto.IsArchived;
                     habit.CreatedAt = DateTime.UtcNow;
                 }
                 else
@@ -154,6 +209,7 @@ public class HabitController : BaseController
                     habit.Priority = habitDto.Priority;
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                    habit.IsArchived = habitDto.IsArchived;
                     habit.UpdatedAt = DateTime.UtcNow;
                 }
 

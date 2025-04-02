@@ -26,6 +26,9 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
         builder.Property( u => u.ReasonToFollow ).
             IsRequired( false );
 
+        builder.Property( u => u.IsArchived ).
+            IsRequired( );
+
         builder.Property( u => u.Complexity ).
             IsRequired();
 

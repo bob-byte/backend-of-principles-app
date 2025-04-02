@@ -19,6 +19,8 @@ public class EditUserHabitDto
     public string? Description { get; set; }
     public int Complexity { get; set; }
     public string? Question { get; set; }
+    public bool IsArchived { get; set; }
+    public ICollection<ProgressOfHabit> Progresses { get; set; }
     public StatusOfHabit Status { get; set; }
     public FrequencyDto Frequency { get; set; }
     public int Priority { get; set; }
