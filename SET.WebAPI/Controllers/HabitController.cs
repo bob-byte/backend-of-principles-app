@@ -21,14 +21,14 @@ public class HabitController : BaseController
     {
         return TryCatchAsync( async ( user ) =>
         {
-            //TODO: load only last 66 progresses of habits
-            
             List<UserHabit> listOfHabits = await DbContext.UserHabits.
                 Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id ).
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
+                Include( u => u.Reminders ).
+                ThenInclude( r => r.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -146,7 +146,6 @@ public class HabitController : BaseController
                     habit.FrequencyId = habitDto.Frequency.Id;
                     habit.Frequency = Mapper.Map<Frequency>( habitDto.Frequency );
                     habit.ColorName = habitDto.ColorName;
-                    habit.ReasonToFollow = habitDto.ReasonToFollow;
                     habit.Description = habitDto.Description;
                     habit.Question = habitDto.Question;
                     habit.Complexity = habitDto.Complexity;
