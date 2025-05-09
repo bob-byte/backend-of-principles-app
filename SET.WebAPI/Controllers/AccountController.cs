@@ -431,8 +431,8 @@ public class AccountController : BaseController
             MailMessage mailMessage = new()
             {
                 From = new MailAddress( m_configuration["HostEmail"], displayName: "Principles app" ),
-                Subject = "Your 6-digit code",
-                Body = $"Your code is: {code}",
+                Subject = "Principles App: Your Verification Code",
+                Body = $"Your verification code is: {code}.\n\nIf you did not request this code, please ignore this message.",
                 IsBodyHtml = false,
             };
             mailMessage.To.Add( emailWhereSendCode );
