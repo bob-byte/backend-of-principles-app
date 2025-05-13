@@ -28,6 +28,8 @@ public class UserHabit
     public string ColorName { get; set; }
     public long? GoalId { get; set; }
     public UserGoal? Goal { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTime? ArchivingTime { get; set; }
     public ICollection<UserHabitReminder> Reminders { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

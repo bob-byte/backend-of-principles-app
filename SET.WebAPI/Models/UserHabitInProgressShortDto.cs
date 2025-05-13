@@ -10,13 +10,7 @@ public class UserHabitInProgressShortDto
         public int Repeats { get; set; }
         public int IntervalLengthInDays { get; set; }
     }
-    public class ProgressOfHabitDto
-    {
-        public long Id { get; set; }
-        public DateOnly Date { get; set; }
-        public int Value { get; set; }
-    }
-
+    
     public long Id { get; set; }
     public string Name { get; set; }
     public IEnumerable<DtoWithId> AreasOfLife { get; set; }
