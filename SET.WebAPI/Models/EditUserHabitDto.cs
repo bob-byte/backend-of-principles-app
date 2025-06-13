@@ -14,7 +14,6 @@ public class EditUserHabitDto
     public long Id { get; set; }
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
-    public string? ReasonToFollow { get; set; }
     public UserAreaOfLifeDto[] AreasOfLife { get; set; }
     public string? Description { get; set; }
     public int Complexity { get; set; }

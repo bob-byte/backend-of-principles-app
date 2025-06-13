@@ -27,6 +27,8 @@ public class HabitController : BaseController
                 Include( u => u.Frequency ).
                 Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
+                Include( u => u.Reminders ).
+                ThenInclude( r => r.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
@@ -195,7 +197,6 @@ public class HabitController : BaseController
                     habit.FrequencyId = habitDto.Frequency.Id;
                     habit.Frequency = Mapper.Map<Frequency>( habitDto.Frequency );
                     habit.ColorName = habitDto.ColorName;
-                    habit.ReasonToFollow = habitDto.ReasonToFollow;
                     habit.Description = habitDto.Description;
                     habit.Question = habitDto.Question;
                     habit.Complexity = habitDto.Complexity;

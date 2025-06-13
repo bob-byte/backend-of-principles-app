@@ -13,11 +13,14 @@ public class UserHabitInProgressShortDto
     
     public long Id { get; set; }
     public string Name { get; set; }
-    public IEnumerable<DtoWithId> AreasOfLife { get; set; }
+    public TypeOfHabit Type { get; set; }
+    public IEnumerable<UserAreaOfLifeDto> AreasOfLife { get; set; }
     public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
     public FrequencyDto Frequency { get; set; }
     public int Complexity { get; set; }
     public int Priority { get; set; }
     public UserGoalDto? Goal { get; set; }
     public IEnumerable<UserHabitReminderDto> Reminders { get; set; }
+    public string? Description { get; set; }
+    public string ColorName { get; set; }
 }
