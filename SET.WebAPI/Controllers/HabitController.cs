@@ -83,20 +83,6 @@ public class HabitController : BaseController
             return result;
         } );
     }
-
-    [HttpGet( template: "progresses/{habitId}" )]
-    public Task<IActionResult> GetProgresses( long habitId )
-    {
-        return TryCatchAsync( async () =>
-        {
-            List<ProgressOfHabit> progresses = await DbContext.ProgressesOfHabits
-                .Where( u => u.HabitId == habitId )
-                .ToListAsync()
-                .DefaultConfigureAwait();
-            List<ProgressOfHabitDto> result = Mapper.Map<List<ProgressOfHabitDto>>( progresses ) ?? new List<ProgressOfHabitDto>();
-            return Ok( result );
-        } );
-    }
     
     [HttpGet(template: "{habitId}")]
     public Task<IActionResult> Load( long habitId )
@@ -107,6 +93,7 @@ public class HabitController : BaseController
                 Where( u => u.Id == habitId ).
                 Include( u => u.Frequency ).
                 Include( u => u.Goal ).
+                Include( u => u.Progresses ).
                 FirstOrDefaultAsync().
                 DefaultConfigureAwait();
 
