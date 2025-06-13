@@ -25,16 +25,45 @@ public class HabitController : BaseController
                 Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id && !u.IsArchived ).
                 Include( u => u.Progresses ).
                 Include( u => u.Frequency ).
-                Include( u => u.AreasOfLife ).
                 Include( u => u.Goal ).
-                Include( u => u.Reminders ).
-                ThenInclude( r => r.DaysOfWeek ).
                 OrderBy( u => u.Priority ).
                 AsSplitQuery().
                 ToListAsync().
                 DefaultConfigureAwait();
 
-            List<UserHabitInProgressShortDto> resultData = Mapper.Map<List<UserHabitInProgressShortDto>>( listOfHabits );
+            List<UserHabitInProgressShortDto> resultData = new();
+            
+            foreach (UserHabit habit in listOfHabits)
+            {
+                List<UserAreaOfLife> areasOfLife = await DbContext.
+                    UserAreasOfLife.
+                    Include( u => u.Habits ).
+                    Where( u => u.Habits.Any( up => up.HabitId == habit.Id )).
+                    ToListAsync().
+                    DefaultConfigureAwait();
+
+                UserHabitInProgressShortDto habitDto = Mapper.Map<UserHabitInProgressShortDto>( habit );
+                habitDto.AreasOfLife = Mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
+
+                UserHabitReminder? reminder = await DbContext.UserHabitReminders
+                    .Where( r => r.UserHabitId == habit.Id )
+                    .Include( r => r.DaysOfWeek )
+                    .FirstOrDefaultAsync()
+                    .DefaultConfigureAwait();
+
+                if (reminder is not null)
+                {
+                    UserHabitReminderDto dtoReminder = Mapper.Map<UserHabitReminderDto>( reminder );
+
+                    habitDto.Reminders = new List<UserHabitReminderDto>
+                    {
+                        dtoReminder
+                    };
+                }
+                
+                resultData.Add( habitDto );
+            }
+            
             OkObjectResult result = Ok( resultData );
             return result;
         } );

@@ -18,6 +18,7 @@ public static class AutoMapperExtension
             cfg.CreateMap<Frequency, UserHabitInProgressShortDto.FrequencyDto>();
             cfg.CreateMap<ProgressOfHabit, ProgressOfHabitDto>();
             cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>();
+            cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() ).ForMember( u => u.Reminders, opt => opt.Ignore() );
             cfg.CreateMap<Frequency, EditUserHabitDto.FrequencyDto>();
             cfg.CreateMap<EditUserHabitDto.FrequencyDto, Frequency>();
             cfg.CreateMap<UserAreaOfLife, UserAreaOfLifeDto>();
