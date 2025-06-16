@@ -74,10 +74,10 @@ public class HabitController : BaseController
     {
         return TryCatchAsync( async ( user ) =>
         {
-
             OkObjectResult result =  Ok( await DbContext.UserHabits
                 .Where( u => u.IsArchived && u.UserId == user.Id )
                 .Select( h => new { h.Id, h.Name } )
+                .OrderByDescending( h => h.Id )
                 .ToListAsync()
                 .DefaultConfigureAwait() );
             return result;
