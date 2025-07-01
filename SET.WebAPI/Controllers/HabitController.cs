@@ -205,7 +205,11 @@ public class HabitController : BaseController
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
                     habit.IsArchived = habitDto.IsArchived;
                     habit.CreatedAt = DateTime.UtcNow;
-                    habit.ArchivingTime = habit.CreatedAt;
+
+                    if (habit.IsArchived)
+                    {
+                        habit.ArchivingTime = habit.CreatedAt;
+                    }
                 }
                 else
                 {
