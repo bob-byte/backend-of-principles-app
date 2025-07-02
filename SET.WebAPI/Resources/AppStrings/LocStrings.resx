@@ -100,16 +100,9 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>    Its description:
-1) Habit statistics;
-2) Change password on the settings page;
-3) Improvements to the AI assistant;
-4) The “How to keep” tab on the “Edit habit” page;
-5) Bug fixes;
-6) Improving the look and feel;
-7) Archive of habits.</value>
+		<value>Fixed some bugs in the "Progress" tab and the related pages</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>Fixed the "How to keep" tab on the "Save Habit" page.</value>
+		<value>Fixed some bugs in the "Progress" tab and the related pages</value>
 	</data>
 </root>
