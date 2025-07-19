@@ -46,12 +46,17 @@ public class ProgressOfHabitController : BaseController
             }
             #endregion
 
-            bool isNewProgress = progressDto.Id == 0;
-
-            ProgressOfHabit progress = isNewProgress
-                ? Mapper.Map<ProgressOfHabit>( progressDto )
-                : await DbContext.ProgressesOfHabits.FindAsync( progressDto.Id ).DefaultConfigureAwait();
-            if(!isNewProgress)
+            ProgressOfHabit? progress =
+                await DbContext.ProgressesOfHabits.FirstOrDefaultAsync( p =>
+                    p.HabitId == progressDto.HabitId && p.Date == progressDto.Date ).DefaultConfigureAwait();
+            bool isNewProgress = progress is null;
+            
+            if (isNewProgress)
+            {
+                progress = Mapper.Map<ProgressOfHabit>( progressDto );
+                progress.Id = 0;
+            }
+            else
             {
                 progress.Value = progressDto.Value;
             }
