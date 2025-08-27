@@ -27,4 +27,10 @@ public class EditUserHabitDto
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
     public List<UserHabitReminderDto> Reminders { get; set; }
     public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
+    public HabitKind Kind { get; set; }
+    public string? Unit { get; set; }
+    public double? TargetPerOneTime { get; set; }
+    public NumericalHabitType TargetType { get; set; }
+    public double? MinRate { get; set; }
+    public double? MaxRate { get; set; }
 }

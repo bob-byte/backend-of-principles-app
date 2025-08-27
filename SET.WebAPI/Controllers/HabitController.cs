@@ -227,6 +227,12 @@ public class HabitController : BaseController
                     habit.IsArchived = habitDto.IsArchived;
                     habit.UpdatedAt = DateTime.UtcNow;
                     habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
+                    habit.Kind = habitDto.Kind;
+                    habit.Unit = habitDto.Unit;
+                    habit.TargetPerOneTime = habitDto.TargetPerOneTime;
+                    habit.TargetType = habitDto.TargetType;
+                    habit.MinRate = habitDto.MinRate;
+                    habit.MaxRate = habitDto.MaxRate;
                 }
 
                 if (isNewHabit)

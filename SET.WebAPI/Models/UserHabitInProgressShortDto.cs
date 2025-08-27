@@ -23,4 +23,10 @@ public class UserHabitInProgressShortDto
     public IEnumerable<UserHabitReminderDto> Reminders { get; set; }
     public string? Description { get; set; }
     public string ColorName { get; set; }
+    public HabitKind Kind { get; set; }
+    public string? Unit { get; set; }
+    public double? TargetPerOneTime { get; set; }
+    public NumericalHabitType TargetType { get; set; }
+    public double? MinRate { get; set; }
+    public double? MaxRate { get; set; }
 }
