@@ -245,22 +245,22 @@ public class HabitController : BaseController
                 else
                 {
                     UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
-
-                    UserAreaOfLifeUserHabit[] targetAreasAndHabits = DbContext.UserAreasOfLifeUserHabits
-                        .Where( u => u.HabitId == habit.Id ).ToArray();
-
-                    await DbContext.UserAreasOfLifeUserHabits.MergeAsync(
-                        targetAreasAndHabits,
+                    
+                    UserAreaOfLifeUserHabit[] targetAreasAndHabits = await DbContext.UserAreasOfLifeUserHabits
+                        .Where( u => u.HabitId == habit.Id ).ToArrayAsync().DefaultConfigureAwait();
+                    
+                    await DbContext.UserAreasOfLifeUserHabits.MergeAsync( 
+                        targetAreasAndHabits, 
                         sourceAreas,
                         ( areasToInsert ) =>
                         {
                             return areasToInsert.Select(
                                 area => new UserAreaOfLifeUserHabit() { AreaOfLifeId = area.Id, HabitId = habit.Id }
                             );
-                        },
-                        targetIdProp: "AreaOfLifeId"
-                    ).DefaultConfigureAwait();
-
+                        }, 
+                        t => t.AreaOfLifeId, 
+                        s => s.Id
+                    );
                 }
 
                 if (isNewHabit)
@@ -338,6 +338,8 @@ public class HabitController : BaseController
                                 } ).ToList()
                             } );
                         },
+                        t => t.Id,
+                        s => s.Id,
                         ( existingReminder, updatedReminder ) =>
                         {
                             existingReminder.Title = updatedReminder.Title;
@@ -362,6 +364,8 @@ public class HabitController : BaseController
                                     UserNotificationRequestId = d.UserNotificationRequestId,
                                     UserHabitReminderId = targetReminder.Id
                                 } ),
+                                t => t.Id,
+                                s => s.Id,
                                 ( existingDay, updatedDay ) =>
                                 {
                                     existingDay.Type = updatedDay.Type;
