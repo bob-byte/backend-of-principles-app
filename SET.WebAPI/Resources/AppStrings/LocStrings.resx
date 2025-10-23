@@ -100,9 +100,21 @@
 	</resheader>
 
 	<data name="AndroidVersionDescription" xml:space="preserve">
-		<value>Fixed some bugs in the "Progress" tab and the related pages</value>
+		<value>    Thank you for choosing Principles! 
+    We are constantly improving your experience in achieving goals through habits and regularly improve our app.
+
+    In this version:
+1. Tracker of app launch,
+2. Monetization,
+3. Bug fixes.</value>
 	</data>
 	<data name="IosVersionDescription" xml:space="preserve">
-		<value>Fixed some bugs in the "Progress" tab and the related pages</value>
+		<value>    Thank you for choosing Principles! 
+    We are constantly improving your experience in achieving goals through habits and regularly improve our app.
+
+    In this version:
+1. Tracker of app launch,
+2. Monetization,
+3. Bug fixes.</value>
 	</data>
 </root>
