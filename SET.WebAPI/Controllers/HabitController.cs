@@ -148,8 +148,22 @@ public class HabitController : BaseController
                 .DefaultConfigureAwait();
 
             habit.IsArchived = habitArchiveStatus.IsArchived;
+
+            List<UserHabitReminder>? habitReminders = await DbContext.
+                UserHabitReminders.
+                Where( r => r.UserHabitId == habitArchiveStatus.HabitId ).
+                ToListAsync().
+                DefaultConfigureAwait();
+            if (habitReminders is not null && habitReminders.Count > 0)
+            {
+                foreach (UserHabitReminder reminder in habitReminders)
+                {
+                    reminder.IsEnabled = !habit.IsArchived;
+                }
+            }
+
             habit.UpdatedAt = DateTime.UtcNow;
-            habit.ArchivingTime = habitArchiveStatus.IsArchived ? habit.UpdatedAt : null;
+            habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
