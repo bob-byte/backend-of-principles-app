@@ -84,7 +84,7 @@ public class LogController : BaseController
                                        ? string.Empty
                                        : $"Email = {email};{newLine}") +
                                    $"{nameof(SaveLogRequest.AppVersion)} = {saveLogRequest.AppVersion};{newLine}" +
-                                   $"{nameof(SaveLogRequest.DeviceOs)} = {saveLogRequest.DeviceOs};{newLine}.";
+                                   $"{nameof(SaveLogRequest.DeviceOs)} = {saveLogRequest.DeviceOs}.";
                 }
 
                 Log.Write( logEventLevel, convertedLog );
