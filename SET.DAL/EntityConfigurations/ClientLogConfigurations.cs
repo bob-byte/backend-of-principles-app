@@ -38,7 +38,7 @@ internal class ClientLogConfigurations : IEntityTypeConfiguration<ClientLog>
             IsRequired();
 
         builder.Property(c => c.CreatedAt).
-            HasDefaultValueSql( "now() at time zone 'Europe/Kiev'" ).
+            HasDefaultValueSql( "now() at time zone 'Europe/Kyiv'" ).
             IsRequired();
     }
 }

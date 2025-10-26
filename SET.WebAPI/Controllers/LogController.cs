@@ -32,7 +32,7 @@ public class LogController : BaseController
             {
                 newClientLog.UserId = null;
             }
-            
+
             bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true,
                 out LogEventLevel logEventLevel );
             if (!isParsedLogEventLevel)
@@ -71,25 +71,47 @@ public class LogController : BaseController
 
                 if (logEventLevel == LogEventLevel.Information)
                 {
-                    convertedLog =
-                        $"{(string.IsNullOrWhiteSpace( email ) ? "Somebody" : email)} uses the app. Log message: {newClientLog.LogMessage}";
+                    convertedLog = $"{(string.IsNullOrWhiteSpace( email ) ? "Somebody" : email)} uses the app. Log message: {newClientLog.LogMessage}";
                 }
                 else
                 {
-                    convertedLog = $"{nameof(SaveLogRequest.LogMessage)} = {saveLogRequest.LogMessage};{newLine}" +
+                    convertedLog = $"{nameof( SaveLogRequest.LogMessage )} = {saveLogRequest.LogMessage};{newLine}" +
                                    (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
                                        ? string.Empty
-                                       : $"{nameof(SaveLogRequest.StackTrace)} = {saveLogRequest.StackTrace};{newLine}") +
+                                       : $"{nameof( SaveLogRequest.StackTrace )} = {saveLogRequest.StackTrace};{newLine}") +
                                    (newClientLog.UserId is null or 0
                                        ? string.Empty
-                                       : $"Email = {email};{newLine}") +
-                                   $"{nameof(SaveLogRequest.AppVersion)} = {saveLogRequest.AppVersion};{newLine}" +
-                                   $"{nameof(SaveLogRequest.DeviceOs)} = {saveLogRequest.DeviceOs}.";
+                                       : $"User email = {email};{newLine}") +
+                                   $"{nameof( SaveLogRequest.AppVersion )} = {saveLogRequest.AppVersion};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceOs )} = {saveLogRequest.DeviceOs};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceModelName )} = {saveLogRequest.DeviceModelName};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceManufacturer )} = {saveLogRequest.DeviceManufacturer};{newLine}" +
+                                   $"{nameof( SaveLogRequest.DeviceType )} = {saveLogRequest.DeviceType}.";
                 }
 
-                Log.Write( logEventLevel, convertedLog );
+                try
+                {
+                    if (logEventLevel != LogEventLevel.Information)
+                    {
+                        await DbContext.ClientLogs.AddAsync( newClientLog ).DefaultConfigureAwait();
+                        await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+                    }
 
-                result = Ok();
+                    convertedLog = logEventLevel == LogEventLevel.Information ?
+                        convertedLog :
+                        $"{newLine}!!!ADDED NEW CLIENT LOG INTO DATABASE!!!{newLine}Its short description:{newLine}{convertedLog}";
+                    Log.Write( logEventLevel, convertedLog );
+
+                    result = Ok();
+                }
+                catch (Exception ex)
+                {
+                    convertedLog =
+                        $"{newLine}!!!CANNOT ADD NEW CLIENT LOG INTO DATABASE!!!{newLine}Its full description:{newLine}{convertedLog}";
+                    Log.Error( ex, convertedLog );
+
+                    throw;
+                }
             }
 
             return result;
