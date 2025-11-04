@@ -512,4 +512,22 @@ public class HabitController : BaseController
             return result;
         } );
     }
+
+    [HttpPut("complexity")] 
+    public Task<IActionResult> SetComplexity([FromBody] HabitComplexityDto habitComplexity) 
+    { 
+        return TryCatchAsync( async () => 
+        { 
+            int complexity = habitComplexity.Complexity; 
+            await DbContext. 
+                UserHabits. 
+                Where( h => h.Id == habitComplexity.HabitId ). 
+                ExecuteUpdateAsync( setProperty => setProperty.SetProperty( h => h.Complexity, h => complexity ) ). 
+                ConfigureAwait( false ); 
+ 
+            OkResult result = Ok(); 
+ 
+            return result; 
+        } ); 
+    }
 }
