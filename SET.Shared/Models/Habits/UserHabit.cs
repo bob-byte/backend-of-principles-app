@@ -39,4 +39,5 @@ public class UserHabit
     public NumericalHabitType TargetType { get; set; }
     public double? MinRate { get; set; }
     public double? MaxRate { get; set; }
+    public ProgressMarkVariaty ProgressMarkVariaty { get; set; }
 }

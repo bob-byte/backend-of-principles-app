@@ -233,6 +233,7 @@ public class HabitController : BaseController
                     habit.TargetType = habitDto.TargetType;
                     habit.MinRate = habitDto.MinRate;
                     habit.MaxRate = habitDto.MaxRate;
+                    habit.ProgressMarkVariaty = habitDto.ProgressMarkVariaty;
                 }
 
                 if (isNewHabit)
