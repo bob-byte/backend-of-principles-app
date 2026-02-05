@@ -20,6 +20,9 @@ public class TasksConfiguration: IEntityTypeConfiguration<Task>{
            .IsRequired(false);
         builder.Property(x => x.Time)
            .IsRequired(false);
+        builder.Property(x => x.IsCompleted)
+               .IsRequired()
+               .HasDefaultValue(false);
         builder.HasOne(x => x.User)
            .WithMany()
            .HasForeignKey(x => x.UserId)

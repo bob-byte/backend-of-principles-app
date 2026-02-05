@@ -10,4 +10,5 @@ public class Task{
     public string? Notes {get; set;}
     public DateOnly? Date {get; set;}
     public TimeOnly? Time {get; set;}
+    public bool IsCompleted { get; set; } = false;
 }
