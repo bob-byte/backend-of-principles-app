@@ -5,6 +5,7 @@ using Google.Apis.Auth;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.PeopleService.v1;
 using Google.Apis.Services;
+using Task = System.Threading.Tasks.Task;
 
 namespace BusinessLogic;
 
