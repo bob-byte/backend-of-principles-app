@@ -99,12 +99,10 @@ public class AppDbContext : DbContext
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )
     {
         base.OnConfiguring( optionsBuilder );
-        string connectionString;
-#if DEBUG
-        connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";
-#else
-        connectionString = "Host=principles_database;Port=5432;Username=postgres;Password=76193db1d01e34743d5c;Database=principles;";
-#endif
-        optionsBuilder.UseNpgsql( connectionString );
+        if (!optionsBuilder.IsConfigured)
+        {
+            string connectionString = DbConnectionStringResolver.Resolve();
+            optionsBuilder.UseNpgsql( connectionString );
+        }
     }
 }
