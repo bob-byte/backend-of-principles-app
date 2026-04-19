@@ -16,6 +16,6 @@ public class FactoryOfAppContext : IDesignTimeDbContextFactory<AppDbContext>
         connectionString = "Host=principles_database;Port=5432;Username=postgres;Password=76193db1d01e34743d5c;Database=principles;";
 #endif
         optsBuilder.UseNpgsql( connectionString );
-        return new AppDbContext();
+        return new AppDbContext( optsBuilder.Options );
     }
 }

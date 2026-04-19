@@ -31,6 +31,38 @@ public class BaseController : ControllerBase
     protected IMapper Mapper { get; }
     protected IJwtTokenService JwtTokenService { get; }
 
+    protected static DateTime NormalizeSyncTimestamp( DateTime timestamp )
+    {
+        return timestamp == default ? DateTime.UtcNow : DateTime.SpecifyKind( timestamp, DateTimeKind.Utc );
+    }
+
+    protected static DateTime NormalizeStoredTimestamp( DateTime timestamp, DateTime fallback )
+    {
+        DateTime result = timestamp == default ? fallback : timestamp;
+        return result == default ? DateTime.UtcNow : DateTime.SpecifyKind( result, DateTimeKind.Utc );
+    }
+
+    protected IActionResult ConflictBecauseServerIsNewer( string entityType, long entityId, DateTime serverLastModified, DateTime clientLastModified )
+    {
+        return Conflict( new SyncConflictResponse
+        {
+            EntityType = entityType,
+            EntityId = entityId,
+            ServerLastModified = NormalizeStoredTimestamp( serverLastModified, DateTime.UtcNow ),
+            ClientLastModified = NormalizeSyncTimestamp( clientLastModified )
+        } );
+    }
+
+    protected bool IsClientTimestampOlder( DateTime clientLastModified, DateTime serverLastModified )
+    {
+        if (clientLastModified == default)
+        {
+            return false;
+        }
+
+        return NormalizeSyncTimestamp( clientLastModified ) < NormalizeStoredTimestamp( serverLastModified, DateTime.UtcNow );
+    }
+
     protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action, object? request = null )
     {
         IActionResult result;

@@ -22,5 +22,10 @@ internal class ProgressOfHabitConfigurations : IEntityTypeConfiguration<Progress
         builder.Property( u => u.Id ).
             HasColumnType( "bigint" ).
             HasDefaultValueSql( $"nextval('{Schemas.HABITS}.sq__progresses_of_habits')" );
+
+        builder.Property( u => u.UpdatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
     }
 }

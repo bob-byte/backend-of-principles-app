@@ -12,4 +12,5 @@ public class Profile
     public string Email { get; set; }
 
     public Gender Gender { get; set; }
+    public DateTime LastModified { get; set; }
 }

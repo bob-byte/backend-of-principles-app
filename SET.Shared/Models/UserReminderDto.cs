@@ -9,4 +9,5 @@ public class UserReminderDto
     public TimeOnly Time { get; set; }
     public bool IsEnabled { get; set; }
     public int UserNotificationRequestId { get; set; }
+    public DateTime LastModified { get; set; }
 }

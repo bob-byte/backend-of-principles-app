@@ -9,6 +9,7 @@ public class EditUserHabitDto
         public FrequencyType Type { get; set; }
         public int Repeats { get; set; }
         public int IntervalLengthInDays { get; set; }
+        public DateTime LastModified { get; set; }
     }
 
     public long Id { get; set; }
@@ -27,4 +28,6 @@ public class EditUserHabitDto
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
     public List<UserHabitReminderDto> Reminders { get; set; }
     public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
+    public DateTime? ArchivingTime { get; set; }
+    public DateTime LastModified { get; set; }
 }

@@ -4,4 +4,5 @@ public class HabitArchiveStatus
 {
     public long HabitId { get; set; }
     public bool IsArchived { get; set; }
+    public DateTime LastModified { get; set; }
 }

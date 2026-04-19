@@ -9,7 +9,7 @@ internal class UserReminderConfigurations : IEntityTypeConfiguration<UserReminde
 {
     public void Configure( EntityTypeBuilder<UserReminder> builder )
     {
-        builder.ToTable( name: nameof(AppDbContext.UserReminders), Schemas.APP );
+        builder.ToTable( name: nameof( AppDbContext.UserReminders ), Schemas.APP );
 
         builder.HasKey( a => a.Id );
 
@@ -28,5 +28,10 @@ internal class UserReminderConfigurations : IEntityTypeConfiguration<UserReminde
             IsRequired();
 
         builder.Property( c => c.UserNotificationRequestId );
+
+        builder.Property( c => c.UpdatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
     }
 }

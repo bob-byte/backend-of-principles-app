@@ -14,7 +14,7 @@ public class ReminderController : BaseController
     }
 
     [HttpGet( "habitsreport" )]
-    public Task<IActionResult> LoadReminder() 
+    public Task<IActionResult> LoadReminder()
     {
         return TryCatchAsync( async ( user ) =>
         {
@@ -32,7 +32,7 @@ public class ReminderController : BaseController
     [HttpGet( "all" )]
     public Task<IActionResult> LoadAllReminders()
     {
-        return TryCatchAsync( async (user) =>
+        return TryCatchAsync( async ( user ) =>
         {
             List<UserReminder> generalReminders = await DbContext.UserReminders
                 .Where( r => r.UserId == user.Id )
@@ -69,18 +69,44 @@ public class ReminderController : BaseController
                 return BadRequest( "HabitsReportReminderIsNullInSaveReminderEndpoint" );
             }
             #endregion
-            
-            user.HabitsReportReminder = Mapper.Map<UserReminder>( userReminder );
-            user.HabitsReportReminder!.UserNotificationRequestId = 1;
-            
-            await DbContext.Users.AddOrUpdateAsync( user ).DefaultConfigureAwait();
+
+            UserReminder? reminder = await DbContext.UserReminders
+                .Where( r => r.UserId == user.Id && r.UserNotificationRequestId == 1 )
+                .FirstOrDefaultAsync()
+                .ConfigureAwait( false );
+
+            DateTime clientLastModified = NormalizeSyncTimestamp( userReminder.LastModified );
+            if (reminder is not null)
+            {
+                DateTime serverLastModified = NormalizeStoredTimestamp( reminder.UpdatedAt, DateTime.UtcNow );
+                if (IsClientTimestampOlder( userReminder.LastModified, serverLastModified ))
+                {
+                    return ConflictBecauseServerIsNewer( nameof( UserReminder ), reminder.Id, serverLastModified, userReminder.LastModified );
+                }
+
+                reminder.Title = userReminder.Title;
+                reminder.Description = userReminder.Description;
+                reminder.Time = userReminder.Time;
+                reminder.IsEnabled = userReminder.IsEnabled;
+                reminder.UpdatedAt = clientLastModified;
+                DbContext.UserReminders.Update( reminder );
+            }
+            else
+            {
+                reminder = Mapper.Map<UserReminder>( userReminder );
+                reminder.UserId = user.Id;
+                reminder.User = null;
+                reminder.UserNotificationRequestId = 1;
+                reminder.UpdatedAt = clientLastModified;
+                await DbContext.UserReminders.AddAsync( reminder ).ConfigureAwait( false );
+            }
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
             var result = new
             {
-                Id = user.HabitsReportReminder!.Id, 
-                UserNotificationRequestId = user.HabitsReportReminder!.UserNotificationRequestId
+                Id = reminder.Id,
+                UserNotificationRequestId = reminder.UserNotificationRequestId
             };
             IActionResult actionResult = Ok( result );
             return actionResult;

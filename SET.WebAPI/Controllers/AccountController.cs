@@ -358,7 +358,7 @@ public class AccountController : BaseController
                 user = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
             }
 
-            LoginResponse response = new(Token: JwtTokenService.GetToken( user ));
+            LoginResponse response = new( Token: JwtTokenService.GetToken( user ) );
             IActionResult result = Ok( response );
 
             return result;
@@ -383,6 +383,8 @@ public class AccountController : BaseController
                 DbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
                 DbContext.UserHabits.RemoveRange( habits );
                 DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
+                await DbContext.UserGoals.Where( g => g.UserId == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
+                await DbContext.UserReminders.Where( r => r.UserId == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
 
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();
                 await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync()

@@ -9,7 +9,7 @@ namespace SET.DataAccess.EntityConfigurations;
 
 internal class UserConfigurations : IEntityTypeConfiguration<User>
 {
-    public void Configure(EntityTypeBuilder<User> builder)
+    public void Configure( EntityTypeBuilder<User> builder )
     {
         builder.ToTable( name: nameof( AppDbContext.Users ), Schemas.APP );
 
@@ -19,16 +19,16 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             HasColumnType( "bigint" ).
             HasDefaultValueSql( $"nextval('{Schemas.APP}.sq__users')" );
 
-        builder.Property(c => c.Name).
+        builder.Property( c => c.Name ).
             IsRequired();
 
-        builder.Property(c => c.Email).
+        builder.Property( c => c.Email ).
             IsRequired();
 
-        builder.Property(c => c.Password).
-            HasColumnType(DbmsConstants.BYTE_ARRAY_TYPE).
-            HasMaxLength(255).
-            IsRequired(false);
+        builder.Property( c => c.Password ).
+            HasColumnType( DbmsConstants.BYTE_ARRAY_TYPE ).
+            HasMaxLength( 255 ).
+            IsRequired( false );
 
         builder.Property( c => c.MainSlogan ).
             HasColumnType( DbmsConstants.TEXT_WITH_MAX_LENGTH_TYPE );
@@ -36,11 +36,11 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
         builder.HasMany( u => u.AreasOfLife ).
             WithOne( u => u.User ).
             IsRequired().
-            OnDelete(DeleteBehavior.Cascade);
+            OnDelete( DeleteBehavior.Cascade );
 
         builder.HasMany( u => u.Habits ).
             WithOne( u => u.User ).
-            HasForeignKey(u => u.UserId).
+            HasForeignKey( u => u.UserId ).
             IsRequired().
             OnDelete( DeleteBehavior.NoAction );
 
@@ -69,6 +69,11 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             OnDelete( DeleteBehavior.Cascade );
 
         builder.Property( u => u.CreatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            HasDefaultValueSql( "now()" ).
+            IsRequired();
+
+        builder.Property( u => u.UpdatedAt ).
             HasColumnType( "timestamp with time zone" ).
             HasDefaultValueSql( "now()" ).
             IsRequired();

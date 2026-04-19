@@ -50,17 +50,26 @@ public class ProgressOfHabitController : BaseController
                 await DbContext.ProgressesOfHabits.FirstOrDefaultAsync( p =>
                     p.HabitId == progressDto.HabitId && p.Date == progressDto.Date ).DefaultConfigureAwait();
             bool isNewProgress = progress is null;
-            
+            DateTime clientLastModified = NormalizeSyncTimestamp( progressDto.LastModified );
+
             if (isNewProgress)
             {
                 progress = Mapper.Map<ProgressOfHabit>( progressDto );
                 progress.Id = 0;
+                progress.UpdatedAt = clientLastModified;
             }
             else
             {
+                DateTime serverLastModified = NormalizeStoredTimestamp( progress.UpdatedAt, DateTime.UtcNow );
+                if (IsClientTimestampOlder( progressDto.LastModified, serverLastModified ))
+                {
+                    return ConflictBecauseServerIsNewer( nameof( ProgressOfHabit ), progress.Id, serverLastModified, progressDto.LastModified );
+                }
+
                 progress.Value = progressDto.Value;
+                progress.UpdatedAt = clientLastModified;
             }
-            
+
             await DbContext.ProgressesOfHabits.AddOrUpdateAsync( progress ).DefaultConfigureAwait();
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 

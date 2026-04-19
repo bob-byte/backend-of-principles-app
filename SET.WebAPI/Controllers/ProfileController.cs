@@ -10,13 +10,13 @@ using System.Reflection;
 
 namespace SET.WebAPI.Controllers;
 
-[Route("api/profile")]
+[Route( "api/profile" )]
 [ApiController]
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class ProfileController : BaseController
 {
-    public ProfileController(IServiceProvider serviceProvider)
-        : base(serviceProvider)
+    public ProfileController( IServiceProvider serviceProvider )
+        : base( serviceProvider )
     {
         //do nothing
     }
@@ -33,11 +33,23 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "name" )]
-    public Task<IActionResult> SaveNameAsync( [FromBody] string name )
+    public Task<IActionResult> SaveNameAsync( [FromBody] SaveUserNameRequest request )
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.Name = name;
+            if (request is null)
+            {
+                return BadRequest( "SaveUserNameRequestIsNull" );
+            }
+
+            DateTime serverLastModified = NormalizeStoredTimestamp( user.UpdatedAt, user.CreatedAt );
+            if (IsClientTimestampOlder( request.LastModified, serverLastModified ))
+            {
+                return ConflictBecauseServerIsNewer( nameof( User ), user.Id, serverLastModified, request.LastModified );
+            }
+
+            user.Name = request.UserName;
+            user.UpdatedAt = NormalizeSyncTimestamp( request.LastModified );
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -47,11 +59,23 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mainslogan" )]
-    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string? mainSlogan = null )
+    public Task<IActionResult> SaveMainSloganAsync( [FromBody] SaveUserMainSloganRequest request )
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.MainSlogan = mainSlogan;
+            if (request is null)
+            {
+                return BadRequest( "SaveUserMainSloganRequestIsNull" );
+            }
+
+            DateTime serverLastModified = NormalizeStoredTimestamp( user.UpdatedAt, user.CreatedAt );
+            if (IsClientTimestampOlder( request.LastModified, serverLastModified ))
+            {
+                return ConflictBecauseServerIsNewer( nameof( User ), user.Id, serverLastModified, request.LastModified );
+            }
+
+            user.MainSlogan = request.MainSlogan;
+            user.UpdatedAt = NormalizeSyncTimestamp( request.LastModified );
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -61,12 +85,25 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mission" )]
-    public Task<IActionResult> SaveMissionAsync( [FromBody] string? mission = null )
+    public Task<IActionResult> SaveMissionAsync( [FromBody] SaveUserMissionRequest request )
     {
         return TryCatchAsync( async ( User user ) =>
         {
+            if (request is null)
+            {
+                return BadRequest( "SaveUserMissionRequestIsNull" );
+            }
+
+            DateTime serverLastModified = NormalizeStoredTimestamp( user.UpdatedAt, user.CreatedAt );
+            if (IsClientTimestampOlder( request.LastModified, serverLastModified ))
+            {
+                return ConflictBecauseServerIsNewer( nameof( User ), user.Id, serverLastModified, request.LastModified );
+            }
+
+            string? mission = request.Mission;
             string? oldMission = (string)user.Mission?.Clone();
             user.Mission = mission;
+            user.UpdatedAt = NormalizeSyncTimestamp( request.LastModified );
 
             if (oldMission is not null)
             {
@@ -101,8 +138,10 @@ public class ProfileController : BaseController
                         {
                             reminder.Description = mission;
                         }
+
+                        reminder.UpdatedAt = user.UpdatedAt;
                     }
-                
+
                     DbContext.UserReminders.UpdateRange( userReminders );
                 }
             }

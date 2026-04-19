@@ -9,8 +9,9 @@ public class UserHabitInProgressShortDto
         public FrequencyType Type { get; set; }
         public int Repeats { get; set; }
         public int IntervalLengthInDays { get; set; }
+        public DateTime LastModified { get; set; }
     }
-    
+
     public long Id { get; set; }
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
@@ -23,4 +24,7 @@ public class UserHabitInProgressShortDto
     public IEnumerable<UserHabitReminderDto> Reminders { get; set; }
     public string? Description { get; set; }
     public string ColorName { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTime? ArchivingTime { get; set; }
+    public DateTime LastModified { get; set; }
 }

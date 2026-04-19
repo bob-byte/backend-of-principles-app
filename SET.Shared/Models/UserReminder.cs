@@ -15,4 +15,5 @@ public class UserReminder
     public long UserId { get; set; }
     public User User { get; set; }
     public int UserNotificationRequestId { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

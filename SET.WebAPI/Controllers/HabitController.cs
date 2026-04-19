@@ -9,7 +9,7 @@ namespace SET.WebAPI.Controllers;
 public class HabitController : BaseController
 {
     private readonly IReminderService m_reminderService;
-    
+
     public HabitController( IServiceProvider serviceProvider, IReminderService reminderService )
         : base( serviceProvider )
     {
@@ -32,7 +32,7 @@ public class HabitController : BaseController
                 DefaultConfigureAwait();
 
             List<UserHabitInProgressShortDto> resultData = new();
-            
+
             foreach (UserHabit habit in listOfHabits)
             {
                 List<UserAreaOfLife> areasOfLife = await DbContext.
@@ -44,6 +44,11 @@ public class HabitController : BaseController
 
                 UserHabitInProgressShortDto habitDto = Mapper.Map<UserHabitInProgressShortDto>( habit );
                 habitDto.AreasOfLife = Mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
+                habitDto.LastModified = habit.UpdatedAt ?? habit.CreatedAt;
+                if (habitDto.Frequency is not null)
+                {
+                    habitDto.Frequency.LastModified = habitDto.LastModified;
+                }
 
                 UserHabitReminder? reminder = await DbContext.UserHabitReminders
                     .Where( r => r.UserHabitId == habit.Id )
@@ -60,10 +65,10 @@ public class HabitController : BaseController
                         dtoReminder
                     };
                 }
-                
+
                 resultData.Add( habitDto );
             }
-            
+
             OkObjectResult result = Ok( resultData );
             return result;
         } );
@@ -83,7 +88,7 @@ public class HabitController : BaseController
             return result;
         } );
     }
-    
+
     [HttpGet(template: "{habitId}")]
     public Task<IActionResult> Load( long habitId )
     {
@@ -113,6 +118,11 @@ public class HabitController : BaseController
 
                 EditUserHabitDto resultData = Mapper.Map<EditUserHabitDto>( habit );
                 resultData.AreasOfLife = Mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
+                resultData.LastModified = habit.UpdatedAt ?? habit.CreatedAt;
+                if (resultData.Frequency is not null)
+                {
+                    resultData.Frequency.LastModified = resultData.LastModified;
+                }
 
                 UserHabitReminder? reminder = await DbContext.UserHabitReminders
                     .Where( r => r.UserHabitId == habitId )
@@ -147,6 +157,17 @@ public class HabitController : BaseController
                 .FirstOrDefaultAsync()
                 .DefaultConfigureAwait();
 
+            if (habit is null)
+            {
+                return BadRequest( $"HabitIsNotFoundWithId {habitArchiveStatus.HabitId}" );
+            }
+
+            DateTime serverLastModified = NormalizeStoredTimestamp( habit.UpdatedAt ?? default, habit.CreatedAt );
+            if (IsClientTimestampOlder( habitArchiveStatus.LastModified, serverLastModified ))
+            {
+                return ConflictBecauseServerIsNewer( nameof( UserHabit ), habit.Id, serverLastModified, habitArchiveStatus.LastModified );
+            }
+
             habit.IsArchived = habitArchiveStatus.IsArchived;
 
             List<UserHabitReminder>? habitReminders = await DbContext.
@@ -162,7 +183,7 @@ public class HabitController : BaseController
                 }
             }
 
-            habit.UpdatedAt = DateTime.UtcNow;
+            habit.UpdatedAt = NormalizeSyncTimestamp( habitArchiveStatus.LastModified );
             habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -189,7 +210,9 @@ public class HabitController : BaseController
                 return BadRequest( "FrequencyIsNull" );
             }
             #endregion
-            
+
+            DateTime clientLastModified = NormalizeSyncTimestamp( habitDto.LastModified );
+
             await using IDbContextTransaction transaction = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
             try
@@ -218,7 +241,7 @@ public class HabitController : BaseController
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
                     habit.IsArchived = habitDto.IsArchived;
-                    habit.CreatedAt = DateTime.UtcNow;
+                    habit.CreatedAt = clientLastModified;
 
                     if (habit.IsArchived)
                     {
@@ -227,6 +250,17 @@ public class HabitController : BaseController
                 }
                 else
                 {
+                    DateTime serverLastModified = NormalizeStoredTimestamp( habit.UpdatedAt ?? default, habit.CreatedAt );
+                    if (IsClientTimestampOlder( habitDto.LastModified, serverLastModified ))
+                    {
+                        return ConflictBecauseServerIsNewer( nameof( UserHabit ), habit.Id, serverLastModified, habitDto.LastModified );
+                    }
+
+                    if (habitDto.Frequency.Id == 0)
+                    {
+                        habitDto.Frequency.Id = habit.FrequencyId;
+                    }
+
                     habit.Name = habitDto.Name;
                     habit.FrequencyId = habitDto.Frequency.Id;
                     habit.Frequency = Mapper.Map<Frequency>( habitDto.Frequency );
@@ -239,7 +273,7 @@ public class HabitController : BaseController
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
                     habit.IsArchived = habitDto.IsArchived;
-                    habit.UpdatedAt = DateTime.UtcNow;
+                    habit.UpdatedAt = clientLastModified;
                     habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
                 }
 
@@ -259,20 +293,20 @@ public class HabitController : BaseController
                 else
                 {
                     UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
-                    
+
                     UserAreaOfLifeUserHabit[] targetAreasAndHabits = await DbContext.UserAreasOfLifeUserHabits
                         .Where( u => u.HabitId == habit.Id ).ToArrayAsync().DefaultConfigureAwait();
-                    
-                    await DbContext.UserAreasOfLifeUserHabits.MergeAsync( 
-                        targetAreasAndHabits, 
+
+                    await DbContext.UserAreasOfLifeUserHabits.MergeAsync(
+                        targetAreasAndHabits,
                         sourceAreas,
                         ( areasToInsert ) =>
                         {
                             return areasToInsert.Select(
                                 area => new UserAreaOfLifeUserHabit() { AreaOfLifeId = area.Id, HabitId = habit.Id }
                             );
-                        }, 
-                        t => t.AreaOfLifeId, 
+                        },
+                        t => t.AreaOfLifeId,
                         s => s.Id
                     );
                 }
@@ -405,9 +439,9 @@ public class HabitController : BaseController
                         } ).ToList()
                     } )
                     .ToListAsync().DefaultConfigureAwait();
-                
+
                 await transaction.CommitAsync().DefaultConfigureAwait();
-                
+
                 var result = new { habit.Id, habit.FrequencyId, ReminderIds = reminderDetails };
 
                 return Ok( result );
@@ -479,10 +513,10 @@ public class HabitController : BaseController
                     List<WeekDay> weekDaysOfReminder = await DbContext.WeekDays.Where( w => w.UserHabitReminderId == idOfReminder ).ToListAsync().DefaultConfigureAwait();
                     notificationRequests.AddRange( weekDaysOfReminder.Select( w => new HabitDeletionResponse.NotificationRequest( w.UserNotificationRequestId ) ) );
                 }
-                
+
                 HabitDeletionResponse response = new();
                 response.DeletedNotifications = notificationRequests;
-                
+
                 await using IDbContextTransaction transaction = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
                 try

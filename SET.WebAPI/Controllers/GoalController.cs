@@ -24,7 +24,8 @@ public class GoalController : BaseController
                 Select( g => new UserGoalDto
                 {
                     Id = g.Id,
-                    Name = g.Name
+                    Name = g.Name,
+                    LastModified = g.UpdatedAt ?? g.CreatedAt
                 } ).
                 ToListAsync().
                 DefaultConfigureAwait();
@@ -104,6 +105,7 @@ public class GoalController : BaseController
                 return BadRequest( $"GoalIsNotFoundWithId {userGoal.Id}" );
             }
 
+            DateTime clientLastModified = NormalizeSyncTimestamp( userGoal.LastModified );
             DtoWithId response = new();
             if (existingGoal is null)
             {
@@ -111,7 +113,7 @@ public class GoalController : BaseController
                 {
                     Name = userGoal.Name,
                     UserId = user.Id,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = clientLastModified
                 };
 
                 await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
@@ -121,6 +123,12 @@ public class GoalController : BaseController
             }
             else
             {
+                DateTime serverLastModified = NormalizeStoredTimestamp( existingGoal.UpdatedAt ?? default, existingGoal.CreatedAt );
+                if (IsClientTimestampOlder( userGoal.LastModified, serverLastModified ))
+                {
+                    return ConflictBecauseServerIsNewer( nameof( UserGoal ), existingGoal.Id, serverLastModified, userGoal.LastModified );
+                }
+
                 List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
                     Where( h => h.Title == existingGoal.Name && existingGoal.UserId == user.Id ).
                     ToListAsync().
@@ -132,12 +140,12 @@ public class GoalController : BaseController
                     {
                         reminder.Title = userGoal.Name;
                     }
-                    
+
                     DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
                 }
 
                 existingGoal.Name = userGoal.Name;
-                existingGoal.UpdatedAt = DateTime.UtcNow;
+                existingGoal.UpdatedAt = clientLastModified;
 
                 DbContext.UserGoals.Update( existingGoal );
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();

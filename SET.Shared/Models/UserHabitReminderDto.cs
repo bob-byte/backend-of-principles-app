@@ -10,4 +10,5 @@ public class UserHabitReminderDto
     public TimeOnly Time { get; set; }
     public bool IsEnabled { get; set; }
     public WeekDayDto[] DaysOfWeek { get; set; }
+    public DateTime LastModified { get; set; }
 }

@@ -19,4 +19,5 @@ public class ProgressOfHabit
     public int Value { get; set; }
     public UserHabit Habit { get; set; }
     public long HabitId { get; set; }
+    public DateTime UpdatedAt { get; set; }
 }

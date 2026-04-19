@@ -10,7 +10,7 @@ namespace SET.DataAccess;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    public AppDbContext( DbContextOptions<AppDbContext> options ) : base( options )
     {
     }
 
@@ -32,7 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<UserHabitReminder> UserHabitReminders { get; set; }
     public DbSet<TrackingOfUserNotificationRequests> TrackingOfUserNotificationRequests { get; set; }
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating( ModelBuilder modelBuilder )
     {
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
         modelBuilder.ApplyConfiguration( new FrequencyConfigurations() );
@@ -99,6 +99,12 @@ public class AppDbContext : DbContext
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )
     {
         base.OnConfiguring( optionsBuilder );
+
+        if (optionsBuilder.IsConfigured)
+        {
+            return;
+        }
+
         string connectionString;
 #if DEBUG
         connectionString = "Host=localhost;Database=SET;Port=5432;Username=postgres;Password=qwerty";

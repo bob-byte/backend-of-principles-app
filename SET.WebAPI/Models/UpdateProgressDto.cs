@@ -12,4 +12,5 @@ public class UpdateProgressDto
     public DateOnly Date { get; set; }
     public int Value { get; set; }
     public long HabitId { get; set; }
+    public DateTime LastModified { get; set; }
 }
