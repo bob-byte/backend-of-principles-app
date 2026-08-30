@@ -183,7 +183,17 @@ public class TasksController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            return Ok( request );
+            TaskItemDto response = new()
+            {
+                Id = entity.Id,
+                Name = entity.Name,
+                Notes = entity.Notes,
+                Date = entity.Date,
+                Time = entity.Time,
+                IsCompleted = entity.IsCompleted
+            };
+
+            return Ok( response );
         } );
     }
 
