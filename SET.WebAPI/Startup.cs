@@ -67,6 +67,21 @@ public class Startup
         });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IReminderService, ReminderService>();
+        services.AddHttpClient<IAiService, AiService>( client =>
+        {
+            string baseUrl = Configuration["OpenAi:BaseUrl"];
+            if (string.IsNullOrWhiteSpace( baseUrl ))
+            {
+                baseUrl = "https://api.openai.com/v1/";
+            }
+            if (!baseUrl.EndsWith( '/' ))
+            {
+                baseUrl += "/";
+            }
+
+            client.BaseAddress = new Uri( baseUrl );
+            client.Timeout = TimeSpan.FromSeconds( 120 );
+        } );
 
         Log.Information( "End of Startup.ConfigureServices" );
     }
