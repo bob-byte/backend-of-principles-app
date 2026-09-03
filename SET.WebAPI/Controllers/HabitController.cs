@@ -217,6 +217,7 @@ public class HabitController : BaseController
                     habit.UserId = user.Id;
                     habit.Goal = null;
                     habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
+                    habit.ColorName = SanitizeHabitColorName( habitDto.ColorName );
                     habit.IsArchived = habitDto.IsArchived;
                     habit.CreatedAt = DateTime.UtcNow;
 
@@ -230,7 +231,7 @@ public class HabitController : BaseController
                     habit.Name = habitDto.Name;
                     habit.FrequencyId = habitDto.Frequency.Id;
                     habit.Frequency = Mapper.Map<Frequency>( habitDto.Frequency );
-                    habit.ColorName = habitDto.ColorName;
+                    habit.ColorName = SanitizeHabitColorName( habitDto.ColorName );
                     habit.Description = habitDto.Description;
                     habit.Question = habitDto.Question;
                     habit.Complexity = habitDto.Complexity;
@@ -241,6 +242,13 @@ public class HabitController : BaseController
                     habit.IsArchived = habitDto.IsArchived;
                     habit.UpdatedAt = DateTime.UtcNow;
                     habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
+                }
+
+                habit.GoalId = await ResolveUserGoalIdAsync( user.Id, habit.GoalId )
+                    .DefaultConfigureAwait();
+                if (habit.Frequency == null)
+                {
+                    return BadRequest( "FrequencyIsNull" );
                 }
 
                 if (isNewHabit)
@@ -418,6 +426,30 @@ public class HabitController : BaseController
                 throw;
             }
         } );
+    }
+
+    static string SanitizeHabitColorName( string? colorName )
+    {
+        const string fallback = "#1C1C1C";
+        if (string.IsNullOrWhiteSpace( colorName ))
+        {
+            return fallback;
+        }
+
+        return colorName.Length <= 10 ? colorName : colorName[ ..10 ];
+    }
+
+    async Task<long?> ResolveUserGoalIdAsync( long userId, long? goalId )
+    {
+        if (goalId is not > 0)
+        {
+            return null;
+        }
+
+        bool exists = await DbContext.UserGoals
+            .AnyAsync( g => g.Id == goalId && g.UserId == userId )
+            .DefaultConfigureAwait();
+        return exists ? goalId : null;
     }
 
     [HttpPut("priorities")]

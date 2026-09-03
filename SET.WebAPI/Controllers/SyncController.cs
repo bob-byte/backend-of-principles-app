@@ -35,6 +35,7 @@ public class SyncController : BaseController
                 {
                     Id = g.Id,
                     Name = g.Name,
+                    IsCompleted = g.IsCompleted,
                     LastModified = g.UpdatedAt ?? g.CreatedAt
                 } )
                 .ToListAsync()

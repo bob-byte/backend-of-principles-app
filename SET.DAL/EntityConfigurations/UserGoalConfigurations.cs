@@ -32,6 +32,10 @@ internal class UserGoalConfigurations : IEntityTypeConfiguration<UserGoal>
         builder.Property( u => u.UpdatedAt ).
             IsRequired(false);
 
+        builder.Property( u => u.IsCompleted ).
+            IsRequired().
+            HasDefaultValue( false );
+
         builder.HasMany( u => u.UserHabits ).
             WithOne( u => u.Goal ).
             HasForeignKey( u => u.GoalId ).

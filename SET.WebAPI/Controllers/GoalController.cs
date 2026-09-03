@@ -25,6 +25,7 @@ public class GoalController : BaseController
                 {
                     Id = g.Id,
                     Name = g.Name,
+                    IsCompleted = g.IsCompleted,
                     LastModified = g.UpdatedAt ?? g.CreatedAt
                 } ).
                 ToListAsync().
@@ -112,7 +113,8 @@ public class GoalController : BaseController
                 {
                     Name = userGoal.Name,
                     UserId = user.Id,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    IsCompleted = userGoal.IsCompleted
                 };
 
                 await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
@@ -138,6 +140,7 @@ public class GoalController : BaseController
                 }
 
                 existingGoal.Name = userGoal.Name;
+                existingGoal.IsCompleted = userGoal.IsCompleted;
                 existingGoal.UpdatedAt = DateTime.UtcNow;
 
                 DbContext.UserGoals.Update( existingGoal );

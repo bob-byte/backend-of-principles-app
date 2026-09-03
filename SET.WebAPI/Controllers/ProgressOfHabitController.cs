@@ -27,7 +27,7 @@ public class ProgressOfHabitController : BaseController
     [HttpPost( template: "{progressId}" )]
     public Task<IActionResult> UpdateProgress( [FromBody] UpdateProgressDto progressDto )
     {
-        return TryCatchAsync( async () =>
+        return TryCatchAsync( async ( User user ) =>
         {
             #region Check param
             if (progressDto == null)
@@ -45,6 +45,14 @@ public class ProgressOfHabitController : BaseController
                 return BadRequest( error: $"HabitId of ${progressDto.GetType().Name} is not set" );
             }
             #endregion
+
+            bool habitExists = await DbContext.UserHabits
+                .AnyAsync( h => h.Id == progressDto.HabitId && h.UserId == user.Id )
+                .DefaultConfigureAwait();
+            if (!habitExists)
+            {
+                return BadRequest( error: $"HabitIsNotFoundWithId {progressDto.HabitId}" );
+            }
 
             ProgressOfHabit? progress =
                 await DbContext.ProgressesOfHabits.FirstOrDefaultAsync( p =>
