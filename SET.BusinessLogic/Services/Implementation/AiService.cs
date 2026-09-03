@@ -255,6 +255,19 @@ public class AiService : IAiService
             builder.Append( ". The atomic habits you recommend should be related to specified habits. " );
         }
 
+        IReadOnlyList<string> areas = context.AreasOfLife ?? Array.Empty<string>();
+        List<string> areaNames = areas
+            .Where( n => !string.IsNullOrWhiteSpace( n ) )
+            .Select( n => n.Trim() )
+            .ToList();
+        if (areaNames.Count > 0)
+        {
+            builder.Append( "The atomic habits you recommend will be applied to all the following areas of my life: " );
+            builder.Append( Environment.NewLine );
+            builder.Append( string.Join( "; ", areaNames ) );
+            builder.Append( ". So you should recommend me habits which are related to them. " );
+        }
+
         string? goal = context.Goal?.Trim();
         if (!string.IsNullOrWhiteSpace( goal ))
         {

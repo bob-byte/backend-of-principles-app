@@ -39,6 +39,7 @@ public class AiRecommendHabitsRequest
     public string Goal { get; set; }
     public List<string> Goals { get; set; }
     public List<string> CurrentHabits { get; set; }
+    public List<string> AreasOfLife { get; set; }
     public string Mission { get; set; }
     public string MainSlogan { get; set; }
     public int? Gender { get; set; }

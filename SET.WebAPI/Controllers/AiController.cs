@@ -85,7 +85,8 @@ public class AiController : BaseController
         {
             try
             {
-                RecommendHabitsContext context = ToRecommendContext( request, user );
+                RecommendHabitsContext context = await ToRecommendContextAsync( request, user )
+                    .DefaultConfigureAwait();
                 IReadOnlyList<RecommendedHabitResult> habits = await m_aiService
                     .RecommendHabitsAsync( context, HttpContext.RequestAborted )
                     .DefaultConfigureAwait();
@@ -122,7 +123,7 @@ public class AiController : BaseController
         };
     }
 
-    private static RecommendHabitsContext ToRecommendContext(
+    private async Task<RecommendHabitsContext> ToRecommendContextAsync(
         AiRecommendHabitsRequest request,
         User user )
     {
@@ -133,6 +134,17 @@ public class AiController : BaseController
         string? goal = NullIfEmpty( request?.Goal );
         List<string> goals = SanitizeNames( request?.Goals );
         List<string> currentHabits = SanitizeNames( request?.CurrentHabits );
+        List<string> areasOfLife = SanitizeNames( request?.AreasOfLife );
+
+        if (currentHabits.Count == 0)
+        {
+            currentHabits = await LoadActiveHabitNamesAsync( user.Id ).DefaultConfigureAwait();
+        }
+
+        if (string.IsNullOrWhiteSpace( goal ) && goals.Count == 0)
+        {
+            goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
+        }
 
         string? mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission );
         string? slogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan );
@@ -146,9 +158,10 @@ public class AiController : BaseController
             Goal = goal,
             Goals = goals,
             CurrentHabits = currentHabits,
+            AreasOfLife = areasOfLife,
             Mission = mission,
             MainSlogan = slogan,
-            Gender = gender.ToString().ToLowerInvariant()
+            Gender = FormatRecommendGender( gender )
         };
     }
 
@@ -183,6 +196,16 @@ public class AiController : BaseController
             Gender.Man => "man",
             Gender.Woman => "woman",
             _ => "othersex"
+        };
+    }
+
+    private static string FormatRecommendGender( Gender gender )
+    {
+        return gender switch
+        {
+            Gender.Man => "man",
+            Gender.Woman => "woman",
+            _ => "other"
         };
     }
 

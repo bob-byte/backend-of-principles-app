@@ -61,6 +61,7 @@ public sealed class RecommendHabitsContext
     public string? Goal { get; init; }
     public IReadOnlyList<string> Goals { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> CurrentHabits { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> AreasOfLife { get; init; } = Array.Empty<string>();
     public string? Mission { get; init; }
     public string? MainSlogan { get; init; }
     public string Gender { get; init; } = "other";
