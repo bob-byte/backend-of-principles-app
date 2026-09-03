@@ -27,17 +27,24 @@ public class ProfileController : BaseController
         return TryCatchAsync( ( User user ) =>
         {
             Profile data = Mapper.Map<Profile>( user );
+            data.Id = user.Id;
+            data.LastModified = user.CreatedAt;
             IActionResult actionResult = Ok( data );
             return Task.FromResult( actionResult );
         } );
     }
 
     [HttpPut( template: "name" )]
-    public Task<IActionResult> SaveNameAsync( [FromBody] string name )
+    public Task<IActionResult> SaveNameAsync( [FromBody] string userName )
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.Name = name;
+            if (string.IsNullOrWhiteSpace( userName ))
+            {
+                return BadRequest( "UserNameIsNullOrWhiteSpace" );
+            }
+
+            user.Name = userName;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -47,7 +54,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mainslogan" )]
-    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string? mainSlogan = null )
+    public Task<IActionResult> SaveMainSloganAsync( [FromBody] string mainSlogan )
     {
         return TryCatchAsync( async ( User user ) =>
         {
@@ -61,7 +68,7 @@ public class ProfileController : BaseController
     }
 
     [HttpPut( template: "mission" )]
-    public Task<IActionResult> SaveMissionAsync( [FromBody] string? mission = null )
+    public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
         return TryCatchAsync( async ( User user ) =>
         {
