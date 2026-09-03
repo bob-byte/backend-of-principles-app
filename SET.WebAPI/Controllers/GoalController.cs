@@ -24,7 +24,8 @@ public class GoalController : BaseController
                 Select( g => new UserGoalDto
                 {
                     Id = g.Id,
-                    Name = g.Name
+                    Name = g.Name,
+                    LastModified = g.UpdatedAt ?? g.CreatedAt
                 } ).
                 ToListAsync().
                 DefaultConfigureAwait();
