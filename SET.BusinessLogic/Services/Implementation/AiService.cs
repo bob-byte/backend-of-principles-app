@@ -27,7 +27,7 @@ public class AiService : IAiService
         "without forcing that topic. Support the user in building better habits and " +
         "growing, but do not lecture unsolicited. Do not accept weak conclusions as true: " +
         "be an intellectual opponent when useful. " +
-        "Answer in the user's language (Ukrainian when the user writes Ukrainian). " +
+        "Always answer in the same language that the user writes in. " +
         "If you generate code, do not wrap it in ``` fences; put the language name on a line before the code.";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
