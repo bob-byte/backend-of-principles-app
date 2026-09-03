@@ -454,7 +454,7 @@ public class HabitController : BaseController
     [HttpDelete("{habitId}")]
     public Task<IActionResult> Delete( long habitId )
     {
-        return TryCatchAsync( async () =>
+        return TryCatchAsync( async ( User user ) =>
         {
             #region Check parameter
             if (habitId == 0)
@@ -465,7 +465,10 @@ public class HabitController : BaseController
 
             UserHabit? habit = habitId == 0
                 ? null
-                : await DbContext.UserHabits.FindAsync( habitId ).DefaultConfigureAwait();
+                : await DbContext.UserHabits
+                    .Where( h => h.Id == habitId && h.UserId == user.Id )
+                    .FirstOrDefaultAsync()
+                    .DefaultConfigureAwait();
 
             bool isCorrectArg = habit != null;
 
@@ -506,7 +509,7 @@ public class HabitController : BaseController
             }
             else
             {
-                result = BadRequest( $"HabitIsNotFoundWithId {habitId}" );
+                result = NotFound( $"HabitIsNotFoundWithId {habitId}" );
             }
 
             return result;
