@@ -3,6 +3,7 @@ global using SET.DataAccess;
 global using SET.DataAccess.Extensions;
 global using SET.Shared.Extensions;
 global using System.Threading.Tasks;
+global using Task = System.Threading.Tasks.Task;
 global using SET.Shared.Models;
 global using Serilog;
 global using Microsoft.AspNetCore.Authentication.JwtBearer;
