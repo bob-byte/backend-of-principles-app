@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,7 +27,7 @@ public class AiController : BaseController
     [HttpPost( "chat" )]
     public Task<IActionResult> ChatAsync( [FromBody] AiChatRequest request )
     {
-        return TryCatchAsync( async _ =>
+        return TryCatchAsync( async user =>
         {
             List<AiChatMessage> messages = ToChatMessages( request );
             if (messages.Count == 0)
@@ -34,7 +35,8 @@ public class AiController : BaseController
                 return BadRequest( new { error = "PromptIsRequired" } );
             }
 
-            return new ChatSseResult( m_aiService, messages );
+            ChatUserContext userContext = await BuildChatUserContextAsync( user ).DefaultConfigureAwait();
+            return new ChatSseResult( m_aiService, messages, userContext );
         }, request );
     }
 
@@ -104,6 +106,22 @@ public class AiController : BaseController
         }, request );
     }
 
+    private async Task<ChatUserContext> BuildChatUserContextAsync( User user )
+    {
+        List<string> habits = await LoadActiveHabitNamesAsync( user.Id ).DefaultConfigureAwait();
+        List<string> goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
+
+        return new ChatUserContext
+        {
+            Name = NullIfEmpty( user.Name ),
+            Gender = FormatChatGender( user.Gender ),
+            Mission = NullIfEmpty( user.Mission ),
+            MainSlogan = NullIfEmpty( user.MainSlogan ),
+            Habits = habits,
+            Goals = goals
+        };
+    }
+
     private static RecommendHabitsContext ToRecommendContext(
         AiRecommendHabitsRequest request,
         User user )
@@ -131,6 +149,40 @@ public class AiController : BaseController
             Mission = mission,
             MainSlogan = slogan,
             Gender = gender.ToString().ToLowerInvariant()
+        };
+    }
+
+    private async Task<List<string>> LoadActiveHabitNamesAsync( long userId )
+    {
+        List<string> names = await DbContext.UserHabits
+            .Where( h => h.UserId == userId && !h.IsArchived && h.Status == StatusOfHabit.InProgress )
+            .OrderBy( h => h.Priority )
+            .Select( h => h.Name )
+            .ToListAsync()
+            .DefaultConfigureAwait();
+
+        return SanitizeNames( names );
+    }
+
+    private async Task<List<string>> LoadGoalNamesAsync( long userId )
+    {
+        List<string> names = await DbContext.UserGoals
+            .Where( g => g.UserId == userId )
+            .OrderBy( g => g.Id )
+            .Select( g => g.Name )
+            .ToListAsync()
+            .DefaultConfigureAwait();
+
+        return SanitizeNames( names );
+    }
+
+    private static string FormatChatGender( Gender gender )
+    {
+        return gender switch
+        {
+            Gender.Man => "man",
+            Gender.Woman => "woman",
+            _ => "othersex"
         };
     }
 
@@ -198,11 +250,16 @@ internal sealed class ChatSseResult : IActionResult
 
     private readonly IAiService m_aiService;
     private readonly IReadOnlyList<AiChatMessage> m_messages;
+    private readonly ChatUserContext? m_userContext;
 
-    public ChatSseResult( IAiService aiService, IReadOnlyList<AiChatMessage> messages )
+    public ChatSseResult(
+        IAiService aiService,
+        IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null )
     {
         m_aiService = aiService;
         m_messages = messages;
+        m_userContext = userContext;
     }
 
     public async Task ExecuteResultAsync( ActionContext context )
@@ -218,7 +275,7 @@ internal sealed class ChatSseResult : IActionResult
         try
         {
             await foreach (string chunk in m_aiService
-                .StreamChatAsync( m_messages, cancellationToken )
+                .StreamChatAsync( m_messages, m_userContext, cancellationToken )
                 .ConfigureAwait( false ))
             {
                 await WriteSseAsync(

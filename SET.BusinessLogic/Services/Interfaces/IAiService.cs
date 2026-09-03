@@ -7,10 +7,12 @@ public interface IAiService
 {
     Task<string> CompleteChatAsync(
         IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null,
         CancellationToken cancellationToken = default );
 
     IAsyncEnumerable<string> StreamChatAsync(
         IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null,
         CancellationToken cancellationToken = default );
 
     Task<AiTaskDraftResult> ParseTaskDraftAsync(
@@ -41,6 +43,16 @@ public sealed class AiTaskDraftResult
     public string? Priority { get; init; }
     public string? Theme { get; init; }
     public string? DueDate { get; init; }
+}
+
+public sealed class ChatUserContext
+{
+    public string? Name { get; init; }
+    public string? Gender { get; init; }
+    public string? Mission { get; init; }
+    public string? MainSlogan { get; init; }
+    public IReadOnlyList<string> Habits { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> Goals { get; init; } = Array.Empty<string>();
 }
 
 public sealed class RecommendHabitsContext

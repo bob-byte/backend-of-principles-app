@@ -21,14 +21,17 @@ public class AiService : IAiService
     private const int ParseMaxCompletionTokens = 1024;
     private const int RecommendMaxCompletionTokens = 2048;
 
-    private const string HelperSystemPrompt =
-        "You are a self-development helper, but you can answer any question. " +
-        "If the user asks something unrelated to self-development, respond normally " +
-        "without forcing that topic. Support the user in building better habits and " +
-        "growing, but do not lecture unsolicited. Do not accept weak conclusions as true: " +
-        "be an intellectual opponent when useful. " +
-        "Always answer in the same language that the user writes in. " +
-        "If you generate code, do not wrap it in ``` fences; put the language name on a line before the code.";
+    private const string HelperSystemPromptBase =
+        "You are a self-development helper, but you can answer at any question. " +
+        "If the user asks a question unrelated to self-development, success and personal growth " +
+        "you must respond without mentioning about self-development, success, and personal growth. " +
+        "You have to support the user in their quest to become better and help them identify their habits. " +
+        "You should also provide information on how to better stick to them and become better every day " +
+        "in all areas of the user's life. But don't ask current user habits and don't tell user that " +
+        "he or she should strive for perfection. " +
+        "Do not accept an user's conclusions as true. You are an intellectual opponent, not an assistant. " +
+        "You shouldn't advise a user when he or she doesn't ask for it. " +
+        "Always answer in the same language that the user writes in.";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -46,10 +49,11 @@ public class AiService : IAiService
 
     public async Task<string> CompleteChatAsync(
         IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null,
         CancellationToken cancellationToken = default )
     {
         return await CompleteAsync(
-            BuildChatMessages( messages ),
+            BuildChatMessages( messages, userContext ),
             jsonObject: false,
             ChatMaxCompletionTokens,
             cancellationToken ).DefaultConfigureAwait();
@@ -57,9 +61,10 @@ public class AiService : IAiService
 
     public async IAsyncEnumerable<string> StreamChatAsync(
         IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default )
     {
-        List<AiChatMessage> sanitized = BuildChatMessages( messages );
+        List<AiChatMessage> sanitized = BuildChatMessages( messages, userContext );
 
         using HttpRequestMessage request = CreateCompletionRequest(
             sanitized,
@@ -389,11 +394,13 @@ public class AiService : IAiService
         };
     }
 
-    private List<AiChatMessage> BuildChatMessages( IReadOnlyList<AiChatMessage> messages )
+    private List<AiChatMessage> BuildChatMessages(
+        IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext )
     {
         List<AiChatMessage> sanitized = new()
         {
-            new AiChatMessage( "system", HelperSystemPrompt )
+            new AiChatMessage( "system", BuildHelperSystemPrompt( userContext ) )
         };
 
         AppendUserAssistantMessages( sanitized, messages );
@@ -412,6 +419,65 @@ public class AiService : IAiService
         }
 
         return sanitized;
+    }
+
+    internal static string BuildHelperSystemPrompt( ChatUserContext? userContext )
+    {
+        StringBuilder builder = new();
+        builder.Append( HelperSystemPromptBase );
+
+        string newLine = Environment.NewLine;
+        if (userContext is not null)
+        {
+            if (!string.IsNullOrWhiteSpace( userContext.Gender ))
+            {
+                builder.Append( $"{newLine}User gender is {userContext.Gender.Trim()}." );
+            }
+
+            if (!string.IsNullOrWhiteSpace( userContext.Name ))
+            {
+                builder.Append(
+                    $"{newLine}User name is \"{userContext.Name.Trim()}\". You should use his/her name frequently." );
+            }
+
+            if (!string.IsNullOrWhiteSpace( userContext.Mission ))
+            {
+                builder.Append( $"{newLine}User mission is \"{userContext.Mission.Trim()}\"." );
+            }
+
+            if (!string.IsNullOrWhiteSpace( userContext.MainSlogan ))
+            {
+                builder.Append( $"{newLine}User main slogan is: \"{userContext.MainSlogan.Trim()}\"." );
+            }
+
+            List<string> habitNames = (userContext.Habits ?? Array.Empty<string>())
+                .Where( n => !string.IsNullOrWhiteSpace( n ) )
+                .Select( n => n.Trim() )
+                .ToList();
+            if (habitNames.Count > 0)
+            {
+                builder.Append( $"{newLine}Now the user adheres to the following habits:{newLine}" );
+                builder.Append( string.Join( "; ", habitNames ) );
+                builder.Append( '.' );
+            }
+
+            List<string> goalNames = (userContext.Goals ?? Array.Empty<string>())
+                .Where( n => !string.IsNullOrWhiteSpace( n ) )
+                .Select( n => n.Trim() )
+                .ToList();
+            if (goalNames.Count > 0)
+            {
+                builder.Append( " My current goals are: " );
+                builder.Append( string.Join( "; ", goalNames ) );
+                builder.Append( '.' );
+            }
+        }
+
+        builder.Append(
+            $"{newLine}If you generate a program code, it must be without ``` delimiters. " +
+            "The programming language should be specified on a separate line before the code." );
+
+        return builder.ToString();
     }
 
     private HttpRequestMessage CreateCompletionRequest(
