@@ -67,6 +67,25 @@ public class ProfileController : BaseController
         } );
     }
 
+    [HttpPut( template: "gender" )]
+    public Task<IActionResult> SaveGenderAsync( [FromBody] Gender gender )
+    {
+        return TryCatchAsync( async ( User user ) =>
+        {
+            if (!Enum.IsDefined( typeof( Gender ), gender ))
+            {
+                return BadRequest( "GenderIsInvalid" );
+            }
+
+            user.Gender = gender;
+            DbContext.Users.Update( user );
+
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            IActionResult actionResult = Ok();
+            return actionResult;
+        } );
+    }
+
     [HttpPut( template: "mission" )]
     public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
