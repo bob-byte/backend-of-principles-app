@@ -100,6 +100,11 @@ public class AppDbContext : DbContext
 
     protected override void OnConfiguring( DbContextOptionsBuilder optionsBuilder )
     {
+        if (optionsBuilder.IsConfigured)
+        {
+            return;
+        }
+
         base.OnConfiguring( optionsBuilder );
         string connectionString;
 #if DEBUG
