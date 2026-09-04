@@ -16,6 +16,13 @@ public class User
 
     public string? MainSlogan { get; set; }
     public string? Mission { get; set; }
+
+    /// <summary>
+    /// Whether the account has completed (or skipped) the in-app road guide at least once.
+    /// Per-device auto-play is gated locally; this flag is the durable profile record.
+    /// </summary>
+    public bool HasSeenRoadGuide { get; set; }
+
     public UserReminder? HabitsReportReminder { get; set; }
     public DateTime CreatedAt { get; set; }
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }

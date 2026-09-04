@@ -262,6 +262,11 @@ namespace SET.DataAccess.Migrations
                     b.Property<int>("Gender")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("HasSeenRoadGuide")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("MainSlogan")
                         .HasColumnType("text");
 

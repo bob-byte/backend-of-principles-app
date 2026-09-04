@@ -33,6 +33,10 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
         builder.Property( c => c.MainSlogan ).
             HasColumnType( DbmsConstants.TEXT_WITH_MAX_LENGTH_TYPE );
 
+        builder.Property( c => c.HasSeenRoadGuide ).
+            IsRequired().
+            HasDefaultValue( false );
+
         builder.HasMany( u => u.AreasOfLife ).
             WithOne( u => u.User ).
             IsRequired().

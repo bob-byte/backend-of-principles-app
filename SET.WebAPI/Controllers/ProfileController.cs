@@ -86,6 +86,20 @@ public class ProfileController : BaseController
         } );
     }
 
+    [HttpPut( template: "roadguide" )]
+    public Task<IActionResult> SaveHasSeenRoadGuideAsync( [FromBody] bool hasSeenRoadGuide )
+    {
+        return TryCatchAsync( async ( User user ) =>
+        {
+            user.HasSeenRoadGuide = hasSeenRoadGuide;
+            DbContext.Users.Update( user );
+
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            IActionResult actionResult = Ok();
+            return actionResult;
+        } );
+    }
+
     [HttpPut( template: "mission" )]
     public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {
