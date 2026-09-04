@@ -1,4 +1,4 @@
-﻿
+
 namespace SET.WebAPI.Models;
 
 public class UserHabitInProgressShortDto
@@ -24,4 +24,8 @@ public class UserHabitInProgressShortDto
     public string? Description { get; set; }
     public string ColorName { get; set; }
     public DateTime LastModified { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public TimeOnly? EndTime { get; set; }
+    public bool AllDay { get; set; }
+    public bool ConstantReminder { get; set; }
 }

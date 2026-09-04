@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SET.Shared.Models;
@@ -10,4 +10,15 @@ public class UserHabitReminderDto
     public TimeOnly Time { get; set; }
     public bool IsEnabled { get; set; }
     public WeekDayDto[] DaysOfWeek { get; set; }
+    public List<ReminderOffsetDto>? Offsets { get; set; }
+    public bool ConstantReminder { get; set; }
+    public int? ConstantNotificationRequestId { get; set; }
+    public TimeOnly? EndTime { get; set; }
+    public bool AllDay { get; set; }
+}
+
+public class ReminderOffsetDto
+{
+    public int OffsetMinutes { get; set; }
+    public int? NotificationRequestId { get; set; }
 }

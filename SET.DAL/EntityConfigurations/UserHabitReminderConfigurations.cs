@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using SET.Shared.Models;
@@ -30,5 +30,13 @@ internal class UserHabitReminderConfigurations : IEntityTypeConfiguration<UserHa
         builder.HasMany( uh => uh.DaysOfWeek )
              .WithOne( wd => wd.UserHabitReminder )
              .HasForeignKey( wd => wd.UserHabitReminderId );
+
+        builder.Property( c => c.OffsetsJson )
+            .IsRequired( false )
+            .HasColumnType( "text" );
+        builder.Property( c => c.ConstantReminder ).IsRequired().HasDefaultValue( false );
+        builder.Property( c => c.ConstantNotificationRequestId ).IsRequired( false );
+        builder.Property( c => c.EndTime ).IsRequired( false );
+        builder.Property( c => c.AllDay ).IsRequired().HasDefaultValue( false );
     }
 }

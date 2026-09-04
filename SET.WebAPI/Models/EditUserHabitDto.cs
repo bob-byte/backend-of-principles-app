@@ -1,4 +1,4 @@
-﻿
+
 namespace SET.WebAPI.Models;
 
 public class EditUserHabitDto
@@ -27,4 +27,8 @@ public class EditUserHabitDto
     public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
     public List<UserHabitReminderDto> Reminders { get; set; }
     public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public TimeOnly? EndTime { get; set; }
+    public bool AllDay { get; set; }
+    public bool ConstantReminder { get; set; }
 }

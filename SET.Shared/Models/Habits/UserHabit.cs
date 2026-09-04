@@ -1,4 +1,4 @@
-﻿using SET.Shared.Models;
+using SET.Shared.Models;
 
 using System;
 using System.Collections.Generic;
@@ -33,4 +33,8 @@ public class UserHabit
     public ICollection<UserHabitReminder> Reminders { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public TimeOnly? EndTime { get; set; }
+    public bool AllDay { get; set; }
+    public bool ConstantReminder { get; set; }
 }

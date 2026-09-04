@@ -1,3 +1,10 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SET.Shared.Extensions;
+using SET.WebAPI.Helpers;
+using SET.WebAPI.Models;
 using TaskEntity = SET.Shared.Models.Task;
 
 namespace SET.WebAPI.Controllers;
@@ -40,27 +47,14 @@ public class TasksController : BaseController
             TaskEntity entity = new()
             {
                 UserId = user.Id,
-                Name = request.Name,
-                Notes = request.Notes,
-                Date = request.Date,
-                Time = request.Time,
                 IsCompleted = request.IsCompleted
             };
+            TaskDtoMapper.ApplyDto( entity, request );
 
             await DbContext.Tasks.AddAsync( entity ).DefaultConfigureAwait();
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            TaskItemDto response = new()
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Notes = entity.Notes,
-                Date = entity.Date,
-                Time = entity.Time,
-                IsCompleted = entity.IsCompleted
-            };
-
-            return Created( $"api/tasks/{response.Id}", response );
+            return Created( $"api/tasks/{entity.Id}", TaskDtoMapper.ToDto( entity ) );
         } );
     }
 
@@ -74,22 +68,13 @@ public class TasksController : BaseController
                 return BadRequest( "DateIsNotSpecified" );
             }
 
-            List<TaskItemDto> items = await DbContext.Tasks
+            List<TaskEntity> entities = await DbContext.Tasks
                 .Where( t => t.UserId == user.Id && t.Date == date )
                 .OrderBy( t => t.Time )
-                .Select( t => new TaskItemDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Notes = t.Notes,
-                    Date = t.Date,
-                    Time = t.Time,
-                    IsCompleted = t.IsCompleted
-                } )
                 .ToListAsync()
                 .DefaultConfigureAwait();
 
-            return Ok( items );
+            return Ok( entities.Select( TaskDtoMapper.ToDto ).ToList() );
         } );
     }
 
@@ -98,23 +83,14 @@ public class TasksController : BaseController
     {
         return TryCatchAsync( async user =>
         {
-            List<TaskItemDto> items = await DbContext.Tasks
+            List<TaskEntity> entities = await DbContext.Tasks
                 .Where( t => t.UserId == user.Id )
-                .OrderBy( t => t.Date ) 
-                .ThenBy( t => t.Time ) 
-                .Select( t => new TaskItemDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Notes = t.Notes,
-                    Date = t.Date,
-                    Time = t.Time,
-                    IsCompleted = t.IsCompleted
-                } )
+                .OrderBy( t => t.Date )
+                .ThenBy( t => t.Time )
                 .ToListAsync()
                 .DefaultConfigureAwait();
 
-            return Ok( items );
+            return Ok( entities.Select( TaskDtoMapper.ToDto ).ToList() );
         } );
     }
 
@@ -146,17 +122,7 @@ public class TasksController : BaseController
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            TaskItemDto response = new()
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Notes = entity.Notes,
-                Date = entity.Date,
-                Time = entity.Time,
-                IsCompleted = entity.IsCompleted
-            };
-
-            return Ok( response );
+            return Ok( TaskDtoMapper.ToDto( entity ) );
         } );
     }
 
@@ -176,24 +142,11 @@ public class TasksController : BaseController
 
             if (entity is null) return NotFound( $"TaskIsNotFoundWithId {id}" );
 
-            entity.Name = request.Name;
-            entity.Notes = request.Notes;
-            entity.Date = request.Date;
-            entity.Time = request.Time;
+            TaskDtoMapper.ApplyDto( entity, request );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            TaskItemDto response = new()
-            {
-                Id = entity.Id,
-                Name = entity.Name,
-                Notes = entity.Notes,
-                Date = entity.Date,
-                Time = entity.Time,
-                IsCompleted = entity.IsCompleted
-            };
-
-            return Ok( response );
+            return Ok( TaskDtoMapper.ToDto( entity ) );
         } );
     }
 
@@ -230,26 +183,16 @@ public class TasksController : BaseController
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            List<TaskItemDto> items = await DbContext.Tasks
-                .Where( t => t.UserId == user.Id 
-                          && t.IsCompleted == false 
+            List<TaskEntity> entities = await DbContext.Tasks
+                .Where( t => t.UserId == user.Id
+                          && t.IsCompleted == false
                           && (t.Date == null || t.Date >= today) )
-                .OrderBy( t => t.Date ) 
+                .OrderBy( t => t.Date )
                 .ThenBy( t => t.Time )
-                .Select( t => new TaskItemDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Notes = t.Notes,
-                    Date = t.Date,
-                    Time = t.Time,
-                    IsCompleted = t.IsCompleted
-                } )
                 .ToListAsync()
                 .DefaultConfigureAwait();
 
-            return Ok( items );
+            return Ok( entities.Select( TaskDtoMapper.ToDto ).ToList() );
         } );
     }
 }
-

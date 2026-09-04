@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 using SET.DataAccess;
@@ -61,5 +61,10 @@ internal class UserHabitConfigurations : IEntityTypeConfiguration<UserHabit>
         builder.Property( u => u.UpdatedAt ).
             HasColumnType( "timestamp with time zone" ).
             IsRequired(false);
+
+        builder.Property( u => u.EndDate ).IsRequired( false );
+        builder.Property( u => u.EndTime ).IsRequired( false );
+        builder.Property( u => u.AllDay ).IsRequired().HasDefaultValue( false );
+        builder.Property( u => u.ConstantReminder ).IsRequired().HasDefaultValue( false );
     }
 }
