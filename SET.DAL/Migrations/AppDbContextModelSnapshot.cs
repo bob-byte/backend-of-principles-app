@@ -182,8 +182,7 @@ namespace SET.DataAccess.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
+                        .HasColumnType("text");
 
                     b.Property<TimeOnly?>("Time")
                         .HasColumnType("time without time zone");

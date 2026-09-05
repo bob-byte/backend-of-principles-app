@@ -15,7 +15,7 @@ public class TasksConfiguration: IEntityTypeConfiguration<Task>{
            .IsRequired();
         builder.Property(x => x.Notes)
            .IsRequired(false)
-           .HasMaxLength(255);
+           .HasColumnType("text");
         builder.Property(x => x.Date)
            .IsRequired(false);
         builder.Property(x => x.Time)

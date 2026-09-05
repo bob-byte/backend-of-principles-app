@@ -39,11 +39,6 @@ public class TasksController : BaseController
                 return BadRequest( "NameIsTooLong" );
             }
 
-            if (request.Notes is not null && request.Notes.Length > 255)
-            {
-                return BadRequest( "NotesAreTooLong" );
-            }
-
             TaskEntity entity = new()
             {
                 UserId = user.Id,
