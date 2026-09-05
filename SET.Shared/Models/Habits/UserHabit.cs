@@ -37,4 +37,11 @@ public class UserHabit
     public TimeOnly? EndTime { get; set; }
     public bool AllDay { get; set; }
     public bool ConstantReminder { get; set; }
+    public HabitKind Kind { get; set; }
+    public string? Unit { get; set; }
+    public double? TargetPerOneTime { get; set; }
+    public NumericalHabitType TargetType { get; set; }
+    public double? MinRate { get; set; }
+    public double? MaxRate { get; set; }
+    public ProgressMarkVariaty ProgressMarkVariaty { get; set; }
 }
