@@ -64,6 +64,7 @@ public class TasksController : BaseController
             }
 
             List<TaskEntity> entities = await DbContext.Tasks
+                .Include( t => t.Subtasks )
                 .Where( t => t.UserId == user.Id && t.Date == date )
                 .OrderBy( t => t.Time )
                 .ToListAsync()
@@ -79,6 +80,7 @@ public class TasksController : BaseController
         return TryCatchAsync( async user =>
         {
             List<TaskEntity> entities = await DbContext.Tasks
+                .Include( t => t.Subtasks )
                 .Where( t => t.UserId == user.Id )
                 .OrderBy( t => t.Date )
                 .ThenBy( t => t.Time )
@@ -105,6 +107,7 @@ public class TasksController : BaseController
             }
 
             TaskEntity? entity = await DbContext.Tasks
+                .Include( t => t.Subtasks )
                 .FirstOrDefaultAsync( t => t.Id == id && t.UserId == user.Id )
                 .DefaultConfigureAwait();
 
@@ -132,8 +135,9 @@ public class TasksController : BaseController
             if (string.IsNullOrWhiteSpace( request.Name )) return BadRequest( "NameIsNullOrWhiteSpace" );
 
             TaskEntity? entity = await DbContext.Tasks
-            .FirstOrDefaultAsync( t => t.Id == id && t.UserId == user.Id )
-            .DefaultConfigureAwait();
+                .Include( t => t.Subtasks )
+                .FirstOrDefaultAsync( t => t.Id == id && t.UserId == user.Id )
+                .DefaultConfigureAwait();
 
             if (entity is null) return NotFound( $"TaskIsNotFoundWithId {id}" );
 
@@ -179,6 +183,7 @@ public class TasksController : BaseController
             var today = DateOnly.FromDateTime(DateTime.Today);
 
             List<TaskEntity> entities = await DbContext.Tasks
+                .Include( t => t.Subtasks )
                 .Where( t => t.UserId == user.Id
                           && t.IsCompleted == false
                           && (t.Date == null || t.Date >= today) )

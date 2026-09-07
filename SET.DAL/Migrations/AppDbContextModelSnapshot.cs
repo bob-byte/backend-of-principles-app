@@ -222,6 +222,46 @@ namespace SET.DataAccess.Migrations
                     b.ToTable("Tasks", "tsk");
                 });
 
+            modelBuilder.Entity("SET.Shared.Models.TaskSubtask", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", Npgsql.EntityFrameworkCore.PostgreSQL.Metadata.NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("IsCompleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<long>("TaskId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaskId");
+
+                    b.HasIndex("TaskId", "ClientId")
+                        .IsUnique();
+
+                    b.ToTable("TaskSubtasks", "tsk");
+                });
+
             modelBuilder.Entity("SET.Shared.Models.TrackingOfUserNotificationRequests", b =>
                 {
                     b.Property<long>("Id")
@@ -613,6 +653,19 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+
+                    b.Navigation("Subtasks");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.TaskSubtask", b =>
+                {
+                    b.HasOne("SET.Shared.Models.Task", "Task")
+                        .WithMany("Subtasks")
+                        .HasForeignKey("TaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Task");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.TrackingOfUserNotificationRequests", b =>

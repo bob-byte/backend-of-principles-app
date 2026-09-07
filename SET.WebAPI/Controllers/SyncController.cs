@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 using SET.Shared.Models;
+using SET.WebAPI.Helpers;
 using SET.WebAPI.Models;
+using TaskEntity = SET.Shared.Models.Task;
 
 namespace SET.WebAPI.Controllers;
 
@@ -101,21 +103,16 @@ public class SyncController : BaseController
 
             UserReminderDto reminderDto = Mapper.Map<UserReminderDto>( habitsReportReminder ) ?? new UserReminderDto();
 
-            List<TaskItemDto> tasks = await DbContext.Tasks
+            List<TaskEntity> taskEntities = await DbContext.Tasks
+                .AsNoTracking()
+                .Include( t => t.Subtasks )
                 .Where( t => t.UserId == user.Id )
                 .OrderBy( t => t.Date )
                 .ThenBy( t => t.Time )
-                .Select( t => new TaskItemDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Notes = t.Notes,
-                    Date = t.Date,
-                    Time = t.Time,
-                    IsCompleted = t.IsCompleted
-                } )
                 .ToListAsync()
                 .DefaultConfigureAwait();
+
+            List<TaskItemDto> tasks = taskEntities.Select( TaskDtoMapper.ToDto ).ToList();
 
             SyncBootstrapResponse snapshot = new()
             {

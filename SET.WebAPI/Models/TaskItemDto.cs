@@ -32,4 +32,15 @@ public class TaskItemDto
     public int? ConstantNotificationRequestId { get; set; }
     public List<TaskReminderOffsetDto> Reminders { get; set; } = new();
     public TaskRepeatDto? Repeat { get; set; }
+
+    /// Null means the client omitted checklists (keep existing server rows).
+    public List<TaskSubtaskDto>? Subtasks { get; set; }
+}
+
+public class TaskSubtaskDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public bool IsCompleted { get; set; }
+    public int SortOrder { get; set; }
 }

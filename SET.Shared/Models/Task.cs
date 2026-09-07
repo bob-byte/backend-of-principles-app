@@ -24,4 +24,6 @@ public class Task
 
     /// JSON object for repeat config.
     public string? RepeatJson { get; set; }
+
+    public ICollection<TaskSubtask> Subtasks { get; set; } = new List<TaskSubtask>();
 }

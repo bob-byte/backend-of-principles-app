@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using SET.Shared.Models;
 using SET.WebAPI.Models;
@@ -30,6 +33,10 @@ public static class TaskDtoMapper
             ConstantNotificationRequestId = entity.ConstantNotificationRequestId,
             Reminders = ParseReminders( entity.RemindersJson ),
             Repeat = ParseRepeat( entity.RepeatJson ),
+            Subtasks = ( entity.Subtasks ?? Array.Empty<TaskSubtask>() )
+                .OrderBy( s => s.SortOrder )
+                .Select( ToSubtaskDto )
+                .ToList(),
         };
     }
 
@@ -46,6 +53,64 @@ public static class TaskDtoMapper
         entity.ConstantNotificationRequestId = request.ConstantNotificationRequestId;
         entity.RemindersJson = SerializeReminders( request.Reminders );
         entity.RepeatJson = SerializeRepeat( request.Repeat );
+        ApplySubtasks( entity, request.Subtasks );
+    }
+
+    public static void ApplySubtasks( TaskEntity entity, List<TaskSubtaskDto>? subtasks )
+    {
+        // Null means an older client omitted the field — keep existing rows.
+        if (subtasks is null)
+        {
+            return;
+        }
+
+        entity.Subtasks ??= new List<TaskSubtask>();
+        entity.Subtasks.Clear();
+
+        var order = 0;
+        foreach (TaskSubtaskDto item in subtasks)
+        {
+            string title = ( item.Name ?? string.Empty ).Trim();
+            if (string.IsNullOrEmpty( title ))
+            {
+                continue;
+            }
+
+            string clientId = ( item.Id ?? string.Empty ).Trim();
+            if (string.IsNullOrEmpty( clientId ))
+            {
+                clientId = Guid.NewGuid().ToString( "N" );
+            }
+
+            if (clientId.Length > 64)
+            {
+                clientId = clientId[ ..64 ];
+            }
+
+            if (title.Length > 255)
+            {
+                title = title[ ..255 ];
+            }
+
+            entity.Subtasks.Add( new TaskSubtask
+            {
+                ClientId = clientId,
+                Title = title,
+                IsCompleted = item.IsCompleted,
+                SortOrder = order++,
+            } );
+        }
+    }
+
+    public static TaskSubtaskDto ToSubtaskDto( TaskSubtask entity )
+    {
+        return new TaskSubtaskDto
+        {
+            Id = entity.ClientId,
+            Name = entity.Title,
+            IsCompleted = entity.IsCompleted,
+            SortOrder = entity.SortOrder,
+        };
     }
 
     public static List<TaskReminderOffsetDto> ParseReminders( string? json )

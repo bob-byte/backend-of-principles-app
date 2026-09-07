@@ -45,5 +45,9 @@ public class TasksConfiguration: IEntityTypeConfiguration<Task>{
            .WithMany()
            .HasForeignKey(x => x.UserId)
            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Subtasks)
+           .WithOne(x => x.Task)
+           .HasForeignKey(x => x.TaskId)
+           .OnDelete(DeleteBehavior.Cascade);
     }
 }
