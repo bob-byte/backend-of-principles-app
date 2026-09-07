@@ -1,0 +1,23 @@
+---
+description: Principles .NET API — goals, habits, tasks, sync, AI
+alwaysApply: true
+---
+
+# Principles backend
+
+ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in the sibling `flutter-frontend-of-principles` repo (this folder is nested as `backend/` in the multi-root workspace).
+
+## Domain
+
+- **Users / profile** — auth, slogan, mission, road-guide flag
+- **Goals** — user goals (`goal` schema)
+- **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
+- **Tasks** — one-off work with schedule/reminders/repeat; checklists in `tsk.TaskSubtasks`
+- **Sync** — `GET api/sync/bootstrap` (+ ping) for client catch-up
+- **AI** — `POST api/ai/chat`, parse-task; `AI_API_KEY` stays server-side only
+
+## Client contract
+
+- Prefer camelCase JSON DTOs in `SET.WebAPI/Models`
+- Nested task `subtasks`: `null`/omitted = keep existing rows; empty array = clear
+- Completing a subtask does **not** complete the parent task

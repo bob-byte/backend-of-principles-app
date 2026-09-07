@@ -1,0 +1,30 @@
+---
+description: Backend solution layers, schemas, and mapping conventions
+alwaysApply: true
+---
+
+# Architecture
+
+## Projects
+
+| Project | Role |
+|---------|------|
+| `SET.WebAPI` | Controllers, DTOs, helpers, Startup/Program, resources |
+| `SET.BusinessLogic` | Services (`Interfaces` / `Implementation`), AI, reminders |
+| `SET.DAL` (`SET.DataAccess`) | `AppDbContext`, entity configs, EF migrations |
+| `SET.Shared` | Entities, shared DTOs/extensions |
+| `SET.UnitTests` | Unit tests |
+
+Solution: `Mentor.SET.Backend.sln`.
+
+## Data
+
+- PostgreSQL via EF Core; schemas in `SET.DAL/Schemas.cs`: `app`, `goal`, `hbt`, `arlf`, `tsk`
+- Entities: `SET.Shared/Models` · configs: `SET.DAL/EntityConfigurations` · register in `AppDbContext.OnModelCreating`
+- Most PK sequences start at 100 (`nextval('schema.sq__…')`); tasks/subtasks may use identity — follow the nearest existing table
+- Task ↔ subtasks: cascade delete; unique `(TaskId, ClientId)` where `ClientId` is the Flutter checklist row id
+
+## Mapping
+
+- Controllers use AutoMapper and/or dedicated helpers (e.g. `TaskDtoMapper`)
+- Keep entity ↔ DTO mapping next to the feature; do not leak EF entities as API responses

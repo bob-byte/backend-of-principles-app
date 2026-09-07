@@ -1,0 +1,15 @@
+---
+description: EF Core entity configs, schemas, and migrations
+globs: SET.DAL/**/*.cs,SET.Shared/Models/**/*.cs
+alwaysApply: false
+---
+
+# EF / data layer
+
+- New tables: add entity in `SET.Shared/Models`, `IEntityTypeConfiguration<>` in `EntityConfigurations`, `DbSet<>` + `ApplyConfiguration` in `AppDbContext`
+- Always set schema via `Schemas.*` (`app`, `goal`, `hbt`, `arlf`, `tsk`) — do not invent ad-hoc schema names
+- Mirror existing config style: required/max length, defaults, FKs, cascade behavior
+- For sequence-backed PKs: add `HasSequence` in `OnModelCreating` and `HasDefaultValueSql(nextval(...))` on the config
+- Migrations: add under `SET.DAL/Migrations` with Designer + update `AppDbContextModelSnapshot`; name like `yyyyMMddHHmmss_Description`
+- Prefer `dotnet ef migrations add` from solution root with `--project SET.DAL --startup-project SET.WebAPI`
+- Child collections owned by a parent (e.g. task subtasks) should cascade delete unless product says otherwise

@@ -1,0 +1,9 @@
+---
+description: Assistant replies in English for the Principles backend
+alwaysApply: true
+---
+
+# Communication
+
+- Always respond to the user in **English**, even if API error keys, UI copy, or source comments are Ukrainian or another language.
+- Product/API string keys may stay as existing PascalCase tokens (e.g. `NameIsNullOrWhiteSpace`); only assistant chat replies must be English.

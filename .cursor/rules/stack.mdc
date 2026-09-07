@@ -1,0 +1,23 @@
+---
+description: .NET 8, EF Core, Npgsql, JWT, Serilog for Principles API
+alwaysApply: true
+---
+
+# Stack
+
+- **.NET 8** (`net8.0`), ASP.NET Core WebAPI
+- **EF Core 8** + **Npgsql** / PostgreSQL
+- **JWT Bearer** auth on API controllers
+- **AutoMapper**, **Serilog**, **Swashbuckle**, **Newtonsoft.Json** on MVC
+- Local secrets: `DotNetEnv` loads env in DEBUG (`Program.CreateHostBuilder`); never commit real `AI_API_KEY` values
+- Migrations live in `SET.DAL/Migrations` (namespace `SET.DataAccess.Migrations`)
+
+## Common commands
+
+```bash
+# from backend/
+dotnet build Mentor.SET.Backend.sln
+dotnet test SET.UnitTests/SET.UnitTests.csproj
+dotnet ef migrations add <Name> --project SET.DAL --startup-project SET.WebAPI
+dotnet ef database update --project SET.DAL --startup-project SET.WebAPI
+```
