@@ -107,6 +107,35 @@ public class AiController : BaseController
         }, request );
     }
 
+    [HttpPost( "title" )]
+    public Task<IActionResult> TitleAsync( [FromBody] AiTitleRequest request )
+    {
+        return TryCatchAsync( async _ =>
+        {
+            string userMessage = request?.UserMessage?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace( userMessage ))
+            {
+                return BadRequest( new { error = "PromptIsRequired" } );
+            }
+
+            try
+            {
+                string title = await m_aiService
+                    .GenerateConversationTitleAsync(
+                        userMessage,
+                        request?.AssistantMessage,
+                        HttpContext.RequestAborted )
+                    .DefaultConfigureAwait();
+
+                return Ok( new AiTitleResponse { Title = title } );
+            }
+            catch (AiServiceException ex)
+            {
+                return StatusCode( ex.StatusCode, new { error = ex.Message } );
+            }
+        }, request );
+    }
+
     private async Task<ChatUserContext> BuildChatUserContextAsync( User user )
     {
         List<string> habits = await LoadActiveHabitNamesAsync( user.Id ).DefaultConfigureAwait();

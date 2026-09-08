@@ -33,6 +33,8 @@ public class AppDbContext : DbContext
     public DbSet<TrackingOfUserNotificationRequests> TrackingOfUserNotificationRequests { get; set; }
     public DbSet<Task> Tasks { get; set; }
     public DbSet<TaskSubtask> TaskSubtasks { get; set; }
+    public DbSet<AiConversation> AiConversations { get; set; }
+    public DbSet<AiMessage> AiMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -50,6 +52,8 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new TrackingOfUserNotificationRequestsConfigurations() );
         modelBuilder.ApplyConfiguration( new TasksConfiguration());
         modelBuilder.ApplyConfiguration( new TaskSubtasksConfiguration());
+        modelBuilder.ApplyConfiguration( new AiConversationConfiguration() );
+        modelBuilder.ApplyConfiguration( new AiMessageConfiguration() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).

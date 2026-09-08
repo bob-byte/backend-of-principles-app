@@ -114,6 +114,18 @@ public class SyncController : BaseController
 
             List<TaskItemDto> tasks = taskEntities.Select( TaskDtoMapper.ToDto ).ToList();
 
+            List<AiConversation> conversationEntities = await DbContext.AiConversations
+                .AsNoTracking()
+                .Include( c => c.Messages )
+                .Where( c => c.UserId == user.Id )
+                .OrderByDescending( c => c.UpdatedAt )
+                .ToListAsync()
+                .DefaultConfigureAwait();
+
+            List<AiConversationDto> conversations = conversationEntities
+                .Select( c => AiConversationDtoMapper.ToDto( c ) )
+                .ToList();
+
             SyncBootstrapResponse snapshot = new()
             {
                 User = new SyncBootstrapUserDto
@@ -130,7 +142,8 @@ public class SyncController : BaseController
                 ActiveHabits = activeDtos,
                 ArchivedHabits = archivedHabits,
                 HabitsReportReminder = reminderDto,
-                Tasks = tasks
+                Tasks = tasks,
+                Conversations = conversations
             };
 
             return Ok( snapshot );

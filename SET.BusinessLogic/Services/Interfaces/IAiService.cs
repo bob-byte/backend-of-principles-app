@@ -22,6 +22,11 @@ public interface IAiService
     Task<IReadOnlyList<RecommendedHabitResult>> RecommendHabitsAsync(
         RecommendHabitsContext context,
         CancellationToken cancellationToken = default );
+
+    Task<string> GenerateConversationTitleAsync(
+        string userMessage,
+        string? assistantMessage = null,
+        CancellationToken cancellationToken = default );
 }
 
 public sealed class AiChatMessage

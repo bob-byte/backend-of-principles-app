@@ -27,4 +27,5 @@ public class SyncBootstrapResponse
     public List<SyncBootstrapArchivedHabitDto> ArchivedHabits { get; set; }
     public UserReminderDto HabitsReportReminder { get; set; }
     public List<TaskItemDto> Tasks { get; set; }
+    public List<AiConversationDto> Conversations { get; set; }
 }

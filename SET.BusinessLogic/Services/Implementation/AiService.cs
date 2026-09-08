@@ -21,6 +21,7 @@ public class AiService : IAiService
     private const int ParseMaxCompletionTokens = 1024;
     private const int RecommendMaxCompletionTokens = 2048;
 
+    // MAUI AiChatService.SystemMessage base (helper chat only — not habit recommendations).
     private const string HelperSystemPromptBase =
         "You are a self-development helper, but you can answer at any question. " +
         "If the user asks a question unrelated to self-development, success and personal growth " +
@@ -30,8 +31,7 @@ public class AiService : IAiService
         "in all areas of the user's life. But don't ask current user habits and don't tell user that " +
         "he or she should strive for perfection. " +
         "Do not accept an user's conclusions as true. You are an intellectual opponent, not an assistant. " +
-        "You shouldn't advise a user when he or she doesn't ask for it. " +
-        "Always answer in the same language that the user writes in.";
+        "You shouldn't advise a user when he or she doesn't ask for it";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -220,6 +220,84 @@ public class AiService : IAiService
         }
 
         return habits;
+    }
+
+    public async Task<string> GenerateConversationTitleAsync(
+        string userMessage,
+        string? assistantMessage = null,
+        CancellationToken cancellationToken = default )
+    {
+        string user = ( userMessage ?? string.Empty ).Trim();
+        if (string.IsNullOrWhiteSpace( user ))
+        {
+            throw new AiServiceException( "PromptIsRequired", 400 );
+        }
+
+        if (user.Length > 1500)
+        {
+            user = user[..1500];
+        }
+
+        string assistant = ( assistantMessage ?? string.Empty ).Trim();
+        if (assistant.Length > 1500)
+        {
+            assistant = assistant[..1500];
+        }
+
+        const string system =
+            "You invent a short chat title for a conversation. " +
+            "Reply with the title only: 3 to 8 words, no quotes, no trailing punctuation, " +
+            "no markdown. Use the same language as the user's message.";
+
+        StringBuilder userPrompt = new();
+        userPrompt.Append( "User message:\n" ).Append( user );
+        if (!string.IsNullOrWhiteSpace( assistant ))
+        {
+            userPrompt.Append( "\n\nAssistant reply (excerpt):\n" ).Append( assistant );
+        }
+
+        List<AiChatMessage> messages = new()
+        {
+            new AiChatMessage( "system", system ),
+            new AiChatMessage( "user", userPrompt.ToString() )
+        };
+
+        string content = await CompleteAsync(
+            messages,
+            jsonObject: false,
+            maxCompletionTokens: 64,
+            cancellationToken ).DefaultConfigureAwait();
+
+        string title = NormalizeTitle( content );
+        if (string.IsNullOrWhiteSpace( title ))
+        {
+            throw new AiServiceException( "AI returned an empty title.", 502 );
+        }
+
+        return title;
+    }
+
+    internal static string NormalizeTitle( string? raw )
+    {
+        if (string.IsNullOrWhiteSpace( raw ))
+        {
+            return string.Empty;
+        }
+
+        string title = raw.Trim();
+        title = title.Replace( "\r", " " ).Replace( "\n", " " );
+        while (title.Contains( "  ", StringComparison.Ordinal ))
+        {
+            title = title.Replace( "  ", " ", StringComparison.Ordinal );
+        }
+
+        title = title.Trim( ' ', '"', '\'', '`', '*', '.', '!', '?', '«', '»' );
+        if (title.Length > 80)
+        {
+            title = title[..80].Trim();
+        }
+
+        return title;
     }
 
     internal static string BuildRecommendUserPrompt( RecommendHabitsContext context, string culture )
@@ -449,8 +527,11 @@ public class AiService : IAiService
 
             if (!string.IsNullOrWhiteSpace( userContext.Name ))
             {
+                string name = userContext.Name.Trim();
                 builder.Append(
-                    $"{newLine}User name is \"{userContext.Name.Trim()}\". You should use his/her name frequently." );
+                    $"{newLine}User name is \"{name}\". You should use his/her name frequently. " +
+                    "Always write the name exactly as given (same spelling and characters/script); " +
+                    "never translate or transliterate it, even when the conversation is in another language." );
             }
 
             if (!string.IsNullOrWhiteSpace( userContext.Mission ))

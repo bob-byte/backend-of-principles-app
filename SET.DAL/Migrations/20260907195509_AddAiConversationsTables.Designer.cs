@@ -12,7 +12,8 @@ using SET.DataAccess;
 namespace SET.DataAccess.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot
+    [Migration("20260907195509_AddAiConversationsTables")]
+    partial class AddAiConversationsTables
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

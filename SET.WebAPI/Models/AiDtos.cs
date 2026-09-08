@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace SET.WebAPI.Models;
@@ -54,4 +55,34 @@ public class AiRecommendedHabitDto
 {
     public string Name { get; set; }
     public string ReasonToFollow { get; set; }
+}
+
+public class AiTitleRequest
+{
+    public string UserMessage { get; set; }
+    public string AssistantMessage { get; set; }
+}
+
+public class AiTitleResponse
+{
+    public string Title { get; set; }
+}
+
+public class AiConversationDto
+{
+    public long Id { get; set; }
+    public string ClientId { get; set; }
+    public string Title { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public List<AiConversationMessageDto> Messages { get; set; }
+}
+
+public class AiConversationMessageDto
+{
+    public string Id { get; set; }
+    public string Role { get; set; }
+    public string Content { get; set; }
+    public int SortOrder { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
