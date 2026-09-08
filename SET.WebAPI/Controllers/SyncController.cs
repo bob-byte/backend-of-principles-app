@@ -136,7 +136,7 @@ public class SyncController : BaseController
                     Mission = user.Mission,
                     Email = user.Email,
                     Gender = user.Gender,
-                    LastModified = user.CreatedAt
+                    LastModified = user.UpdatedAt ?? user.CreatedAt
                 },
                 Goals = goals,
                 ActiveHabits = activeDtos,

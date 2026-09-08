@@ -25,6 +25,7 @@ public class User
 
     public UserReminder? HabitsReportReminder { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public ICollection<UserAreaOfLife> AreasOfLife { get; set; }
     public ICollection<UserHabit> Habits { get; set; }
     public ICollection<ClientLog> ClientLogs { get; set; }

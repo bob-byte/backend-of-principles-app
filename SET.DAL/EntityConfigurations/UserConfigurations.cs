@@ -76,5 +76,9 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             HasColumnType( "timestamp with time zone" ).
             HasDefaultValueSql( "now()" ).
             IsRequired();
+
+        builder.Property( u => u.UpdatedAt ).
+            HasColumnType( "timestamp with time zone" ).
+            IsRequired( false );
     }
 }

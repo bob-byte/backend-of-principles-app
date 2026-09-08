@@ -28,7 +28,7 @@ public class ProfileController : BaseController
         {
             Profile data = Mapper.Map<Profile>( user );
             data.Id = user.Id;
-            data.LastModified = user.CreatedAt;
+            data.LastModified = user.UpdatedAt ?? user.CreatedAt;
             IActionResult actionResult = Ok( data );
             return Task.FromResult( actionResult );
         } );
@@ -45,6 +45,7 @@ public class ProfileController : BaseController
             }
 
             user.Name = userName;
+            user.UpdatedAt = DateTime.UtcNow;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -59,6 +60,7 @@ public class ProfileController : BaseController
         return TryCatchAsync( async ( User user ) =>
         {
             user.MainSlogan = mainSlogan;
+            user.UpdatedAt = DateTime.UtcNow;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -78,6 +80,7 @@ public class ProfileController : BaseController
             }
 
             user.Gender = gender;
+            user.UpdatedAt = DateTime.UtcNow;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -92,6 +95,7 @@ public class ProfileController : BaseController
         return TryCatchAsync( async ( User user ) =>
         {
             user.HasSeenRoadGuide = hasSeenRoadGuide;
+            user.UpdatedAt = DateTime.UtcNow;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -147,6 +151,7 @@ public class ProfileController : BaseController
                 }
             }
 
+            user.UpdatedAt = DateTime.UtcNow;
             DbContext.Users.Update( user );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
