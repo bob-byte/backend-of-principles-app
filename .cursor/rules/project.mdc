@@ -9,12 +9,12 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 
 ## Domain
 
-- **Users / profile** — auth, slogan, mission, road-guide flag
+- **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`)
 - **Goals** — user goals (`goal` schema)
 - **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
 - **Tasks** — one-off work with schedule/reminders/repeat; checklists in `tsk.TaskSubtasks`
-- **Sync** — `GET api/sync/bootstrap` (+ ping) for client catch-up
-- **AI** — `POST api/ai/chat`, parse-task; `AI_API_KEY` stays server-side only
+- **Sync** — `GET api/sync/bootstrap` (+ ping) for client catch-up (includes AI conversations)
+- **AI** — `POST api/ai/chat`, parse-task, title; conversations CRUD under `api/ai/conversations`; `AI_API_KEY` stays server-side only
 
 ## Client contract
 
