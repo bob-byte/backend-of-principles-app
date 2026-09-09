@@ -37,11 +37,18 @@ public static class TaskDtoMapper
                 .OrderBy( s => s.SortOrder )
                 .Select( ToSubtaskDto )
                 .ToList(),
+            LastModified = entity.UpdatedAt == default ? entity.CreatedAt : entity.UpdatedAt,
         };
     }
 
     public static void ApplyDto( TaskEntity entity, TaskItemDto request )
     {
+        var now = DateTime.UtcNow;
+        if (entity.Id == 0 && entity.CreatedAt == default)
+        {
+            entity.CreatedAt = now;
+        }
+        entity.UpdatedAt = now;
         entity.Name = request.Name;
         entity.Notes = request.Notes;
         entity.Date = request.Date;

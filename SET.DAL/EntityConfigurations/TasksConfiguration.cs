@@ -41,6 +41,11 @@ public class TasksConfiguration: IEntityTypeConfiguration<Task>{
         builder.Property(x => x.RepeatJson)
                .IsRequired(false)
                .HasColumnType("text");
+        builder.Property(x => x.CreatedAt)
+               .IsRequired();
+        builder.Property(x => x.UpdatedAt)
+               .IsRequired();
+        builder.HasIndex(x => new { x.UserId, x.UpdatedAt });
         builder.HasOne(x => x.User)
            .WithMany()
            .HasForeignKey(x => x.UserId)

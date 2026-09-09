@@ -35,6 +35,8 @@ public class TaskItemDto
 
     /// Null means the client omitted checklists (keep existing server rows).
     public List<TaskSubtaskDto>? Subtasks { get; set; }
+
+    public DateTime LastModified { get; set; }
 }
 
 public class TaskSubtaskDto

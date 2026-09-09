@@ -70,6 +70,10 @@ public class ProgressOfHabitController : BaseController
             }
             
             await DbContext.ProgressesOfHabits.AddOrUpdateAsync( progress ).DefaultConfigureAwait();
+            await DbContext.UserHabits
+                .Where( h => h.Id == progressDto.HabitId && h.UserId == user.Id )
+                .ExecuteUpdateAsync( s => s.SetProperty( h => h.UpdatedAt, DateTime.UtcNow ) )
+                .DefaultConfigureAwait();
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
             var result = new

@@ -246,6 +246,13 @@ public class AiConversationsController : BaseController
                 return NotFound( $"ConversationIsNotFoundWithId {id}" );
             }
 
+            DbContext.SyncDeletions.Add( new SyncDeletion
+            {
+                UserId = user.Id,
+                EntityType = SyncEntityTypes.Conversation,
+                EntityId = entity.Id,
+                DeletedAt = DateTime.UtcNow,
+            } );
             DbContext.AiConversations.Remove( entity );
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             return NoContent();
@@ -272,6 +279,13 @@ public class AiConversationsController : BaseController
                 return NotFound( $"ConversationIsNotFoundWithClientId {trimmed}" );
             }
 
+            DbContext.SyncDeletions.Add( new SyncDeletion
+            {
+                UserId = user.Id,
+                EntityType = SyncEntityTypes.Conversation,
+                EntityId = entity.Id,
+                DeletedAt = DateTime.UtcNow,
+            } );
             DbContext.AiConversations.Remove( entity );
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
             return NoContent();

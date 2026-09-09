@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SET.Shared.Extensions;
+using SET.Shared.Models;
 using SET.WebAPI.Helpers;
 using SET.WebAPI.Models;
 using TaskEntity = SET.Shared.Models.Task;
@@ -42,7 +43,9 @@ public class TasksController : BaseController
             TaskEntity entity = new()
             {
                 UserId = user.Id,
-                IsCompleted = request.IsCompleted
+                IsCompleted = request.IsCompleted,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
             };
             TaskDtoMapper.ApplyDto( entity, request );
 
@@ -117,6 +120,7 @@ public class TasksController : BaseController
             }
 
             entity.IsCompleted = request.IsCompleted;
+            entity.UpdatedAt = DateTime.UtcNow;
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
@@ -168,6 +172,13 @@ public class TasksController : BaseController
                 return NotFound( $"TaskIsNotFoundWithId {id}" );
             }
 
+            DbContext.SyncDeletions.Add( new SyncDeletion
+            {
+                UserId = user.Id,
+                EntityType = SyncEntityTypes.Task,
+                EntityId = entity.Id,
+                DeletedAt = DateTime.UtcNow,
+            } );
             DbContext.Tasks.Remove( entity );
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 

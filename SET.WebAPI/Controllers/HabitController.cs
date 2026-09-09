@@ -529,6 +529,15 @@ public class HabitController : BaseController
 
                 try
                 {
+                    DbContext.SyncDeletions.Add( new SyncDeletion
+                    {
+                        UserId = user.Id,
+                        EntityType = SyncEntityTypes.Habit,
+                        EntityId = habitId,
+                        DeletedAt = DateTime.UtcNow,
+                    } );
+                    await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+
                     await DbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync()
                         .DefaultConfigureAwait();
                     await DbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync()

@@ -25,5 +25,8 @@ public class Task
     /// JSON object for repeat config.
     public string? RepeatJson { get; set; }
 
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
     public ICollection<TaskSubtask> Subtasks { get; set; } = new List<TaskSubtask>();
 }

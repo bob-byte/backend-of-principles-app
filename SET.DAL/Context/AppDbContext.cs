@@ -35,6 +35,7 @@ public class AppDbContext : DbContext
     public DbSet<TaskSubtask> TaskSubtasks { get; set; }
     public DbSet<AiConversation> AiConversations { get; set; }
     public DbSet<AiMessage> AiMessages { get; set; }
+    public DbSet<SyncDeletion> SyncDeletions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new TaskSubtasksConfiguration());
         modelBuilder.ApplyConfiguration( new AiConversationConfiguration() );
         modelBuilder.ApplyConfiguration( new AiMessageConfiguration() );
+        modelBuilder.ApplyConfiguration( new SyncDeletionConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -100,6 +102,10 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__tracking__of__user__notification__requests", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__sync_deletions", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }

@@ -62,8 +62,19 @@ public class GoalController : BaseController
                 {
                     await DbContext.UserHabits.Where( u => u.GoalId == goalId )
                         .ExecuteUpdateAsync(
-                            setPropDelegate => setPropDelegate.SetProperty( c => c.GoalId, c => null ) )
+                            setPropDelegate => setPropDelegate
+                                .SetProperty( c => c.GoalId, c => null )
+                                .SetProperty( c => c.UpdatedAt, DateTime.UtcNow ) )
                         .DefaultConfigureAwait();
+
+                    DbContext.SyncDeletions.Add( new SyncDeletion
+                    {
+                        UserId = goal!.UserId,
+                        EntityType = SyncEntityTypes.Goal,
+                        EntityId = goalId,
+                        DeletedAt = DateTime.UtcNow,
+                    } );
+                    await DbContext.SaveChangesAsync().DefaultConfigureAwait();
 
                     await DbContext.UserGoals.Where( p => p.Id == goalId ).ExecuteDeleteAsync().DefaultConfigureAwait();
                     await tran.CommitAsync().DefaultConfigureAwait();
