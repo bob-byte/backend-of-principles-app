@@ -10,6 +10,7 @@ alwaysApply: true
 - **JWT Bearer** auth on API controllers
 - **AutoMapper**, **Serilog**, **Swashbuckle**, **Newtonsoft.Json** on MVC
 - Local secrets: `DotNetEnv` loads env in DEBUG (`Program.CreateHostBuilder`); never commit real `AI_API_KEY` values
+- Outbound mail: **MailKit** via `IEmailSender` → Gmail `smtp.gmail.com:587` (STARTTLS). `HostEmail` is the Gmail address; `HostEmailPassword` / `HOST_EMAIL_PASSWORD` must be a Google App Password when 2FA is on
 - Migrations live in `SET.DAL/Migrations` (namespace `SET.DataAccess.Migrations`)
 
 ## Common commands
