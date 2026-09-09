@@ -103,6 +103,23 @@ public class SyncController : BaseController
 
             UserReminderDto reminderDto = Mapper.Map<UserReminderDto>( habitsReportReminder ) ?? new UserReminderDto();
 
+            // Same shape as GET api/reminder/all (kept for clients that still call it).
+            List<UserReminder> generalReminders = await DbContext.UserReminders
+                .Where( r => r.UserId == user.Id )
+                .ToListAsync()
+                .ConfigureAwait( false );
+
+            List<UserHabitReminder> habitReminders = await DbContext.UserHabitReminders
+                .Where( r => r.UserHabit.User.Id == user.Id )
+                .Include( r => r.DaysOfWeek )
+                .ToListAsync()
+                .ConfigureAwait( false );
+
+            List<UserReminderDto> generalReminderDtos =
+                Mapper.Map<List<UserReminderDto>>( generalReminders ) ?? new List<UserReminderDto>();
+            List<UserHabitReminderDto> habitReminderDtos =
+                Mapper.Map<List<UserHabitReminderDto>>( habitReminders ) ?? new List<UserHabitReminderDto>();
+
             List<TaskEntity> taskEntities = await DbContext.Tasks
                 .AsNoTracking()
                 .Include( t => t.Subtasks )
@@ -142,6 +159,8 @@ public class SyncController : BaseController
                 ActiveHabits = activeDtos,
                 ArchivedHabits = archivedHabits,
                 HabitsReportReminder = reminderDto,
+                GeneralReminders = generalReminderDtos,
+                UserHabitReminders = habitReminderDtos,
                 Tasks = tasks,
                 Conversations = conversations
             };
