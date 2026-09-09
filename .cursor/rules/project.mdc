@@ -13,7 +13,8 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 - **Goals** — user goals (`goal` schema)
 - **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
 - **Tasks** — one-off work with schedule/reminders/repeat; checklists in `tsk.TaskSubtasks`
-- **Sync** — `GET api/sync/bootstrap` (+ ping) for client catch-up (includes AI conversations)
+- **Sync** — `GET api/sync/bootstrap` (+ ping) for client catch-up (includes AI conversations and the same reminder lists as `GET api/reminder/all`)
+- **Reminders** — `GET api/reminder/all` remains for clients that only need reminders; bootstrap also returns `GeneralReminders` + `UserHabitReminders`
 - **AI** — `POST api/ai/chat`, parse-task, title; conversations CRUD under `api/ai/conversations`; `AI_API_KEY` stays server-side only
 
 ## Client contract
