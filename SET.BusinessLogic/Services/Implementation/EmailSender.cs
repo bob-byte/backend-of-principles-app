@@ -45,6 +45,12 @@ public sealed class EmailSender : IEmailSender
         message.Body = new TextPart( "plain" ) { Text = body };
 
         using SmtpClient client = new();
+#if DEBUG
+        // macOS/.NET local trust stores sometimes reject Gmail's chain (revocation
+        // checks / custom SslStream callbacks). Keep strict validation in Release.
+        client.CheckCertificateRevocation = false;
+        client.ServerCertificateValidationCallback = static ( _, _, _, _ ) => true;
+#endif
         await client.ConnectAsync( host, port, socketOptions, cancellationToken ).ConfigureAwait( false );
         await client.AuthenticateAsync( fromEmail, fromPassword, cancellationToken ).ConfigureAwait( false );
         await client.SendAsync( message, cancellationToken ).ConfigureAwait( false );
