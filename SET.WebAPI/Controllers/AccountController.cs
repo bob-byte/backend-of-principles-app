@@ -3,8 +3,6 @@
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using SET.Shared.Models.Auth;
-using System.Net.Mail;
-using System.Net;
 using SET.Shared.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Protocols.Configuration;
@@ -23,50 +21,16 @@ public class AccountController : BaseController
     private const int MIN_PASSWORD_LENGTH = 8;
     private const int MAX_PASSWORD_LENGTH = 20;
 
-    //TODO: make it static
-    private readonly Lazy<SmtpClient> m_smtpClient;
-
     private readonly IAuthService m_authService;
     private readonly IConfiguration m_configuration;
+    private readonly IEmailSender m_emailSender;
 
     public AccountController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
         m_authService = serviceProvider.GetRequiredService<IAuthService>();
         m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
-
-        m_smtpClient = new Lazy<SmtpClient>( () =>
-        {
-            string fromPassword = m_configuration["HostEmailPassword"];
-            if (string.IsNullOrWhiteSpace( fromPassword ))
-            {
-                fromPassword = m_configuration["HOST_EMAIL_PASSWORD"];
-            }
-
-            string fromEmail = m_configuration["HostEmail"];
-            SmtpClient smtpClient = new( host: "smtp.hostinger.com" )
-            {
-                Port = 587,
-                Credentials = new NetworkCredential( fromEmail, fromPassword ),
-                EnableSsl = true
-            };
-            return smtpClient;
-        } );
-    }
-
-    ~AccountController()
-    {
-        if (m_smtpClient.IsValueCreated)
-        {
-            try
-            {
-                m_smtpClient.Value.Dispose();
-            }
-            catch
-            {
-                //do nothing
-            }
-        }
+        m_emailSender = serviceProvider.GetRequiredService<IEmailSender>();
     }
 
     [HttpPost( "googleauthorization" )]
@@ -428,16 +392,11 @@ public class AccountController : BaseController
             #endregion
 
             int code = GenerateRandomCode();
-            MailMessage mailMessage = new()
-            {
-                From = new MailAddress( m_configuration["HostEmail"], displayName: "Principles app" ),
-                Subject = "Principles App: Your Verification Code",
-                Body = $"Your verification code is: {code}.\n\nIf you did not request this code, please ignore this message.",
-                IsBodyHtml = false,
-            };
-            mailMessage.To.Add( emailWhereSendCode );
-
-            await m_smtpClient.Value.SendMailAsync( mailMessage ).DefaultConfigureAwait();
+            await m_emailSender.SendPlainTextAsync(
+                toEmail: emailWhereSendCode,
+                subject: "Principles App: Your Verification Code",
+                body: $"Your verification code is: {code}.\n\nIf you did not request this code, please ignore this message." ).
+                DefaultConfigureAwait();
 
             GenerateCodeResponse response = new( code );
             return Ok( response );

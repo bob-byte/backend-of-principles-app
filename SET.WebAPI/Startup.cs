@@ -66,6 +66,7 @@ public class Startup
             options.UseNpgsql( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IReminderService, ReminderService>();
         services.AddHttpClient<IAiService, AiService>( client =>
         {
