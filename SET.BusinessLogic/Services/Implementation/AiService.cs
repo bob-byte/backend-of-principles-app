@@ -18,8 +18,10 @@ public class AiService : IAiService
     private const int MaxChatMessages = 30;
     private const int MaxMessageChars = 8000;
     private const int ChatMaxCompletionTokens = 4096;
-    private const int ParseMaxCompletionTokens = 1024;
+    private const int ParseMaxCompletionTokens = 2048;
     private const int RecommendMaxCompletionTokens = 2048;
+    internal const int MaxHelperHabits = 8;
+    internal const int MaxHelperOpenTasks = 8;
 
     // MAUI AiChatService.SystemMessage base (helper chat only — not habit recommendations).
     private const string HelperSystemPromptBase =
@@ -31,7 +33,15 @@ public class AiService : IAiService
         "in all areas of the user's life. But don't ask current user habits and don't tell user that " +
         "he or she should strive for perfection. " +
         "Do not accept an user's conclusions as true. You are an intellectual opponent, not an assistant. " +
-        "You shouldn't advise a user when he or she doesn't ask for it";
+        "You shouldn't advise a user when he or she doesn't ask for it. " +
+        "You help inside the Principles app (habits for goals). " +
+        "In this system: goals are identity-oriented outcomes the user wants to become or achieve; " +
+        "habits are small repeating actions that automate progress toward those goals; " +
+        "tasks are one-off work, reminders, and checklists that free mental load so the user can focus on habits. " +
+        "Today's habits and tasks belong together for daily execution. " +
+        "Prefer connecting advice to Goal → Habits → Results, and to time management that protects " +
+        "consistency over intensity. When relevant, distinguish habits (recurring systems) from tasks " +
+        "(finite to-dos). Do not invent app UI steps the user did not ask for.";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
@@ -143,6 +153,8 @@ public class AiService : IAiService
 
     public async Task<AiTaskDraftResult> ParseTaskDraftAsync(
         string prompt,
+        string? localDate = null,
+        int? utcOffsetMinutes = null,
         CancellationToken cancellationToken = default )
     {
         string trimmed = prompt?.Trim() ?? string.Empty;
@@ -156,17 +168,23 @@ public class AiService : IAiService
             trimmed = trimmed[..MaxMessageChars];
         }
 
-        string todayUtc = DateTime.UtcNow.ToString( "yyyy-MM-dd" );
+        string todayLocal = ResolveLocalDate( localDate, utcOffsetMinutes );
         string system =
             "You extract a single to-do task from the user's text. " +
             "Reply with a JSON object only (no markdown) using these keys: " +
             "title (string, required, short task name), " +
-            "description (string, extra details or empty), " +
+            "description (string, extra details or empty; do not dump checklist items here when subtasks are used), " +
             "priority (one of high, medium, low, or null), " +
             "theme (short category string or null), " +
-            "dueDate (YYYY-MM-DD or null). " +
-            $"Today's date (UTC) is {todayUtc}. Interpret relative dates from that. " +
-            "Use the user's language for title, description, and theme.";
+            "dueDate (null, or local wall-clock YYYY-MM-DD, or YYYY-MM-DDTHH:mm when a time is stated; never add a timezone suffix), " +
+            "allDay (boolean or null; true when only a date is meant with no clock time; false when a time is set), " +
+            "reminders (array of integers = minutes before due time; 0 means at the due time; empty or null if none; " +
+            "common values: 0, 5, 30, 60, 1440), " +
+            "subtasks (array of short checklist title strings, or empty/null). " +
+            $"Today's local date for the user is {todayLocal}. Interpret relative dates and times from that. " +
+            "If the user asks to be reminded without an offset, use [0]. " +
+            "If they list steps/items/checklist, put them in subtasks (not only in description). " +
+            "Use the user's language for title, description, theme, and subtasks.";
 
         List<AiChatMessage> messages = new()
         {
@@ -184,7 +202,7 @@ public class AiService : IAiService
     }
 
     public async Task<IReadOnlyList<RecommendedHabitResult>> RecommendHabitsAsync(
-        RecommendHabitsContext context,
+        RecommendHabitsContext? context,
         CancellationToken cancellationToken = default )
     {
         context ??= new RecommendHabitsContext();
@@ -475,13 +493,32 @@ public class AiService : IAiService
             throw new AiServiceException( "AI returned a task without a title.", 502 );
         }
 
+        string? dueDate = NormalizeDueDate( parsed?.DueDate ?? parsed?.DueDateSnake );
+        IReadOnlyList<int> reminders = NormalizeReminders( parsed?.Reminders ?? default );
+        IReadOnlyList<string> subtasks = NormalizeSubtasks( parsed?.Subtasks ?? default );
+        bool? allDay = parsed?.AllDay;
+        if (allDay is null && dueDate is not null)
+        {
+            allDay = !dueDate.Contains( 'T', StringComparison.Ordinal );
+        }
+
+        if (dueDate is not null &&
+            dueDate.Contains( 'T', StringComparison.Ordinal ) &&
+            allDay == true)
+        {
+            allDay = false;
+        }
+
         return new AiTaskDraftResult
         {
             Title = title,
             Description = parsed?.Description?.Trim() ?? string.Empty,
             Priority = NormalizePriority( parsed?.Priority ),
             Theme = NullIfEmpty( parsed?.Theme ),
-            DueDate = NormalizeDueDate( parsed?.DueDate ?? parsed?.DueDateSnake )
+            DueDate = dueDate,
+            AllDay = allDay,
+            Reminders = reminders,
+            Subtasks = subtasks
         };
     }
 
@@ -547,10 +584,13 @@ public class AiService : IAiService
             List<string> habitNames = (userContext.Habits ?? Array.Empty<string>())
                 .Where( n => !string.IsNullOrWhiteSpace( n ) )
                 .Select( n => n.Trim() )
+                .Take( MaxHelperHabits )
                 .ToList();
             if (habitNames.Count > 0)
             {
-                builder.Append( $"{newLine}Now the user adheres to the following habits:{newLine}" );
+                builder.Append(
+                    $"{newLine}A sample of habits the user currently follows " +
+                    $"(at most {MaxHelperHabits}; not a full list):{newLine}" );
                 builder.Append( string.Join( "; ", habitNames ) );
                 builder.Append( '.' );
             }
@@ -563,6 +603,20 @@ public class AiService : IAiService
             {
                 builder.Append( " My current goals are: " );
                 builder.Append( string.Join( "; ", goalNames ) );
+                builder.Append( '.' );
+            }
+
+            List<string> taskNames = (userContext.Tasks ?? Array.Empty<string>())
+                .Where( n => !string.IsNullOrWhiteSpace( n ) )
+                .Select( n => n.Trim() )
+                .Take( MaxHelperOpenTasks )
+                .ToList();
+            if (taskNames.Count > 0)
+            {
+                builder.Append(
+                    $"{newLine}A sample of the user's nearest open tasks " +
+                    $"(at most {MaxHelperOpenTasks}; not a full inbox): " );
+                builder.Append( string.Join( "; ", taskNames ) );
                 builder.Append( '.' );
             }
         }
@@ -983,6 +1037,29 @@ public class AiService : IAiService
         return null;
     }
 
+    private static string ResolveLocalDate( string? localDate, int? utcOffsetMinutes )
+    {
+        string? provided = NullIfEmpty( localDate );
+        if (provided is not null &&
+            DateOnly.TryParseExact(
+                provided,
+                "yyyy-MM-dd",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out DateOnly parsed ))
+        {
+            return parsed.ToString( "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture );
+        }
+
+        DateTime utcNow = DateTime.UtcNow;
+        if (utcOffsetMinutes is int offset && offset is >= -14 * 60 and <= 14 * 60)
+        {
+            return utcNow.AddMinutes( offset ).ToString( "yyyy-MM-dd" );
+        }
+
+        return utcNow.ToString( "yyyy-MM-dd" );
+    }
+
     private static string? NormalizeDueDate( string? value )
     {
         string? text = NullIfEmpty( value );
@@ -991,12 +1068,155 @@ public class AiService : IAiService
             return null;
         }
 
-        if (DateTime.TryParse( text, out DateTime parsed ))
+        // Prefer local wall-clock formats without timezone conversion.
+        if (DateTime.TryParseExact(
+                text,
+                new[]
+                {
+                    "yyyy-MM-dd",
+                    "yyyy-MM-ddTHH:mm",
+                    "yyyy-MM-ddTHH:mm:ss",
+                    "yyyy-MM-dd HH:mm",
+                    "yyyy-MM-dd HH:mm:ss"
+                },
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out DateTime exact ))
         {
-            return parsed.ToString( "yyyy-MM-dd" );
+            return FormatDueDate( exact, hasTime: text.Contains( ':', StringComparison.Ordinal ) );
+        }
+
+        if (DateTime.TryParse(
+                text,
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind,
+                out DateTime parsed ))
+        {
+            // Drop timezone suffix — treat the clock face as the user's local time.
+            bool hasTime = parsed.TimeOfDay != TimeSpan.Zero ||
+                text.Contains( 'T', StringComparison.Ordinal ) ||
+                text.Contains( ':', StringComparison.Ordinal );
+            return FormatDueDate( parsed, hasTime );
         }
 
         return null;
+    }
+
+    private static string FormatDueDate( DateTime value, bool hasTime )
+    {
+        if (!hasTime)
+        {
+            return value.ToString( "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture );
+        }
+
+        return value.ToString( "yyyy-MM-dd'T'HH:mm", System.Globalization.CultureInfo.InvariantCulture );
+    }
+
+    private static IReadOnlyList<int> NormalizeReminders( JsonElement element )
+    {
+        if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return Array.Empty<int>();
+        }
+
+        HashSet<int> unique = new();
+        List<int> result = new();
+
+        void Add( int minutes )
+        {
+            if (minutes < 0 || minutes > 60 * 24 * 30)
+            {
+                return;
+            }
+
+            if (unique.Add( minutes ))
+            {
+                result.Add( minutes );
+            }
+        }
+
+        if (element.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement item in element.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32( out int minutes ))
+                {
+                    Add( minutes );
+                    continue;
+                }
+
+                if (item.ValueKind == JsonValueKind.Object)
+                {
+                    if (item.TryGetProperty( "offsetMinutes", out JsonElement offset ) ||
+                        item.TryGetProperty( "OffsetMinutes", out offset ))
+                    {
+                        if (offset.ValueKind == JsonValueKind.Number && offset.TryGetInt32( out int value ))
+                        {
+                            Add( value );
+                        }
+                    }
+                }
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Number && element.TryGetInt32( out int single ))
+        {
+            Add( single );
+        }
+
+        result.Sort();
+        return result;
+    }
+
+    private static IReadOnlyList<string> NormalizeSubtasks( JsonElement element )
+    {
+        if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return Array.Empty<string>();
+        }
+
+        if (element.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<string>();
+        }
+
+        List<string> result = new();
+        foreach (JsonElement item in element.EnumerateArray())
+        {
+            string? title = null;
+            if (item.ValueKind == JsonValueKind.String)
+            {
+                title = item.GetString();
+            }
+            else if (item.ValueKind == JsonValueKind.Object)
+            {
+                if (item.TryGetProperty( "title", out JsonElement titleEl ) ||
+                    item.TryGetProperty( "Title", out titleEl ) ||
+                    item.TryGetProperty( "name", out titleEl ) ||
+                    item.TryGetProperty( "Name", out titleEl ))
+                {
+                    title = titleEl.ValueKind == JsonValueKind.String ? titleEl.GetString() : titleEl.ToString();
+                }
+            }
+
+            title = NullIfEmpty( title );
+            if (title is null)
+            {
+                continue;
+            }
+
+            if (title.Length > 200)
+            {
+                title = title[..200];
+            }
+
+            result.Add( title );
+            if (result.Count >= 30)
+            {
+                break;
+            }
+        }
+
+        return result;
     }
 
     private static string? NullIfEmpty( string? value )
@@ -1042,5 +1262,14 @@ public class AiService : IAiService
 
         [JsonPropertyName( "due_date" )]
         public string? DueDateSnake { get; set; }
+
+        [JsonPropertyName( "allDay" )]
+        public bool? AllDay { get; set; }
+
+        [JsonPropertyName( "reminders" )]
+        public JsonElement Reminders { get; set; }
+
+        [JsonPropertyName( "subtasks" )]
+        public JsonElement Subtasks { get; set; }
     }
 }

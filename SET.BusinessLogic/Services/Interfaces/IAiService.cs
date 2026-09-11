@@ -17,6 +17,8 @@ public interface IAiService
 
     Task<AiTaskDraftResult> ParseTaskDraftAsync(
         string prompt,
+        string? localDate = null,
+        int? utcOffsetMinutes = null,
         CancellationToken cancellationToken = default );
 
     Task<IReadOnlyList<RecommendedHabitResult>> RecommendHabitsAsync(
@@ -47,7 +49,13 @@ public sealed class AiTaskDraftResult
     public string Description { get; init; } = string.Empty;
     public string? Priority { get; init; }
     public string? Theme { get; init; }
+
+    /// Local wall-clock due: <c>yyyy-MM-dd</c> or <c>yyyy-MM-ddTHH:mm</c> (no timezone).
     public string? DueDate { get; init; }
+
+    public bool? AllDay { get; init; }
+    public IReadOnlyList<int> Reminders { get; init; } = Array.Empty<int>();
+    public IReadOnlyList<string> Subtasks { get; init; } = Array.Empty<string>();
 }
 
 public sealed class ChatUserContext
@@ -58,6 +66,7 @@ public sealed class ChatUserContext
     public string? MainSlogan { get; init; }
     public IReadOnlyList<string> Habits { get; init; } = Array.Empty<string>();
     public IReadOnlyList<string> Goals { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> Tasks { get; init; } = Array.Empty<string>();
 }
 
 public sealed class RecommendHabitsContext

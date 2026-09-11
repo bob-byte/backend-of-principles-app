@@ -15,6 +15,8 @@ namespace SET.WebAPI.Controllers;
 public class AiController : BaseController
 {
     private const int MaxPromptChars = 8000;
+    private const int MaxChatActiveHabits = 8;
+    private const int MaxChatOpenTasks = 8;
 
     private readonly IAiService m_aiService;
 
@@ -59,7 +61,11 @@ public class AiController : BaseController
             try
             {
                 AiTaskDraftResult draft = await m_aiService
-                    .ParseTaskDraftAsync( prompt, HttpContext.RequestAborted )
+                    .ParseTaskDraftAsync(
+                        prompt,
+                        request?.LocalDate,
+                        request?.UtcOffsetMinutes,
+                        HttpContext.RequestAborted )
                     .DefaultConfigureAwait();
 
                 return Ok( new AiTaskDraftDto
@@ -68,7 +74,10 @@ public class AiController : BaseController
                     Description = draft.Description,
                     Priority = draft.Priority,
                     Theme = draft.Theme,
-                    DueDate = draft.DueDate
+                    DueDate = draft.DueDate,
+                    AllDay = draft.AllDay,
+                    Reminders = draft.Reminders?.ToList() ?? new List<int>(),
+                    Subtasks = draft.Subtasks?.ToList() ?? new List<string>()
                 } );
             }
             catch (AiServiceException ex)
@@ -138,8 +147,10 @@ public class AiController : BaseController
 
     private async Task<ChatUserContext> BuildChatUserContextAsync( User user )
     {
-        List<string> habits = await LoadActiveHabitNamesAsync( user.Id ).DefaultConfigureAwait();
+        List<string> habits = await LoadActiveHabitNamesAsync( user.Id, MaxChatActiveHabits )
+            .DefaultConfigureAwait();
         List<string> goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
+        List<string> tasks = await LoadOpenTaskNamesAsync( user.Id ).DefaultConfigureAwait();
 
         return new ChatUserContext
         {
@@ -148,7 +159,8 @@ public class AiController : BaseController
             Mission = NullIfEmpty( user.Mission ),
             MainSlogan = NullIfEmpty( user.MainSlogan ),
             Habits = habits,
-            Goals = goals
+            Goals = goals,
+            Tasks = tasks
         };
     }
 
@@ -194,12 +206,19 @@ public class AiController : BaseController
         };
     }
 
-    private async Task<List<string>> LoadActiveHabitNamesAsync( long userId )
+    private async Task<List<string>> LoadActiveHabitNamesAsync( long userId, int? maxCount = null )
     {
-        List<string> names = await DbContext.UserHabits
+        IQueryable<string> query = DbContext.UserHabits
             .Where( h => h.UserId == userId && !h.IsArchived && h.Status == StatusOfHabit.InProgress )
             .OrderBy( h => h.Priority )
-            .Select( h => h.Name )
+            .Select( h => h.Name );
+
+        if (maxCount is int limit)
+        {
+            query = query.Take( limit );
+        }
+
+        List<string> names = await query
             .ToListAsync()
             .DefaultConfigureAwait();
 
@@ -212,6 +231,24 @@ public class AiController : BaseController
             .Where( g => g.UserId == userId )
             .OrderBy( g => g.Id )
             .Select( g => g.Name )
+            .ToListAsync()
+            .DefaultConfigureAwait();
+
+        return SanitizeNames( names );
+    }
+
+    private async Task<List<string>> LoadOpenTaskNamesAsync( long userId )
+    {
+        // Keep the helper prompt small: only the nearest scheduled / recently updated open tasks.
+        List<string> names = await DbContext.Tasks
+            .Where( t => t.UserId == userId && !t.IsCompleted )
+            .OrderBy( t => t.Date == null )
+            .ThenBy( t => t.Date )
+            .ThenBy( t => t.Time == null )
+            .ThenBy( t => t.Time )
+            .ThenByDescending( t => t.UpdatedAt )
+            .Select( t => t.Name )
+            .Take( MaxChatOpenTasks )
             .ToListAsync()
             .DefaultConfigureAwait();
 

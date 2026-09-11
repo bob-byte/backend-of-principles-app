@@ -6,6 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SET.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AutoMapper" Version="13.0.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="Google.Apis.PeopleService.v1" Version="1.60.0.3093" />
