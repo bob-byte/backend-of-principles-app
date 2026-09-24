@@ -17,6 +17,17 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
+    public void BuildHelperSystemPrompt_RequiresNativeNaturalTone()
+    {
+        string prompt = AiService.BuildHelperSystemPrompt( null );
+
+        Assert.Contains( "fluent native speaker", prompt, StringComparison.Ordinal );
+        Assert.Contains( "translated English life-coach", prompt, StringComparison.Ordinal );
+        Assert.Contains( "natural modern Ukrainian", prompt, StringComparison.Ordinal );
+        Assert.Contains( "answer the question directly", prompt, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public void BuildHelperSystemPrompt_AppendsOpenTasks()
     {
         ChatUserContext context = new()
