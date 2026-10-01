@@ -166,6 +166,7 @@ public class HabitController : BaseController
             habit.ArchivingTime = habit.IsArchived ? habit.UpdatedAt : null;
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( habit.UserId );
 
             return Ok();
         } );
@@ -422,6 +423,7 @@ public class HabitController : BaseController
                     .ToListAsync().DefaultConfigureAwait();
                 
                 await transaction.CommitAsync().DefaultConfigureAwait();
+                NotifyOtherDevices( user.Id );
                 
                 var result = new { habit.Id, habit.FrequencyId, ReminderIds = reminderDetails };
 
@@ -546,6 +548,7 @@ public class HabitController : BaseController
                         .DefaultConfigureAwait();
 
                     await transaction.CommitAsync().DefaultConfigureAwait();
+                    NotifyOtherDevices( user.Id, deletedHabitIds: new[] { habitId } );
                 }
                 catch
                 {

@@ -26,10 +26,38 @@ public class BaseController : ControllerBase
         JwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
     }
 
+    public const string DeviceIdHeader = "X-Device-Id";
+
     protected IServiceProvider ServiceProvider { get; }
     protected AppDbContext DbContext { get; }
     protected IMapper Mapper { get; }
     protected IJwtTokenService JwtTokenService { get; }
+
+    /// <summary>Per-install id the Flutter client sends on every request (null for MAUI / web).</summary>
+    protected string? RequestDeviceId
+    {
+        get
+        {
+            string? value = Request?.Headers[DeviceIdHeader].FirstOrDefault()?.Trim();
+            return string.IsNullOrEmpty( value ) || value.Length > 64 ? null : value;
+        }
+    }
+
+    /// <summary>
+    /// Wakes the user's other devices so they sync and fix local reminders. Call after the
+    /// change is committed.
+    /// </summary>
+    protected void NotifyOtherDevices(
+        long userId,
+        IEnumerable<long>? deletedTaskIds = null,
+        IEnumerable<long>? deletedHabitIds = null )
+    {
+        ServiceProvider.GetService<ISyncPushService>()?.Enqueue( new SyncPushRequest(
+            userId,
+            RequestDeviceId,
+            deletedTaskIds?.ToArray() ?? Array.Empty<long>(),
+            deletedHabitIds?.ToArray() ?? Array.Empty<long>() ) );
+    }
 
     protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action, object? request = null )
     {

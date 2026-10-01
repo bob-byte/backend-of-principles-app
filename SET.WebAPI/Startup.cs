@@ -83,6 +83,11 @@ public class Startup
             client.BaseAddress = new Uri( baseUrl );
             client.Timeout = TimeSpan.FromSeconds( 120 );
         } );
+        services.AddSingleton<FcmCredentials>();
+        services.AddHttpClient<IPushSender, FcmPushSender>( client => client.Timeout = TimeSpan.FromSeconds( 15 ) );
+        services.AddSingleton<SyncPushDispatcher>();
+        services.AddSingleton<ISyncPushService>( sp => sp.GetRequiredService<SyncPushDispatcher>() );
+        services.AddHostedService( sp => sp.GetRequiredService<SyncPushDispatcher>() );
 
         Log.Information( "End of Startup.ConfigureServices" );
     }

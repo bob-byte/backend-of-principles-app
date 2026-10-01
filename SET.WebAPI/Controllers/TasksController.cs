@@ -51,6 +51,7 @@ public class TasksController : BaseController
 
             await DbContext.Tasks.AddAsync( entity ).DefaultConfigureAwait();
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( user.Id );
 
             return Created( $"api/tasks/{entity.Id}", TaskDtoMapper.ToDto( entity ) );
         } );
@@ -123,6 +124,7 @@ public class TasksController : BaseController
             entity.UpdatedAt = DateTime.UtcNow;
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( user.Id );
 
             return Ok( TaskDtoMapper.ToDto( entity ) );
         } );
@@ -148,6 +150,7 @@ public class TasksController : BaseController
             TaskDtoMapper.ApplyDto( entity, request );
 
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( user.Id );
 
             return Ok( TaskDtoMapper.ToDto( entity ) );
         } );
@@ -181,6 +184,7 @@ public class TasksController : BaseController
             } );
             DbContext.Tasks.Remove( entity );
             await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( user.Id, deletedTaskIds: new[] { id } );
 
             return NoContent();
         } );
