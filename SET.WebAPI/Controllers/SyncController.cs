@@ -89,6 +89,7 @@ public class SyncController : BaseController
                 {
                     Id = g.Id,
                     Name = g.Name,
+                    Notes = g.Notes,
                     IsCompleted = g.IsCompleted,
                     LastModified = g.UpdatedAt ?? g.CreatedAt
                 } )
@@ -204,6 +205,7 @@ public class SyncController : BaseController
             {
                 Id = g.Id,
                 Name = g.Name,
+                Notes = g.Notes,
                 IsCompleted = g.IsCompleted,
                 LastModified = g.UpdatedAt ?? g.CreatedAt
             } )

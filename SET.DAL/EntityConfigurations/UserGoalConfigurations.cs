@@ -21,6 +21,10 @@ internal class UserGoalConfigurations : IEntityTypeConfiguration<UserGoal>
         builder.Property( c => c.Name ).
             IsRequired();
 
+        builder.Property( c => c.Notes ).
+            IsRequired( false ).
+            HasColumnType( "text" );
+
         builder.Property( u => u.UserId )
             .HasColumnType( "bigint" )
             .IsRequired();

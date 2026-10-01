@@ -25,6 +25,7 @@ public class GoalController : BaseController
                 {
                     Id = g.Id,
                     Name = g.Name,
+                    Notes = g.Notes,
                     IsCompleted = g.IsCompleted,
                     LastModified = g.UpdatedAt ?? g.CreatedAt
                 } ).
@@ -123,6 +124,7 @@ public class GoalController : BaseController
                 var newGoal = new UserGoal
                 {
                     Name = userGoal.Name,
+                    Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim(),
                     UserId = user.Id,
                     CreatedAt = DateTime.UtcNow,
                     IsCompleted = userGoal.IsCompleted
@@ -151,6 +153,7 @@ public class GoalController : BaseController
                 }
 
                 existingGoal.Name = userGoal.Name;
+                existingGoal.Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim();
                 existingGoal.IsCompleted = userGoal.IsCompleted;
                 existingGoal.UpdatedAt = DateTime.UtcNow;
 
