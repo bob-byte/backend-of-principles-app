@@ -262,16 +262,15 @@ public class AiService : IAiService
             ? "Each Text must be a first-person mission statement: a clear life purpose that guides choices. One or two sentences, concrete and motivating, not a vague corporate vision."
             : "Each Text must be a short guiding motto (one sentence, memorable). It should help the person act when motivation dips or temptations appear. Avoid cliches.";
 
-        string system = $"""
-            You help the user define a {subject} inside a habits-and-goals app.
-            Reply with JSON only (no markdown). The JSON object must contain an array named "Suggestions"
-            with exactly 3 objects. Each object has "Text" (the proposed {proposedKind})
-            and "Reason" (one short sentence explaining why it fits).
-            {textGuidance}
-            All Text and Reason values must be in the {culture} language,
-            regardless of the language of the user's personal information.
-            Do not invent fake biography; stay grounded in the provided context.
-            """;
+        string system =
+            $"You help the user define a {subject} inside a habits-and-goals app. " +
+            "Reply with JSON only (no markdown). The JSON object must contain an array named \"Suggestions\" " +
+            $"with exactly 3 objects. Each object has \"Text\" (the proposed {proposedKind}) " +
+            "and \"Reason\" (one short sentence explaining why it fits). " +
+            textGuidance + " " +
+            $"All Text and Reason values must be in the {culture} language, " +
+            "regardless of the language of the user's personal information. " +
+            "Do not invent fake biography; stay grounded in the provided context.";
 
         List<AiChatMessage> messages = new()
         {
@@ -407,9 +406,7 @@ public class AiService : IAiService
             title = title.Replace( "  ", " ", StringComparison.Ordinal );
         }
 
-        title = title.Trim().Trim( ' ', '"', '*', '.', '!', '?' );
-        title = title.Trim( '\'', '`' );
-        title = title.Trim( '\u00AB', '\u00BB' );
+        title = title.Trim( ' ', '"', '\'', '`', '*', '.', '!', '?', '\u00AB', '\u00BB' );
         if (title.Length > 80)
         {
             title = title[..80].Trim();
