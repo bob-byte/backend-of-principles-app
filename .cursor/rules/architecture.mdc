@@ -9,11 +9,11 @@ alwaysApply: true
 
 | Project | Role |
 |---------|------|
-| `SET.WebAPI` | Controllers, DTOs, helpers, Startup/Program, resources |
-| `SET.BusinessLogic` | Services in feature folders under `Services/` (`Ai`, `Auth`, `Email`, `Push`, `Reminder`); interface sits next to its implementation; single `BusinessLogic` namespace |
+| `SET.WebAPI` | Thin controllers, middleware, Startup/Program, resources, infra registration (`AppDbContext`, JWT, `IChatClient`, FCM push) |
+| `SET.BusinessLogic` | All business logic. Services in feature folders under `Services/` (`Ai`, `AreaOfLife`, `Auth`, `Email`, `Goal`, `Habit`, `Log`, `Profile`, `Push`, `Reminder`, `Sync`, `Task`); interface sits next to its implementation; single `BusinessLogic` namespace. API DTOs in `Models/` (`BusinessLogic.Models`), AutoMapper profile in `Mapping/`, `ServiceResult` in `Common/`. Register via `services.AddBusinessLogic()` |
 | `SET.DAL` (`SET.DataAccess`) | `AppDbContext`, entity configs, EF migrations |
 | `SET.Shared` | Entities, shared DTOs/extensions |
-| `SET.UnitTests` | Unit tests |
+| `SET.UnitTests` | xUnit + Moq; services on EF InMemory via `TestSupport/` (`TestDb`, `TestData`, `RecordingSyncPushService`) |
 
 Solution: `Mentor.SET.Backend.sln`.
 
@@ -24,7 +24,18 @@ Solution: `Mentor.SET.Backend.sln`.
 - Most PK sequences start at 100 (`nextval('schema.sq__…')`); tasks/subtasks may use identity — follow the nearest existing table
 - Task ↔ subtasks: cascade delete; unique `(TaskId, ClientId)` where `ClientId` is the Flutter checklist row id
 
+## Services
+
+- Services return `ServiceResult` / `ServiceResult<T>`; failures are `ServiceError(StatusCode, Body)` (`ServiceError.BadRequest("PascalCaseToken")`, `ServiceError.NotFound(...)`). AI errors use body `{ error = message }`
+- Services take `string? originDeviceId` and call `ISyncPushService.NotifyOtherDevices(...)` after a committed change other devices must pull
+- Services must not depend on ASP.NET Core (`HttpContext`, `IActionResult`)
+
 ## Mapping
 
-- Controllers use AutoMapper and/or dedicated helpers (e.g. `TaskDtoMapper`)
+- Services use AutoMapper (`BusinessLogicMapper`) and/or dedicated helpers (e.g. `TaskDtoMapper`, `AiConversationDtoMapper`)
 - Keep entity ↔ DTO mapping next to the feature; do not leak EF entities as API responses
+
+## Tests
+
+- EF InMemory has no transactions (warning ignored in `TestDb`) and no `ExecuteUpdate`/`ExecuteDelete`; those success paths (goal/habit/account delete, habit progress save) are not unit-testable there
+- InMemory writes generated keys onto entities on `Add`, unlike Npgsql temporary keys; seed with one `TestDb.Create(name)` context and act with another when the service relies on `Id == 0` checks
