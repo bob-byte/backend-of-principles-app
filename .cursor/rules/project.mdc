@@ -9,7 +9,7 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 
 ## Domain
 
-- **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`)
+- **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`). Email/password signup: `GET api/account/signupcode` (rejects if email already exists); forget-password: `GET api/account/code` (requires existing user). Both email a branded HTML+plain multipart verification message via `IEmailSender` / `VerificationEmailContent` (`HostEmail` = batsbohdan@gmail.com) and return `{ code }` for the same client confirm dialog pattern.
 - **Goals** — user goals (`goal` schema)
 - **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
 - **Tasks** — one-off work with schedule/reminders/repeat; checklists in `tsk.TaskSubtasks`
@@ -17,7 +17,7 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 - **Reminders** — `GET api/reminder/all` remains for clients that only need reminders; bootstrap/changes also return `GeneralReminders` + `UserHabitReminders`
 - **Tasks** — `CreatedAt` / `UpdatedAt` drive changes filtering; deletes write sync tombstones
 - **Progress** — progress writes bump parent habit `UpdatedAt` so the habit appears in `/sync/changes`
-- **AI** — `POST api/ai/chat`, parse-task, title; conversations CRUD under `api/ai/conversations`; `AI_API_KEY` stays server-side only
+- **AI** — `POST api/ai/chat`, parse-task, title, recommend-habits, suggest-profile-text (slogan/mission); conversations CRUD under `api/ai/conversations`; `AI_API_KEY` stays server-side only
 - **Silent sync push** — Flutter installs register an FCM token via `PUT api/device/push-token` (`app.UserDevices`, unique `DeviceId`; `DELETE api/device/push-token/{deviceId}` on logout). After a committed task create/update/status/delete or habit update/archive/delete, controllers call `BaseController.NotifyOtherDevices` (deleted ids for deletes). `SyncPushDispatcher` (singleton hosted service) batches per user for ~2 s and sends one data-only FCM v1 message `{type: sync, deletedTaskIds, deletedHabitIds}` (APNs `background`, priority 5) to every device except the `X-Device-Id` origin (all devices when several made changes). Dead tokens are deleted. Credentials: `FIREBASE_CREDENTIALS_JSON` (raw or base64) or `FIREBASE_CREDENTIALS_PATH`, optional `FIREBASE_PROJECT_ID`; unset = pushes disabled. Never commit service-account JSON
 
 ## Client contract
