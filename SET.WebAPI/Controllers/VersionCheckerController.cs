@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+using SET.WebAPI.Models;
 using SET.WebAPI.Resources.AppStrings;
 
 using System.Globalization;

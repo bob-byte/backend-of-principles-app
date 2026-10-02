@@ -1,4 +1,5 @@
-﻿
+﻿using Microsoft.Extensions.DependencyInjection;
+
 namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/areasoflife" )]
@@ -6,25 +7,18 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class AreaOfLifeController : BaseController
 {
+    private readonly IAreaOfLifeService m_areaOfLifeService;
+
     public AreaOfLifeController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
-        //do nothing
+        m_areaOfLifeService = serviceProvider.GetRequiredService<IAreaOfLifeService>();
     }
 
     [HttpGet]
     public Task<IActionResult> Index()
     {
         return TryCatchAsync( async ( user ) =>
-        {
-            List<UserAreaOfLife> userAreasOfLife = await DbContext.
-                UserAreasOfLife.
-                Where( u => u.UserId == user.Id ).
-                ToListAsync();
-
-            List<UserAreaOfLifeDto> result = Mapper.Map<List<UserAreaOfLifeDto>>( userAreasOfLife );
-            return Ok( result );
-        } );
+            Ok( await m_areaOfLifeService.GetAllAsync( user.Id ).DefaultConfigureAwait() ) );
     }
 }
-

@@ -1,12 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-using SET.Shared.Models;
-
-using System;
-using System.Linq;
-using System.Reflection;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace SET.WebAPI.Controllers;
 
@@ -15,43 +7,26 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class ProfileController : BaseController
 {
+    private readonly IProfileService m_profileService;
+
     public ProfileController(IServiceProvider serviceProvider)
         : base(serviceProvider)
     {
-        //do nothing
+        m_profileService = serviceProvider.GetRequiredService<IProfileService>();
     }
 
     [HttpGet]
     public Task<IActionResult> LoadAsync()
     {
         return TryCatchAsync( ( User user ) =>
-        {
-            Profile data = Mapper.Map<Profile>( user );
-            data.Id = user.Id;
-            data.LastModified = user.UpdatedAt ?? user.CreatedAt;
-            IActionResult actionResult = Ok( data );
-            return Task.FromResult( actionResult );
-        } );
+            Task.FromResult<IActionResult>( Ok( m_profileService.GetProfile( user ) ) ) );
     }
 
     [HttpPut( template: "name" )]
     public Task<IActionResult> SaveNameAsync( [FromBody] string userName )
     {
         return TryCatchAsync( async ( User user ) =>
-        {
-            if (string.IsNullOrWhiteSpace( userName ))
-            {
-                return BadRequest( "UserNameIsNullOrWhiteSpace" );
-            }
-
-            user.Name = userName;
-            user.UpdatedAt = DateTime.UtcNow;
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
-        } );
+            ToActionResult( await m_profileService.SaveNameAsync( user, userName ).DefaultConfigureAwait() ) );
     }
 
     [HttpPut( template: "mainslogan" )]
@@ -59,13 +34,8 @@ public class ProfileController : BaseController
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.MainSlogan = mainSlogan;
-            user.UpdatedAt = DateTime.UtcNow;
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
+            await m_profileService.SaveMainSloganAsync( user, mainSlogan ).DefaultConfigureAwait();
+            return Ok();
         } );
     }
 
@@ -73,20 +43,7 @@ public class ProfileController : BaseController
     public Task<IActionResult> SaveGenderAsync( [FromBody] Gender gender )
     {
         return TryCatchAsync( async ( User user ) =>
-        {
-            if (!Enum.IsDefined( typeof( Gender ), gender ))
-            {
-                return BadRequest( "GenderIsInvalid" );
-            }
-
-            user.Gender = gender;
-            user.UpdatedAt = DateTime.UtcNow;
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
-        } );
+            ToActionResult( await m_profileService.SaveGenderAsync( user, gender ).DefaultConfigureAwait() ) );
     }
 
     [HttpPut( template: "roadguide" )]
@@ -94,13 +51,8 @@ public class ProfileController : BaseController
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            user.HasSeenRoadGuide = hasSeenRoadGuide;
-            user.UpdatedAt = DateTime.UtcNow;
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
+            await m_profileService.SaveHasSeenRoadGuideAsync( user, hasSeenRoadGuide ).DefaultConfigureAwait();
+            return Ok();
         } );
     }
 
@@ -109,54 +61,8 @@ public class ProfileController : BaseController
     {
         return TryCatchAsync( async ( User user ) =>
         {
-            string? oldMission = (string)user.Mission?.Clone();
-            user.Mission = mission;
-
-            if (oldMission is not null)
-            {
-                List<UserHabitReminder> remindersToUpdate = await DbContext.UserHabitReminders.
-                    Include( r => r.UserHabit ).
-                    Where( r => r.Title == oldMission && r.UserHabit.UserId == user.Id ).
-                    ToListAsync().
-                    DefaultConfigureAwait();
-                List<UserReminder> userReminders =
-                    await DbContext.UserReminders.Where( r => r.UserId == user.Id && (r.Title == oldMission || r.Description == oldMission) ).ToListAsync().DefaultConfigureAwait();
-
-                if (remindersToUpdate?.Count > 0)
-                {
-                    foreach (UserHabitReminder reminder in remindersToUpdate)
-                    {
-                        reminder.Title = mission;
-                    }
-
-                    DbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
-                }
-
-                if (userReminders?.Count > 0)
-                {
-                    foreach (UserReminder reminder in userReminders)
-                    {
-                        if (reminder.Title == oldMission)
-                        {
-                            reminder.Title = mission;
-                        }
-
-                        if (reminder.Description == oldMission)
-                        {
-                            reminder.Description = mission;
-                        }
-                    }
-                
-                    DbContext.UserReminders.UpdateRange( userReminders );
-                }
-            }
-
-            user.UpdatedAt = DateTime.UtcNow;
-            DbContext.Users.Update( user );
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            IActionResult actionResult = Ok();
-            return actionResult;
+            await m_profileService.SaveMissionAsync( user, mission ).DefaultConfigureAwait();
+            return Ok();
         } );
     }
 }

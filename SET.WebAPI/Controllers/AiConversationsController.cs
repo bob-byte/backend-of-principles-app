@@ -1,10 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SET.Shared.Models;
-using SET.WebAPI.Helpers;
-using SET.WebAPI.Models;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SET.WebAPI.Controllers;
 
@@ -13,77 +7,33 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class AiConversationsController : BaseController
 {
+    private readonly IAiConversationService m_conversationService;
+
     public AiConversationsController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
+        m_conversationService = serviceProvider.GetRequiredService<IAiConversationService>();
     }
 
     [HttpGet]
     public Task<IActionResult> ListAsync()
     {
         return TryCatchAsync( async user =>
-        {
-            List<AiConversation> entities = await DbContext.AiConversations
-                .AsNoTracking()
-                .Include( c => c.Messages )
-                .Where( c => c.UserId == user.Id )
-                .OrderByDescending( c => c.UpdatedAt )
-                .ToListAsync()
-                .DefaultConfigureAwait();
-
-            return Ok( entities.Select( c => AiConversationDtoMapper.ToDto( c ) ).ToList() );
-        } );
+            Ok( await m_conversationService.GetAllAsync( user.Id ).DefaultConfigureAwait() ) );
     }
 
     [HttpGet( "{id:long}" )]
     public Task<IActionResult> GetByIdAsync( long id )
     {
         return TryCatchAsync( async user =>
-        {
-            if (id <= 0)
-            {
-                return BadRequest( "ConversationIdIsZeroOrNegative" );
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .AsNoTracking()
-                .Include( c => c.Messages )
-                .FirstOrDefaultAsync( c => c.Id == id && c.UserId == user.Id )
-                .DefaultConfigureAwait();
-
-            if (entity is null)
-            {
-                return NotFound( $"ConversationIsNotFoundWithId {id}" );
-            }
-
-            return Ok( AiConversationDtoMapper.ToDto( entity ) );
-        } );
+            ToActionResult( await m_conversationService.GetByIdAsync( user.Id, id ).DefaultConfigureAwait() ) );
     }
 
     [HttpGet( "by-client/{clientId}" )]
     public Task<IActionResult> GetByClientIdAsync( string clientId )
     {
         return TryCatchAsync( async user =>
-        {
-            string trimmed = ( clientId ?? string.Empty ).Trim();
-            if (string.IsNullOrWhiteSpace( trimmed ))
-            {
-                return BadRequest( "ClientIdIsRequired" );
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .AsNoTracking()
-                .Include( c => c.Messages )
-                .FirstOrDefaultAsync( c => c.UserId == user.Id && c.ClientId == trimmed )
-                .DefaultConfigureAwait();
-
-            if (entity is null)
-            {
-                return NotFound( $"ConversationIsNotFoundWithClientId {trimmed}" );
-            }
-
-            return Ok( AiConversationDtoMapper.ToDto( entity ) );
-        } );
+            ToActionResult( await m_conversationService.GetByClientIdAsync( user.Id, clientId ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost]
@@ -91,56 +41,16 @@ public class AiConversationsController : BaseController
     {
         return TryCatchAsync( async user =>
         {
-            if (request is null)
-            {
-                return BadRequest( "ConversationIsNull" );
-            }
-
-            string clientId = ( request.ClientId ?? string.Empty ).Trim();
-            if (string.IsNullOrWhiteSpace( clientId ))
-            {
-                return BadRequest( "ClientIdIsRequired" );
-            }
-
-            if (clientId.Length > 64)
-            {
-                clientId = clientId[..64];
-            }
-
-            AiConversation? existing = await DbContext.AiConversations
-                .Include( c => c.Messages )
-                .FirstOrDefaultAsync( c => c.UserId == user.Id && c.ClientId == clientId )
+            ServiceResult<AiConversationCreateResult> result = await m_conversationService
+                .CreateAsync( user.Id, request )
                 .DefaultConfigureAwait();
-
-            if (existing is not null)
+            return ToActionResult( result, () =>
             {
-                AiConversationDtoMapper.ApplyDto( existing, request );
-                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-                return Ok( AiConversationDtoMapper.ToDto( existing ) );
-            }
-
-            DateTime now = DateTime.UtcNow;
-            AiConversation entity = new()
-            {
-                UserId = user.Id,
-                ClientId = clientId,
-                CreatedAt = request.CreatedAt != default
-                    ? DateTime.SpecifyKind( request.CreatedAt, DateTimeKind.Utc )
-                    : now,
-                UpdatedAt = now,
-            };
-            AiConversationDtoMapper.ApplyDto( entity, request );
-            if (entity.CreatedAt == default)
-            {
-                entity.CreatedAt = now;
-            }
-
-            await DbContext.AiConversations.AddAsync( entity ).DefaultConfigureAwait();
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-
-            return Created(
-                $"api/ai/conversations/{entity.Id}",
-                AiConversationDtoMapper.ToDto( entity ) );
+                AiConversationDto conversation = result.Value!.Conversation;
+                return result.Value.IsCreated
+                    ? Created( $"api/ai/conversations/{conversation.Id}", conversation )
+                    : Ok( conversation );
+            } );
         } );
     }
 
@@ -148,83 +58,14 @@ public class AiConversationsController : BaseController
     public Task<IActionResult> UpdateAsync( long id, [FromBody] AiConversationDto request )
     {
         return TryCatchAsync( async user =>
-        {
-            if (id <= 0)
-            {
-                return BadRequest( "ConversationIdIsZeroOrNegative" );
-            }
-
-            if (request is null)
-            {
-                return BadRequest( "RequestIsNull" );
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .Include( c => c.Messages )
-                .FirstOrDefaultAsync( c => c.Id == id && c.UserId == user.Id )
-                .DefaultConfigureAwait();
-
-            if (entity is null)
-            {
-                return NotFound( $"ConversationIsNotFoundWithId {id}" );
-            }
-
-            AiConversationDtoMapper.ApplyDto( entity, request );
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-
-            return Ok( AiConversationDtoMapper.ToDto( entity ) );
-        } );
+            ToActionResult( await m_conversationService.UpdateAsync( user.Id, id, request ).DefaultConfigureAwait() ) );
     }
 
     [HttpPut( "by-client/{clientId}" )]
     public Task<IActionResult> UpsertByClientIdAsync( string clientId, [FromBody] AiConversationDto request )
     {
         return TryCatchAsync( async user =>
-        {
-            string trimmed = ( clientId ?? string.Empty ).Trim();
-            if (string.IsNullOrWhiteSpace( trimmed ))
-            {
-                return BadRequest( "ClientIdIsRequired" );
-            }
-
-            if (request is null)
-            {
-                return BadRequest( "RequestIsNull" );
-            }
-
-            if (trimmed.Length > 64)
-            {
-                trimmed = trimmed[..64];
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .Include( c => c.Messages )
-                .FirstOrDefaultAsync( c => c.UserId == user.Id && c.ClientId == trimmed )
-                .DefaultConfigureAwait();
-
-            DateTime now = DateTime.UtcNow;
-            if (entity is null)
-            {
-                entity = new AiConversation
-                {
-                    UserId = user.Id,
-                    ClientId = trimmed,
-                    CreatedAt = request.CreatedAt != default
-                        ? DateTime.SpecifyKind( request.CreatedAt, DateTimeKind.Utc )
-                        : now,
-                    UpdatedAt = now,
-                };
-                AiConversationDtoMapper.ApplyDto( entity, request );
-                await DbContext.AiConversations.AddAsync( entity ).DefaultConfigureAwait();
-            }
-            else
-            {
-                AiConversationDtoMapper.ApplyDto( entity, request );
-            }
-
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            return Ok( AiConversationDtoMapper.ToDto( entity ) );
-        } );
+            ToActionResult( await m_conversationService.UpsertByClientIdAsync( user.Id, clientId, request ).DefaultConfigureAwait() ) );
     }
 
     [HttpDelete( "{id:long}" )]
@@ -232,30 +73,8 @@ public class AiConversationsController : BaseController
     {
         return TryCatchAsync( async user =>
         {
-            if (id <= 0)
-            {
-                return BadRequest( "ConversationIdIsZeroOrNegative" );
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .FirstOrDefaultAsync( c => c.Id == id && c.UserId == user.Id )
-                .DefaultConfigureAwait();
-
-            if (entity is null)
-            {
-                return NotFound( $"ConversationIsNotFoundWithId {id}" );
-            }
-
-            DbContext.SyncDeletions.Add( new SyncDeletion
-            {
-                UserId = user.Id,
-                EntityType = SyncEntityTypes.Conversation,
-                EntityId = entity.Id,
-                DeletedAt = DateTime.UtcNow,
-            } );
-            DbContext.AiConversations.Remove( entity );
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            return NoContent();
+            ServiceResult result = await m_conversationService.DeleteAsync( user.Id, id ).DefaultConfigureAwait();
+            return ToActionResult( result, NoContent );
         } );
     }
 
@@ -264,31 +83,8 @@ public class AiConversationsController : BaseController
     {
         return TryCatchAsync( async user =>
         {
-            string trimmed = ( clientId ?? string.Empty ).Trim();
-            if (string.IsNullOrWhiteSpace( trimmed ))
-            {
-                return BadRequest( "ClientIdIsRequired" );
-            }
-
-            AiConversation? entity = await DbContext.AiConversations
-                .FirstOrDefaultAsync( c => c.UserId == user.Id && c.ClientId == trimmed )
-                .DefaultConfigureAwait();
-
-            if (entity is null)
-            {
-                return NotFound( $"ConversationIsNotFoundWithClientId {trimmed}" );
-            }
-
-            DbContext.SyncDeletions.Add( new SyncDeletion
-            {
-                UserId = user.Id,
-                EntityType = SyncEntityTypes.Conversation,
-                EntityId = entity.Id,
-                DeletedAt = DateTime.UtcNow,
-            } );
-            DbContext.AiConversations.Remove( entity );
-            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-            return NoContent();
+            ServiceResult result = await m_conversationService.DeleteByClientIdAsync( user.Id, clientId ).DefaultConfigureAwait();
+            return ToActionResult( result, NoContent );
         } );
     }
 }

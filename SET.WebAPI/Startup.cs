@@ -56,7 +56,6 @@ public class Startup
 #if DEBUG
         services.AddSwaggerWithBearer();
 #endif
-        services.AddAutoMapper();
         services.AddDbContext<AppDbContext>(options =>
         {
             string? connectionString;
@@ -78,11 +77,8 @@ public class Startup
 
             options.UseNpgsql( connectionString );
         });
-        services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<IEmailSender, EmailSender>();
-        services.AddScoped<IReminderService, ReminderService>();
+        services.AddBusinessLogic();
         services.AddChatClient( _ => AiService.CreateChatClient( Configuration ) );
-        services.AddScoped<IAiService, AiService>();
         services.AddSingleton<FcmCredentials>();
         services.AddHttpClient<IPushSender, FcmPushSender>( client => client.Timeout = TimeSpan.FromSeconds( 15 ) );
         services.AddSingleton<SyncPushDispatcher>();

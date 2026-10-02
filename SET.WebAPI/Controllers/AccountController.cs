@@ -1,16 +1,6 @@
-﻿using BusinessLogic;
+﻿using Microsoft.Extensions.DependencyInjection;
 
-using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using SET.Shared.Models.Auth;
-using SET.Shared.Helpers;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Protocols.Configuration;
-using Microsoft.IdentityModel.Tokens;
-
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http;
-using System.Security.Claims;
 
 namespace SET.WebAPI.Controllers;
 
@@ -18,199 +8,33 @@ namespace SET.WebAPI.Controllers;
 [ApiController]
 public class AccountController : BaseController
 {
-    private const int MIN_PASSWORD_LENGTH = 8;
-    private const int MAX_PASSWORD_LENGTH = 20;
-
-    private readonly IAuthService m_authService;
-    private readonly IConfiguration m_configuration;
-    private readonly IEmailSender m_emailSender;
+    private readonly IAccountService m_accountService;
 
     public AccountController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
-        m_authService = serviceProvider.GetRequiredService<IAuthService>();
-        m_configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        m_emailSender = serviceProvider.GetRequiredService<IEmailSender>();
+        m_accountService = serviceProvider.GetRequiredService<IAccountService>();
     }
 
     [HttpPost( "googleauthorization" )]
     public Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
     {
         return TryCatchAsync( async () =>
-        {
-            #region check parameter
-            if (request is null)
-            {
-                return BadRequest( "RequestBodyIsNull" );
-            }
-
-            if (string.IsNullOrWhiteSpace( request.AccessToken ))
-            {
-                return BadRequest( "AccessTokenIsNull" );
-            }
-
-            if (string.IsNullOrWhiteSpace( request.IdToken ))
-            {
-                return BadRequest( "IdTokenIsNull" );
-            }
-            #endregion
-
-            GoogleAuthResponse response = await m_authService.GoogleAuthAsync( request.IdToken, request.AccessToken ).DefaultConfigureAwait();
-
-            IActionResult result = Ok( response );
-            return result;
-        } );
+            ToActionResult( await m_accountService.GoogleAuthAsync( request ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost( "authentication" )]
     public Task<IActionResult> Register( [FromBody] UserRegister registerInfo )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            if (registerInfo is null)
-            {
-                return BadRequest( error: "RegisterInfoIsNull" );
-            }
-
-            if (registerInfo.Email is null)
-            {
-                return BadRequest( "EmailOfRegisterInfoIsNull" );
-            }
-
-            if (registerInfo.Password is null)
-            {
-                return BadRequest( "PasswordShouldBeFilled" );
-            }
-
-            registerInfo.Name ??= string.Empty;
-
-            bool isAlreadyRegistered = await DbContext.
-                Users.
-                AnyAsync( u => u.Email.ToLower() == registerInfo.Email.ToLower() ).
-                DefaultConfigureAwait();
-            if (isAlreadyRegistered)
-            {
-                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
-            }
-            #endregion
-
-            IActionResult? result = null;
-
-            string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
-                m_configuration["FIRST_KEY_OF_PASSWORD_ENCRYPTION"];
-            if (string.IsNullOrWhiteSpace( firstKey ))
-            {
-                throw new InvalidProgramException( "First key of password encryption is not set" );
-            }
-
-            string secondKey = m_configuration["EncryptionSettings:SecondKey"] ??
-                m_configuration["SECOND_KEY_OF_PASSWORD_ENCRYPTION"];
-            if (string.IsNullOrWhiteSpace( secondKey ))
-            {
-                throw new InvalidProgramException( "Second key of password encryption is not set" );
-            }
-
-            try
-            {
-                string decryptedPassword = PasswordHelper.DecryptNewPassword( registerInfo.Password, firstKey, secondKey );
-                if (MIN_PASSWORD_LENGTH <= decryptedPassword?.Length && decryptedPassword.Length <= MAX_PASSWORD_LENGTH)
-                {
-                    registerInfo.Password = decryptedPassword;
-                }
-                else
-                {
-                    result = BadRequest( "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
-                }
-            }
-            catch
-            {
-                result = BadRequest( "InvalidPassword" );
-            }
-
-            if (result is null)
-            {
-                await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
-                result = Ok();
-            }
-
-            return result;
-        } );
+            ToActionResult( await m_accountService.RegisterAsync( registerInfo ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost( "authorization" )]
     public Task<IActionResult> Login( [FromBody] UserLogin userlogin )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            if (userlogin is null)
-            {
-                return BadRequest( "UserLoginRequestObjectIsNull" );
-            }
-            if (userlogin.Email is null)
-            {
-                return BadRequest( "EmailShouldBeFilled" );
-            }
-            if (userlogin.Password is null)
-            {
-                return BadRequest( "PasswordShouldBeFilled" );
-            }
-            #endregion
-
-            IActionResult? result = null;
-
-            string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
-                m_configuration["FIRST_KEY_OF_PASSWORD_ENCRYPTION"];
-            if (string.IsNullOrWhiteSpace( firstKey ))
-            {
-                throw new InvalidProgramException( "First key of password encryption is not set" );
-            }
-
-            string secondKey = m_configuration["EncryptionSettings:SecondKey"] ??
-                m_configuration["SECOND_KEY_OF_PASSWORD_ENCRYPTION"];
-            if (string.IsNullOrWhiteSpace( secondKey ))
-            {
-                throw new InvalidProgramException( "Second key of password encryption is not set" );
-            }
-
-            try
-            {
-                string decryptedPassword = PasswordHelper.DecryptNewPassword( userlogin.Password, firstKey, secondKey );
-                userlogin.Password = decryptedPassword;
-            }
-            catch
-            {
-                //message contains "email" to confuse an attacker
-                result = BadRequest( "InvalidEmailOrPassword" );
-            }
-
-            if (result is null)
-            {
-                (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
-
-                if (loginResult.errorMsg is null)
-                {
-                    User user = loginResult.user;
-
-                    LoginResponse response = new( Token: JwtTokenService.GetToken( user ) );
-                    result = Ok( response );
-                }
-                else
-                {
-                    if (loginResult.errorMsg == "EmailIsIncorrect" || loginResult.errorMsg == "PasswordIsIncorrect")
-                    {
-                        result = BadRequest( "InvalidEmailOrPassword" );
-                    }
-                    else
-                    {
-                        result = BadRequest( loginResult.errorMsg );
-                    }
-                }
-            }
-
-            return result;
-        } );
+            ToActionResult( await m_accountService.LoginAsync( userlogin ).DefaultConfigureAwait() ) );
     }
 
 #if DEBUG
@@ -218,58 +42,14 @@ public class AccountController : BaseController
     public Task<IActionResult> SimpleLogin( [FromBody] UserLogin userlogin )
     {
         return TryCatchAsync( async () =>
-        {
-            IActionResult? result = null;
-
-            (User? user, string? errorMsg) loginResult = await m_authService.LoginAsync( userlogin ).DefaultConfigureAwait();
-
-            if (loginResult.errorMsg is null)
-            {
-                User user = loginResult.user;
-
-                LoginResponse response = new( Token: JwtTokenService.GetToken( user ) );
-                result = Ok( response );
-            }
-            else
-            {
-                result = BadRequest( loginResult.errorMsg );
-            }
-
-            return result;
-        } );
+            ToActionResult( await m_accountService.SimpleLoginAsync( userlogin ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost( "simpleauthentication" )]
     public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            if (registerInfo is null)
-            {
-                return BadRequest( error: "RegisterInfoIsNull" );
-            }
-
-            if (registerInfo.Email is null)
-            {
-                return BadRequest( "EmailOfRegisterInfoIsNull" );
-            }
-
-            bool isAlreadyRegistered = await DbContext.Users
-                .AnyAsync( u => u.Email.ToLower() == registerInfo.Email.ToLower() )
-                .ConfigureAwait( false );
-            if (isAlreadyRegistered)
-            {
-                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
-            }
-            #endregion
-
-            User user = await m_authService.RegisterAsync( registerInfo ).ConfigureAwait( false );
-            var response = new { Token = JwtTokenService.GetToken( user ) };
-
-            IActionResult result = Ok( response );
-            return result;
-        } );
+            ToActionResult( await m_accountService.SimpleRegisterAsync( registerInfo ).DefaultConfigureAwait() ) );
     }
 #endif
 
@@ -277,56 +57,7 @@ public class AccountController : BaseController
     public Task<IActionResult> AppleAuth( [FromBody] AppleAuthRequest authRequest )
     {
         return TryCatchAsync( async () =>
-        {
-            if (authRequest == null || string.IsNullOrEmpty( authRequest.IdToken ))
-            {
-                return BadRequest( "Identity token is required to auth using apple." );
-            }
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            using var client = new HttpClient();
-            string keys = await client.GetStringAsync( "https://appleid.apple.com/auth/keys" ).DefaultConfigureAwait();
-            IList<SecurityKey>? signingKeys = new JsonWebKeySet( keys ).GetSigningKeys();
-
-            // Validate the token
-            var validationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidIssuer = "https://appleid.apple.com",
-                ValidateAudience = true,
-                ValidAudience = "com.set.principles",
-                ValidateLifetime = true,
-                RequireSignedTokens = true,
-                IssuerSigningKeyResolver = ( _, _, _, _ ) => signingKeys
-            };
-
-            // Validate and decode the token
-            ClaimsPrincipal? principal =
-                tokenHandler.ValidateToken( authRequest.IdToken, validationParameters, out _ );
-            string fullName = principal.FindFirst( ClaimTypes.Name )?.Value ?? string.Empty;
-            string? email = principal.FindFirst( ClaimTypes.Email )?.Value;
-
-            if (string.IsNullOrWhiteSpace( email ))
-            {
-                return BadRequest( "Invalid token, because no email address was found." );
-            }
-
-            // Check if the user already exists
-            User? user = await DbContext.Users.FirstOrDefaultAsync( u => u.Email.ToLower() == email.ToLower() )
-                .DefaultConfigureAwait();
-
-            if (user is null)
-            {
-                UserRegister userRegister = new() { Email = email, Name = fullName, };
-                user = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
-            }
-
-            LoginResponse response = new(Token: JwtTokenService.GetToken( user ));
-            IActionResult result = Ok( response );
-
-            return result;
-        } );
+            ToActionResult( await m_accountService.AppleAuthAsync( authRequest ).DefaultConfigureAwait() ) );
     }
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
@@ -335,35 +66,7 @@ public class AccountController : BaseController
     {
         return TryCatchAsync( async ( user ) =>
         {
-            await using IDbContextTransaction tran = await DbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
-
-            try
-            {
-                List<UserHabit> habits = await DbContext.UserHabits.Where( u => u.UserId == user.Id )
-                    .Include( u => u.Frequency ).Include( u => u.Progresses ).Include( u => u.AreasOfLife )
-                    .AsSplitQuery().ToListAsync().DefaultConfigureAwait();
-
-                DbContext.ProgressesOfHabits.RemoveRange( habits.SelectMany( u => u.Progresses ) );
-                DbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
-                DbContext.UserHabits.RemoveRange( habits );
-                DbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
-
-                await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-                await DbContext.UserAreasOfLife.Where( u => u.UserId == user.Id ).ExecuteDeleteAsync()
-                    .DefaultConfigureAwait();
-                await DbContext.ClientLogs.Where( u => u.UserId == user.Id )
-                    .ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) )
-                    .DefaultConfigureAwait();
-                await DbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
-
-                await tran.CommitAsync().DefaultConfigureAwait();
-            }
-            catch
-            {
-                await tran.RollbackAsync().DefaultConfigureAwait();
-                throw;
-            }
-
+            await m_accountService.DeleteAsync( user ).DefaultConfigureAwait();
             return Ok();
         } );
     }
@@ -375,34 +78,9 @@ public class AccountController : BaseController
         [FromQuery] string? language = null )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            User user = await DbContext.
-                Users.
-                FirstOrDefaultAsync( u => u.Email.ToLower() == emailWhereSendCode.ToLower() ).
-                DefaultConfigureAwait();
-
-            if (user is null)
-            {
-                return BadRequest( "EmailIsIncorrect" );
-            }
-
-            if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
-            {
-                return BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
-            }
-            #endregion
-
-            int code = GenerateRandomCode();
-            await SendVerificationEmailAsync(
-                emailWhereSendCode,
-                VerificationEmailContent.Purpose.PasswordReset,
-                code,
-                language ).DefaultConfigureAwait();
-
-            GenerateCodeResponse response = new( code );
-            return Ok( response );
-        } );
+            ToActionResult( await m_accountService
+                .SendPasswordResetCodeAsync( emailWhereSendCode, language )
+                .DefaultConfigureAwait() ) );
     }
 
     /// <summary>
@@ -415,159 +93,22 @@ public class AccountController : BaseController
         [FromQuery] string? language = null )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
-            {
-                return BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
-            }
-
-            bool isAlreadyRegistered = await DbContext.
-                Users.
-                AnyAsync( u => u.Email.ToLower() == emailWhereSendCode.ToLower() ).
-                DefaultConfigureAwait();
-            if (isAlreadyRegistered)
-            {
-                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
-            }
-            #endregion
-
-            int code = GenerateRandomCode();
-            await SendVerificationEmailAsync(
-                emailWhereSendCode,
-                VerificationEmailContent.Purpose.Signup,
-                code,
-                language ).DefaultConfigureAwait();
-
-            GenerateCodeResponse response = new( code );
-            return Ok( response );
-        } );
-    }
-
-    private Task SendVerificationEmailAsync(
-        string toEmail,
-        VerificationEmailContent.Purpose purpose,
-        int code,
-        string? language )
-    {
-        VerificationEmailContent.Message message =
-            VerificationEmailContent.Build( purpose, code, language );
-        return m_emailSender.SendAsync(
-            toEmail: toEmail,
-            subject: message.Subject,
-            plainTextBody: message.PlainTextBody,
-            htmlBody: message.HtmlBody );
+            ToActionResult( await m_accountService
+                .SendSignupCodeAsync( emailWhereSendCode, language )
+                .DefaultConfigureAwait() ) );
     }
 
     [HttpGet( "apikey" )]
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
     public IActionResult GetOpenAiKey()
     {
-        return TryCatch( () =>
-        {
-            string? apiKey = m_configuration["AI_API_KEY"];
-
-            string firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
-                              m_configuration["EncryptionSettingsForAiApi:FirstKey"];
-
-            string secondKey = m_configuration["SECOND_KEY_OF_AI_API_ENCRYPTION"] ??
-                               m_configuration["EncryptionSettingsForAiApi:SecondKey"];
-
-            string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
-
-            if (string.IsNullOrWhiteSpace( encryptedApiKey ))
-            {
-                throw new InvalidConfigurationException( "API key not found in configuration." );
-            }
-            else
-            {
-                var response = new { Value = encryptedApiKey };
-                return Ok( response );
-            }
-        } );
+        return TryCatch( () => Ok( m_accountService.GetEncryptedAiApiKey() ) );
     }
 
     [HttpPut( "password" )]
     public Task<IActionResult> ChangePassword( [FromBody] UserNewPassword request )
     {
         return TryCatchAsync( async () =>
-        {
-            #region Check parameter
-            if (request is null)
-            {
-                return BadRequest( error: "Request is null" );
-            }
-
-            if (string.IsNullOrWhiteSpace( request.Email ))
-            {
-                return BadRequest( "EmailIsNullOrWhiteSpace" );
-            }
-
-            if (string.IsNullOrWhiteSpace( request.NewPassword ))
-            {
-                return BadRequest( "PasswordIsNullOrWhiteSpace" );
-            }
-            #endregion
-            User user = await DbContext.
-                Users.
-                FirstOrDefaultAsync( u => u.Email.ToLower() == request.Email.ToLower() ).
-                DefaultConfigureAwait();
-
-            IActionResult? result = null;
-
-            if (user is null)
-            {
-                result = BadRequest( error: "EmailIsIncorrect" );
-            }
-            else
-            {
-                string firstKey = m_configuration["EncryptionSettings:FirstKey"] ??
-                    m_configuration["FIRST_KEY_OF_PASSWORD_ENCRYPTION"];
-                if (string.IsNullOrWhiteSpace( firstKey ))
-                {
-                    throw new InvalidProgramException( "First key of password encryption is not set" );
-                }
-
-                string secondKey = m_configuration["EncryptionSettings:SecondKey"] ??
-                    m_configuration["SECOND_KEY_OF_PASSWORD_ENCRYPTION"];
-                if (string.IsNullOrWhiteSpace( secondKey ))
-                {
-                    throw new InvalidProgramException( "Second key of password encryption is not set" );
-                }
-
-                try
-                {
-                    string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
-
-                    if (MIN_PASSWORD_LENGTH <= decryptedPassword?.Length && decryptedPassword.Length <= MAX_PASSWORD_LENGTH)
-                    {
-                        user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
-                    }
-                    else
-                    {
-                        result = BadRequest( "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
-                    }
-                }
-                catch
-                {
-                    result = BadRequest( "IncorrectPassword" );
-                }
-
-                if (result is null)
-                {
-                    await DbContext.SaveChangesAsync().DefaultConfigureAwait();
-                    result = Ok();
-                }
-            }
-
-            return result;
-        } );
-    }
-
-    private static int GenerateRandomCode()
-    {
-        Random random = new();
-        int result = random.Next( minValue: 100000, maxValue: 999999 );
-        return result;
+            ToActionResult( await m_accountService.ChangePasswordAsync( request ).DefaultConfigureAwait() ) );
     }
 }

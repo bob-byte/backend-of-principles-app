@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,16 +13,12 @@ namespace SET.WebAPI.Controllers;
 [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
 public class AiController : BaseController
 {
-    private const int MaxPromptChars = 8000;
-    private const int MaxChatActiveHabits = 8;
-    private const int MaxChatOpenTasks = 8;
-
-    private readonly IAiService m_aiService;
+    private readonly IAiAssistantService m_aiAssistantService;
 
     public AiController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
-        m_aiService = serviceProvider.GetRequiredService<IAiService>();
+        m_aiAssistantService = serviceProvider.GetRequiredService<IAiAssistantService>();
     }
 
     [HttpPost( "chat" )]
@@ -31,14 +26,10 @@ public class AiController : BaseController
     {
         return TryCatchAsync( async user =>
         {
-            List<AiChatMessage> messages = ToChatMessages( request );
-            if (messages.Count == 0)
-            {
-                return BadRequest( new { error = "PromptIsRequired" } );
-            }
-
-            ChatUserContext userContext = await BuildChatUserContextAsync( user ).DefaultConfigureAwait();
-            return new ChatSseResult( m_aiService, messages, userContext );
+            ServiceResult<AiChatSession> result = await m_aiAssistantService
+                .PrepareChatAsync( user, request )
+                .DefaultConfigureAwait();
+            return ToActionResult( result, () => new ChatSseResult( m_aiAssistantService, result.Value! ) );
         }, request );
     }
 
@@ -46,424 +37,45 @@ public class AiController : BaseController
     public Task<IActionResult> ParseTaskAsync( [FromBody] AiParseTaskRequest request )
     {
         return TryCatchAsync( async _ =>
-        {
-            string prompt = request?.Prompt?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace( prompt ))
-            {
-                return BadRequest( new { error = "PromptIsRequired" } );
-            }
-
-            if (prompt.Length > MaxPromptChars)
-            {
-                prompt = prompt[..MaxPromptChars];
-            }
-
-            try
-            {
-                AiTaskDraftResult draft = await m_aiService
-                    .ParseTaskDraftAsync(
-                        prompt,
-                        request?.LocalDate,
-                        request?.UtcOffsetMinutes,
-                        HttpContext.RequestAborted )
-                    .DefaultConfigureAwait();
-
-                return Ok( new AiTaskDraftDto
-                {
-                    Title = draft.Title,
-                    Description = draft.Description,
-                    Priority = draft.Priority,
-                    Theme = draft.Theme,
-                    DueDate = draft.DueDate,
-                    AllDay = draft.AllDay,
-                    Reminders = draft.Reminders?.ToList() ?? new List<int>(),
-                    Subtasks = draft.Subtasks?.ToList() ?? new List<string>()
-                } );
-            }
-            catch (AiServiceException ex)
-            {
-                return StatusCode( ex.StatusCode, new { error = ex.Message } );
-            }
-        }, request );
+            ToActionResult( await m_aiAssistantService
+                .ParseTaskAsync( request, HttpContext.RequestAborted )
+                .DefaultConfigureAwait() ), request );
     }
 
     [HttpPost( "recommend-habits" )]
     public Task<IActionResult> RecommendHabitsAsync( [FromBody] AiRecommendHabitsRequest request )
     {
         return TryCatchAsync( async user =>
-        {
-            try
-            {
-                RecommendHabitsContext context = await ToRecommendContextAsync( request, user )
-                    .DefaultConfigureAwait();
-                IReadOnlyList<RecommendedHabitResult> habits = await m_aiService
-                    .RecommendHabitsAsync( context, HttpContext.RequestAborted )
-                    .DefaultConfigureAwait();
-
-                return Ok( new AiRecommendHabitsResponse
-                {
-                    Habits = habits.Select( h => new AiRecommendedHabitDto
-                    {
-                        Name = h.Name,
-                        ReasonToFollow = h.ReasonToFollow
-                    } ).ToList()
-                } );
-            }
-            catch (AiServiceException ex)
-            {
-                return StatusCode( ex.StatusCode, new { error = ex.Message } );
-            }
-        }, request );
+            ToActionResult( await m_aiAssistantService
+                .RecommendHabitsAsync( user, request, HttpContext.RequestAborted )
+                .DefaultConfigureAwait() ), request );
     }
 
     [HttpPost( "title" )]
     public Task<IActionResult> TitleAsync( [FromBody] AiTitleRequest request )
     {
         return TryCatchAsync( async _ =>
-        {
-            string userMessage = request?.UserMessage?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace( userMessage ))
-            {
-                return BadRequest( new { error = "PromptIsRequired" } );
-            }
-
-            try
-            {
-                string title = await m_aiService
-                    .GenerateConversationTitleAsync(
-                        userMessage,
-                        request?.AssistantMessage,
-                        HttpContext.RequestAborted )
-                    .DefaultConfigureAwait();
-
-                return Ok( new AiTitleResponse { Title = title } );
-            }
-            catch (AiServiceException ex)
-            {
-                return StatusCode( ex.StatusCode, new { error = ex.Message } );
-            }
-        }, request );
+            ToActionResult( await m_aiAssistantService
+                .GenerateTitleAsync( request, HttpContext.RequestAborted )
+                .DefaultConfigureAwait() ), request );
     }
 
     [HttpPost( "suggest-profile-text" )]
     public Task<IActionResult> SuggestProfileTextAsync( [FromBody] AiSuggestProfileTextRequest request )
     {
         return TryCatchAsync( async user =>
-        {
-            try
-            {
-                SuggestProfileTextContext context = await ToSuggestProfileTextContextAsync( request, user )
-                    .DefaultConfigureAwait();
-                IReadOnlyList<ProfileTextSuggestionResult> suggestions = await m_aiService
-                    .SuggestProfileTextAsync( context, HttpContext.RequestAborted )
-                    .DefaultConfigureAwait();
-
-                return Ok( new AiSuggestProfileTextResponse
-                {
-                    Suggestions = suggestions.Select( s => new AiProfileTextSuggestionDto
-                    {
-                        Text = s.Text,
-                        Reason = s.Reason
-                    } ).ToList()
-                } );
-            }
-            catch (AiServiceException ex)
-            {
-                return StatusCode( ex.StatusCode, new { error = ex.Message } );
-            }
-        }, request );
+            ToActionResult( await m_aiAssistantService
+                .SuggestProfileTextAsync( user, request, HttpContext.RequestAborted )
+                .DefaultConfigureAwait() ), request );
     }
 
     [HttpPost( "recommend-goals" )]
     public Task<IActionResult> RecommendGoalsAsync( [FromBody] AiRecommendGoalsRequest request )
     {
         return TryCatchAsync( async user =>
-        {
-            try
-            {
-                RecommendGoalsContext context = await ToRecommendGoalsContextAsync( request, user )
-                    .DefaultConfigureAwait();
-                if (string.IsNullOrWhiteSpace( context.AreaOfLife ))
-                {
-                    return BadRequest( new { error = "AreaOfLifeIsRequired" } );
-                }
-
-                IReadOnlyList<RecommendedGoalResult> goals = await m_aiService
-                    .RecommendGoalsAsync( context, HttpContext.RequestAborted )
-                    .DefaultConfigureAwait();
-
-                return Ok( new AiRecommendGoalsResponse
-                {
-                    Goals = goals.Select( g => new AiRecommendedGoalDto
-                    {
-                        Name = g.Name,
-                        Reason = g.Reason
-                    } ).ToList()
-                } );
-            }
-            catch (AiServiceException ex)
-            {
-                return StatusCode( ex.StatusCode, new { error = ex.Message } );
-            }
-        }, request );
-    }
-
-    private async Task<ChatUserContext> BuildChatUserContextAsync( User user )
-    {
-        List<string> habits = await LoadActiveHabitNamesAsync( user.Id, MaxChatActiveHabits )
-            .DefaultConfigureAwait();
-        List<string> goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
-        List<string> tasks = await LoadOpenTaskNamesAsync( user.Id ).DefaultConfigureAwait();
-
-        return new ChatUserContext
-        {
-            Name = NullIfEmpty( user.Name ),
-            Gender = FormatChatGender( user.Gender ),
-            Mission = NullIfEmpty( user.Mission ),
-            MainSlogan = NullIfEmpty( user.MainSlogan ),
-            Habits = habits,
-            Goals = goals,
-            Tasks = tasks
-        };
-    }
-
-    private async Task<RecommendHabitsContext> ToRecommendContextAsync(
-        AiRecommendHabitsRequest request,
-        User user )
-    {
-        string culture = string.IsNullOrWhiteSpace( request?.Culture )
-            ? "uk"
-            : request.Culture.Trim();
-
-        string? goal = NullIfEmpty( request?.Goal );
-        List<string> goals = SanitizeNames( request?.Goals );
-        List<string> currentHabits = SanitizeNames( request?.CurrentHabits );
-        List<string> areasOfLife = SanitizeNames( request?.AreasOfLife );
-
-        if (currentHabits.Count == 0)
-        {
-            currentHabits = await LoadActiveHabitNamesAsync( user.Id ).DefaultConfigureAwait();
-        }
-
-        if (string.IsNullOrWhiteSpace( goal ) && goals.Count == 0)
-        {
-            goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
-        }
-
-        string? mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission );
-        string? slogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan );
-        Gender gender = request?.Gender is int value && Enum.IsDefined( typeof( Gender ), value )
-            ? (Gender)value
-            : user.Gender;
-
-        return new RecommendHabitsContext
-        {
-            Culture = culture,
-            Goal = goal,
-            Goals = goals,
-            CurrentHabits = currentHabits,
-            AreasOfLife = areasOfLife,
-            Mission = mission,
-            MainSlogan = slogan,
-            Gender = FormatRecommendGender( gender )
-        };
-    }
-
-    private async Task<SuggestProfileTextContext> ToSuggestProfileTextContextAsync(
-        AiSuggestProfileTextRequest request,
-        User user )
-    {
-        string culture = string.IsNullOrWhiteSpace( request?.Culture )
-            ? "uk"
-            : request.Culture.Trim();
-
-        ProfileTextKind kind = ParseProfileTextKind( request?.Kind );
-        List<string> goals = SanitizeNames( request?.Goals );
-        if (goals.Count == 0)
-        {
-            goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
-        }
-
-        Gender gender = request?.Gender is int value && Enum.IsDefined( typeof( Gender ), value )
-            ? (Gender)value
-            : user.Gender;
-
-        return new SuggestProfileTextContext
-        {
-            Kind = kind,
-            Culture = culture,
-            Name = NullIfEmpty( user.Name ),
-            Gender = FormatRecommendGender( gender ),
-            Mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission ),
-            MainSlogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan ),
-            Draft = NullIfEmpty( request?.Draft ),
-            Hint = NullIfEmpty( request?.Hint ),
-            Goals = goals
-        };
-    }
-
-    private async Task<RecommendGoalsContext> ToRecommendGoalsContextAsync(
-        AiRecommendGoalsRequest request,
-        User user )
-    {
-        string culture = string.IsNullOrWhiteSpace( request?.Culture )
-            ? "uk"
-            : request.Culture.Trim();
-
-        List<string> existingGoals = SanitizeNames( request?.ExistingGoals );
-        if (existingGoals.Count == 0)
-        {
-            existingGoals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
-        }
-
-        Gender gender = request?.Gender is int value && Enum.IsDefined( typeof( Gender ), value )
-            ? (Gender)value
-            : user.Gender;
-
-        return new RecommendGoalsContext
-        {
-            Culture = culture,
-            AreaOfLife = NullIfEmpty( request?.AreaOfLife ),
-            ExistingGoals = existingGoals,
-            Draft = NullIfEmpty( request?.Draft ),
-            Mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission ),
-            MainSlogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan ),
-            Gender = FormatRecommendGender( gender )
-        };
-    }
-
-    private static ProfileTextKind ParseProfileTextKind( string? raw )
-    {
-        string value = ( raw ?? string.Empty ).Trim().ToLowerInvariant();
-        if (value is "mission" or "missions")
-        {
-            return ProfileTextKind.Mission;
-        }
-
-        return ProfileTextKind.Slogan;
-    }
-
-    private async Task<List<string>> LoadActiveHabitNamesAsync( long userId, int? maxCount = null )
-    {
-        IQueryable<string> query = DbContext.UserHabits
-            .Where( h => h.UserId == userId && !h.IsArchived && h.Status == StatusOfHabit.InProgress )
-            .OrderBy( h => h.Priority )
-            .Select( h => h.Name );
-
-        if (maxCount is int limit)
-        {
-            query = query.Take( limit );
-        }
-
-        List<string> names = await query
-            .ToListAsync()
-            .DefaultConfigureAwait();
-
-        return SanitizeNames( names );
-    }
-
-    private async Task<List<string>> LoadGoalNamesAsync( long userId )
-    {
-        List<string> names = await DbContext.UserGoals
-            .Where( g => g.UserId == userId )
-            .OrderBy( g => g.Id )
-            .Select( g => g.Name )
-            .ToListAsync()
-            .DefaultConfigureAwait();
-
-        return SanitizeNames( names );
-    }
-
-    private async Task<List<string>> LoadOpenTaskNamesAsync( long userId )
-    {
-        // Keep the helper prompt small: only the nearest scheduled / recently updated open tasks.
-        List<string> names = await DbContext.Tasks
-            .Where( t => t.UserId == userId && !t.IsCompleted )
-            .OrderBy( t => t.Date == null )
-            .ThenBy( t => t.Date )
-            .ThenBy( t => t.Time == null )
-            .ThenBy( t => t.Time )
-            .ThenByDescending( t => t.UpdatedAt )
-            .Select( t => t.Name )
-            .Take( MaxChatOpenTasks )
-            .ToListAsync()
-            .DefaultConfigureAwait();
-
-        return SanitizeNames( names );
-    }
-
-    private static string FormatChatGender( Gender gender )
-    {
-        return gender switch
-        {
-            Gender.Man => "man",
-            Gender.Woman => "woman",
-            _ => "othersex"
-        };
-    }
-
-    private static string FormatRecommendGender( Gender gender )
-    {
-        return gender switch
-        {
-            Gender.Man => "man",
-            Gender.Woman => "woman",
-            _ => "other"
-        };
-    }
-
-    private static List<string> SanitizeNames( IEnumerable<string>? values )
-    {
-        if (values is null)
-        {
-            return new List<string>();
-        }
-
-        return values
-            .Where( v => !string.IsNullOrWhiteSpace( v ) )
-            .Select( v => v.Trim() )
-            .Where( v => v.Length > 0 )
-            .Take( 50 )
-            .Select( v => v.Length > 255 ? v[..255] : v )
-            .ToList();
-    }
-
-    private static string? NullIfEmpty( string? value )
-    {
-        if (string.IsNullOrWhiteSpace( value ))
-        {
-            return null;
-        }
-
-        string trimmed = value.Trim();
-        return trimmed.Length > MaxPromptChars ? trimmed[..MaxPromptChars] : trimmed;
-    }
-
-    private static List<AiChatMessage> ToChatMessages( AiChatRequest request )
-    {
-        List<AiChatMessage> messages = new();
-        if (request?.Messages != null)
-        {
-            foreach (AiChatMessageDto dto in request.Messages)
-            {
-                if (dto is null || string.IsNullOrWhiteSpace( dto.Content ))
-                {
-                    continue;
-                }
-
-                messages.Add( new AiChatMessage(
-                    dto.Role ?? "user",
-                    dto.Content ) );
-            }
-        }
-
-        string prompt = request?.Prompt?.Trim() ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace( prompt ))
-        {
-            messages.Add( new AiChatMessage( "user", prompt ) );
-        }
-
-        return messages;
+            ToActionResult( await m_aiAssistantService
+                .RecommendGoalsAsync( user, request, HttpContext.RequestAborted )
+                .DefaultConfigureAwait() ), request );
     }
 }
 
@@ -474,18 +86,13 @@ internal sealed class ChatSseResult : IActionResult
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    private readonly IAiService m_aiService;
-    private readonly IReadOnlyList<AiChatMessage> m_messages;
-    private readonly ChatUserContext? m_userContext;
+    private readonly IAiAssistantService m_aiAssistantService;
+    private readonly AiChatSession m_session;
 
-    public ChatSseResult(
-        IAiService aiService,
-        IReadOnlyList<AiChatMessage> messages,
-        ChatUserContext? userContext = null )
+    public ChatSseResult( IAiAssistantService aiAssistantService, AiChatSession session )
     {
-        m_aiService = aiService;
-        m_messages = messages;
-        m_userContext = userContext;
+        m_aiAssistantService = aiAssistantService;
+        m_session = session;
     }
 
     public async Task ExecuteResultAsync( ActionContext context )
@@ -500,8 +107,8 @@ internal sealed class ChatSseResult : IActionResult
 
         try
         {
-            await foreach (string chunk in m_aiService
-                .StreamChatAsync( m_messages, m_userContext, cancellationToken )
+            await foreach (string chunk in m_aiAssistantService
+                .StreamChatAsync( m_session, cancellationToken )
                 .ConfigureAwait( false ))
             {
                 await WriteSseAsync(

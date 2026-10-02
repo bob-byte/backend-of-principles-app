@@ -1,18 +1,18 @@
 ﻿using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.DependencyInjection;
 
-using Serilog.Events;
-
-using System;
 namespace SET.WebAPI.Controllers;
 
 [Route( template: "api/logs" )]
 [ApiController]
 public class LogController : BaseController
 {
+    private readonly IClientLogService m_clientLogService;
+
     public LogController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
-        //do nothing
+        m_clientLogService = serviceProvider.GetRequiredService<IClientLogService>();
     }
 
     [HttpPost]
@@ -20,79 +20,19 @@ public class LogController : BaseController
     {
         return TryCatchAsync( async () =>
         {
-            IActionResult? result = null;
-            ClientLog newClientLog = Mapper.Map<ClientLog>( saveLogRequest );
-
+            long? userId;
             try
             {
-                string accessToken = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
-                newClientLog.UserId = JwtTokenService.GetUserIdFromJwt( accessToken );
+                string? accessToken = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
+                userId = JwtTokenService.GetUserIdFromJwt( accessToken );
             }
             catch
             {
-                newClientLog.UserId = null;
-            }
-            
-            bool isParsedLogEventLevel = Enum.TryParse( saveLogRequest.LogType, ignoreCase: true,
-                out LogEventLevel logEventLevel );
-            if (!isParsedLogEventLevel)
-            {
-                Log.Error( "Cannot parse log event level." );
-                logEventLevel = LogEventLevel.Error;
+                userId = null;
             }
 
-            string email = string.Empty;
-            if (newClientLog.UserId > 0)
-            {
-                User user = await DbContext.Users.FindAsync( newClientLog.UserId ).DefaultConfigureAwait();
-                if (user is null)
-                {
-                    result = BadRequest( error: "UserIsNotFound" );
-                }
-                else
-                {
-                    email = user.Email;
-                }
-
-                if (logEventLevel == LogEventLevel.Information && (email is "batsbohdan@gmail.com" or "bac.bogdan222@gmail.com"))
-                {
-                    result = Ok();
-                }
-            }
-            else
-            {
-                newClientLog.UserId = null;
-            }
-
-            if (result is null)
-            {
-                string newLine = Environment.NewLine;
-                string convertedLog;
-
-                if (logEventLevel == LogEventLevel.Information)
-                {
-                    convertedLog =
-                        $"{(string.IsNullOrWhiteSpace( email ) ? "Somebody" : email)} uses the app. Log message: {newClientLog.LogMessage}";
-                }
-                else
-                {
-                    convertedLog = $"{nameof(SaveLogRequest.LogMessage)} = {saveLogRequest.LogMessage};{newLine}" +
-                                   (string.IsNullOrWhiteSpace( saveLogRequest.StackTrace )
-                                       ? string.Empty
-                                       : $"{nameof(SaveLogRequest.StackTrace)} = {saveLogRequest.StackTrace};{newLine}") +
-                                   (newClientLog.UserId is null or 0
-                                       ? string.Empty
-                                       : $"Email = {email};{newLine}") +
-                                   $"{nameof(SaveLogRequest.AppVersion)} = {saveLogRequest.AppVersion};{newLine}" +
-                                   $"{nameof(SaveLogRequest.DeviceOs)} = {saveLogRequest.DeviceOs}.";
-                }
-
-                Log.Write( logEventLevel, convertedLog );
-
-                result = Ok();
-            }
-
-            return result;
+            ServiceResult result = await m_clientLogService.WriteAsync( saveLogRequest, userId ).DefaultConfigureAwait();
+            return ToActionResult( result );
         } );
     }
 }

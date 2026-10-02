@@ -1,12 +1,6 @@
-﻿using AutoMapper;
-
-using BusinessLogic;
+﻿using BusinessLogic;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using SET.Shared;
@@ -21,16 +15,12 @@ public class BaseController : ControllerBase
     public BaseController( IServiceProvider serviceProvider )
     {
         ServiceProvider = serviceProvider;
-        DbContext = ServiceProvider.GetRequiredService<AppDbContext>();
-        Mapper = ServiceProvider.GetRequiredService<IMapper>();
         JwtTokenService = ServiceProvider.GetRequiredService<IJwtTokenService>();
     }
 
     public const string DeviceIdHeader = "X-Device-Id";
 
     protected IServiceProvider ServiceProvider { get; }
-    protected AppDbContext DbContext { get; }
-    protected IMapper Mapper { get; }
     protected IJwtTokenService JwtTokenService { get; }
 
     /// <summary>Per-install id the Flutter client sends on every request (null for MAUI / web).</summary>
@@ -43,20 +33,21 @@ public class BaseController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Wakes the user's other devices so they sync and fix local reminders. Call after the
-    /// change is committed.
-    /// </summary>
-    protected void NotifyOtherDevices(
-        long userId,
-        IEnumerable<long>? deletedTaskIds = null,
-        IEnumerable<long>? deletedHabitIds = null )
+    protected IActionResult ToActionResult( ServiceResult result )
     {
-        ServiceProvider.GetService<ISyncPushService>()?.Enqueue( new SyncPushRequest(
-            userId,
-            RequestDeviceId,
-            deletedTaskIds?.ToArray() ?? Array.Empty<long>(),
-            deletedHabitIds?.ToArray() ?? Array.Empty<long>() ) );
+        return ToActionResult( result, Ok );
+    }
+
+    protected IActionResult ToActionResult<T>( ServiceResult<T> result )
+    {
+        return ToActionResult( result, () => Ok( result.Value ) );
+    }
+
+    protected IActionResult ToActionResult( ServiceResult result, Func<IActionResult> onSuccess )
+    {
+        return result.Error is { } error
+            ? StatusCode( error.StatusCode, error.Body )
+            : onSuccess();
     }
 
     protected async Task<IActionResult> TryCatchAsync( Func<User, Task<IActionResult>> action, object? request = null )
@@ -73,16 +64,13 @@ public class BaseController : ControllerBase
                 return BadRequest( "UserIdCouldNotBeRetrievedFromTheToken." );
             }
 
-            User? user = await DbContext.Users.FindAsync( userId ).DefaultConfigureAwait();
+            User? user = await ServiceProvider.GetRequiredService<IAccountService>()
+                .FindUserAsync( userId )
+                .DefaultConfigureAwait();
 
-            if (user is null)
-            {
-                result = BadRequest( error: "UserIsNotFound" );
-            }
-            else
-            {
-                result = await action( user ).DefaultConfigureAwait();
-            }
+            result = user is null
+                ? BadRequest( error: "UserIsNotFound" )
+                : await action( user ).DefaultConfigureAwait();
         }
         catch (Exception ex)
         {
@@ -98,39 +86,6 @@ public class BaseController : ControllerBase
         try
         {
             result = await action().DefaultConfigureAwait();
-        }
-        catch (Exception ex)
-        {
-            result = WriteExceptionStatus( ex, request );
-        }
-
-        return result;
-    }
-
-    protected async Task<IActionResult> TryCatch( Func<User, IActionResult> action, object? request = null )
-    {
-        IActionResult result;
-
-        try
-        {
-            string? token = await HttpContext.GetTokenAsync( tokenName: "access_token" ).DefaultConfigureAwait();
-
-            long userId = JwtTokenService.GetUserIdFromJwt( token );
-            if (userId <= 0)
-            {
-                return BadRequest( "UserIdCouldNotBeRetrievedFromTheToken." );
-            }
-
-            User? user = await DbContext.Users.FindAsync( userId ).DefaultConfigureAwait();
-
-            if (user is null)
-            {
-                result = BadRequest( error: "UserIsNotFound" );
-            }
-            else
-            {
-                result = action( user );
-            }
         }
         catch (Exception ex)
         {

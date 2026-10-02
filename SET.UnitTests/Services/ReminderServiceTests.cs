@@ -13,7 +13,7 @@ public class ReminderServiceTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         var db = new AppDbContext(options);
-        return (new ReminderService(db), db);
+        return (new ReminderService(db, BusinessLogicMapper.Create()), db);
     }
 
     [Fact]

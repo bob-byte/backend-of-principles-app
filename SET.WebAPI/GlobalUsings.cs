@@ -1,4 +1,4 @@
-﻿global using SET.WebAPI.Models;
+﻿global using BusinessLogic.Models;
 global using SET.DataAccess;
 global using SET.DataAccess.Extensions;
 global using SET.Shared.Extensions;
