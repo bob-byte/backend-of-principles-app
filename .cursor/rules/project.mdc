@@ -9,7 +9,7 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 
 ## Domain
 
-- **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`). Email/password signup: `GET api/account/signupcode` (rejects if email already exists); forget-password: `GET api/account/code` (requires existing user). Both email a branded HTML+plain multipart verification message via `IEmailSender` / `VerificationEmailContent` (`HostEmail` = batsbohdan@gmail.com) and return `{ code }` for the same client confirm dialog pattern.
+- **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`). Email/password signup: `GET api/account/signupcode` (rejects if email already exists); forget-password: `GET api/account/code` (requires existing user). Both accept optional `language` (`uk`/`en`, default English), email a branded HTML+plain multipart verification message via `IEmailSender` / `VerificationEmailContent` (`HostEmail` = batsbohdan@gmail.com), and return `{ code }` for the same client confirm dialog pattern.
 - **Goals** — user goals (`goal` schema)
 - **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
 - **Tasks** — one-off work with schedule/reminders/repeat; checklists in `tsk.TaskSubtasks`

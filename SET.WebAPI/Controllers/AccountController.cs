@@ -370,7 +370,9 @@ public class AccountController : BaseController
 
     //It generates random code and sends it to email specified in the "request" parameter
     [HttpGet( "code" )]
-    public Task<IActionResult> GenerateCode( [FromQuery] string emailWhereSendCode )
+    public Task<IActionResult> GenerateCode(
+        [FromQuery] string emailWhereSendCode,
+        [FromQuery] string? language = null )
     {
         return TryCatchAsync( async () =>
         {
@@ -395,7 +397,8 @@ public class AccountController : BaseController
             await SendVerificationEmailAsync(
                 emailWhereSendCode,
                 VerificationEmailContent.Purpose.PasswordReset,
-                code ).DefaultConfigureAwait();
+                code,
+                language ).DefaultConfigureAwait();
 
             GenerateCodeResponse response = new( code );
             return Ok( response );
@@ -407,7 +410,9 @@ public class AccountController : BaseController
     /// Used so new users prove they own the address before <c>POST authentication</c>.
     /// </summary>
     [HttpGet( "signupcode" )]
-    public Task<IActionResult> GenerateSignupCode( [FromQuery] string emailWhereSendCode )
+    public Task<IActionResult> GenerateSignupCode(
+        [FromQuery] string emailWhereSendCode,
+        [FromQuery] string? language = null )
     {
         return TryCatchAsync( async () =>
         {
@@ -431,7 +436,8 @@ public class AccountController : BaseController
             await SendVerificationEmailAsync(
                 emailWhereSendCode,
                 VerificationEmailContent.Purpose.Signup,
-                code ).DefaultConfigureAwait();
+                code,
+                language ).DefaultConfigureAwait();
 
             GenerateCodeResponse response = new( code );
             return Ok( response );
@@ -441,9 +447,11 @@ public class AccountController : BaseController
     private Task SendVerificationEmailAsync(
         string toEmail,
         VerificationEmailContent.Purpose purpose,
-        int code )
+        int code,
+        string? language )
     {
-        VerificationEmailContent.Message message = VerificationEmailContent.Build( purpose, code );
+        VerificationEmailContent.Message message =
+            VerificationEmailContent.Build( purpose, code, language );
         return m_emailSender.SendAsync(
             toEmail: toEmail,
             subject: message.Subject,

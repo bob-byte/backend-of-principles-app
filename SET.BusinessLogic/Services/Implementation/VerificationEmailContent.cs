@@ -5,7 +5,7 @@ using System.Text;
 namespace BusinessLogic;
 
 /// <summary>
-/// Branded HTML + plain-text bodies for account verification codes.
+/// Branded HTML + plain-text bodies for account verification codes (EN / UK).
 /// </summary>
 public static class VerificationEmailContent
 {
@@ -17,89 +17,126 @@ public static class VerificationEmailContent
 
     public sealed record Message( string Subject, string PlainTextBody, string HtmlBody );
 
-    public static Message Build( Purpose purpose, int code )
+    public static Message Build( Purpose purpose, int code, string? language = null )
     {
         string codeText = code.ToString( "D6", CultureInfo.InvariantCulture );
         string formattedCode = $"{codeText[..3]} {codeText[3..]}";
+        bool ukrainian = IsUkrainian( language );
+        Copy copy = ukrainian ? UkrainianCopy( purpose ) : EnglishCopy( purpose );
+        string htmlLang = ukrainian ? "uk" : "en";
 
-        return purpose switch
+        return new Message(
+            Subject: copy.Subject,
+            PlainTextBody: BuildPlainText( copy, formattedCode ),
+            HtmlBody: BuildHtml( copy, formattedCode, codeText, htmlLang ) );
+    }
+
+    internal static bool IsUkrainian( string? language )
+    {
+        if (string.IsNullOrWhiteSpace( language ))
         {
-            Purpose.Signup => BuildSignup( formattedCode, codeText ),
-            Purpose.PasswordReset => BuildPasswordReset( formattedCode, codeText ),
-            _ => throw new ArgumentOutOfRangeException( nameof( purpose ), purpose, null )
-        };
+            return false;
+        }
+
+        string normalized = language.Trim().ToLowerInvariant().Replace( '_', '-' );
+        return normalized == "uk" ||
+               normalized == "ua" ||
+               normalized.StartsWith( "uk-", StringComparison.Ordinal ) ||
+               normalized.StartsWith( "ua-", StringComparison.Ordinal );
     }
 
-    private static Message BuildSignup( string formattedCode, string codeText )
+    private static Copy EnglishCopy( Purpose purpose ) => purpose switch
     {
-        const string subject = "Your Principles signup code";
-        const string headline = "Confirm your email";
-        const string intro =
-            "Welcome to Principles. Enter this code in the app to finish creating your account:";
-        const string securityNote =
-            "If you did not try to sign up for Principles, you can ignore this email — no account will be created.";
+        Purpose.Signup => new Copy(
+            Subject: "Your Principles signup code",
+            Headline: "Confirm your email",
+            Intro: "Welcome to Principles. Enter this code in the app to finish creating your account:",
+            CodeLabel: "Verification code",
+            CopyCodeLabel: "Copy code",
+            ShareWarning: "Enter this code in the Principles app. Do not share it with anyone.",
+            SecurityNote:
+            "If you did not try to sign up for Principles, you can ignore this email — no account will be created.",
+            TeamSignOff: "- The Principles team" ),
+        Purpose.PasswordReset => new Copy(
+            Subject: "Your Principles password reset code",
+            Headline: "Reset your password",
+            Intro: "Enter this code in the Principles app to continue resetting your password:",
+            CodeLabel: "Verification code",
+            CopyCodeLabel: "Copy code",
+            ShareWarning: "Enter this code in the Principles app. Do not share it with anyone.",
+            SecurityNote:
+            "If you did not request a password reset, you can ignore this email. Your password will stay the same.",
+            TeamSignOff: "- The Principles team" ),
+        _ => throw new ArgumentOutOfRangeException( nameof( purpose ), purpose, null )
+    };
 
-        return new Message(
-            Subject: subject,
-            PlainTextBody: BuildPlainText( headline, intro, formattedCode, securityNote ),
-            HtmlBody: BuildHtml( headline, intro, formattedCode, codeText, securityNote ) );
-    }
-
-    private static Message BuildPasswordReset( string formattedCode, string codeText )
+    private static Copy UkrainianCopy( Purpose purpose ) => purpose switch
     {
-        const string subject = "Your Principles password reset code";
-        const string headline = "Reset your password";
-        const string intro =
-            "Enter this code in the Principles app to continue resetting your password:";
-        const string securityNote =
-            "If you did not request a password reset, you can ignore this email. Your password will stay the same.";
+        Purpose.Signup => new Copy(
+            Subject: "Ваш код реєстрації Principles",
+            Headline: "Підтвердіть електронну пошту",
+            Intro:
+            "Ласкаво просимо до Principles. Введіть цей код у додатку, щоб завершити створення облікового запису:",
+            CodeLabel: "Код підтвердження",
+            CopyCodeLabel: "Копіювати код",
+            ShareWarning: "Введіть цей код у додатку Principles. Нікому його не повідомляйте.",
+            SecurityNote:
+            "Якщо ви не намагалися зареєструватися в Principles, можете проігнорувати цей лист — обліковий запис не буде створено.",
+            TeamSignOff: "— Команда Principles" ),
+        Purpose.PasswordReset => new Copy(
+            Subject: "Ваш код скидання пароля Principles",
+            Headline: "Скидання пароля",
+            Intro: "Введіть цей код у додатку Principles, щоб продовжити скидання пароля:",
+            CodeLabel: "Код підтвердження",
+            CopyCodeLabel: "Копіювати код",
+            ShareWarning: "Введіть цей код у додатку Principles. Нікому його не повідомляйте.",
+            SecurityNote:
+            "Якщо ви не запитували скидання пароля, можете проігнорувати цей лист. Ваш пароль залишиться без змін.",
+            TeamSignOff: "— Команда Principles" ),
+        _ => throw new ArgumentOutOfRangeException( nameof( purpose ), purpose, null )
+    };
 
-        return new Message(
-            Subject: subject,
-            PlainTextBody: BuildPlainText( headline, intro, formattedCode, securityNote ),
-            HtmlBody: BuildHtml( headline, intro, formattedCode, codeText, securityNote ) );
-    }
-
-    private static string BuildPlainText(
-        string headline,
-        string intro,
-        string formattedCode,
-        string securityNote )
+    private static string BuildPlainText( Copy copy, string formattedCode )
     {
         StringBuilder sb = new();
         sb.AppendLine( "Principles" );
         sb.AppendLine();
-        sb.AppendLine( headline );
+        sb.AppendLine( copy.Headline );
         sb.AppendLine();
-        sb.AppendLine( intro );
+        sb.AppendLine( copy.Intro );
         sb.AppendLine();
         sb.AppendLine( formattedCode );
         sb.AppendLine();
-        sb.AppendLine( "This code works only in the Principles app. Do not share it with anyone." );
+        sb.AppendLine( copy.ShareWarning );
         sb.AppendLine();
-        sb.AppendLine( securityNote );
+        sb.AppendLine( copy.SecurityNote );
         sb.AppendLine();
-        sb.AppendLine( "- The Principles team" );
+        sb.AppendLine( copy.TeamSignOff );
         sb.AppendLine( "https://principles.top" );
         return sb.ToString();
     }
 
     private static string BuildHtml(
-        string headline,
-        string intro,
+        Copy copy,
         string formattedCode,
         string codeText,
-        string securityNote )
+        string htmlLang )
     {
         // Email-safe layout: tables + inline CSS. Brand accent matches app primary orange.
-        string safeHeadline = WebUtility.HtmlEncode( headline );
-        string safeIntro = WebUtility.HtmlEncode( intro );
+        string safeHeadline = WebUtility.HtmlEncode( copy.Headline );
+        string safeIntro = WebUtility.HtmlEncode( copy.Intro );
         string safeFormattedCode = WebUtility.HtmlEncode( formattedCode );
         string safeCodeText = WebUtility.HtmlEncode( codeText );
-        string safeSecurityNote = WebUtility.HtmlEncode( securityNote );
+        string safeSecurityNote = WebUtility.HtmlEncode( copy.SecurityNote );
+        string safeCodeLabel = WebUtility.HtmlEncode( copy.CodeLabel );
+        string safeCopyCodeLabel = WebUtility.HtmlEncode( copy.CopyCodeLabel );
+        string safeShareWarning = WebUtility.HtmlEncode( copy.ShareWarning );
+        string safeTeamSignOff = WebUtility.HtmlEncode( copy.TeamSignOff );
+        // Escape for JS string literal inside onclick (digits only — still quote-safe).
+        string jsCodeText = codeText.Replace( "\\", "\\\\" ).Replace( "'", "\\'" );
 
-        StringBuilder html = new( capacity: 4096 );
-        html.Append( "<!DOCTYPE html><html lang=\"en\"><head>" );
+        StringBuilder html = new( capacity: 4600 );
+        html.Append( "<!DOCTYPE html><html lang=\"" ).Append( htmlLang ).Append( "\"><head>" );
         html.Append( "<meta charset=\"utf-8\">" );
         html.Append( "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" );
         html.Append( "<meta name=\"color-scheme\" content=\"light\">" );
@@ -122,24 +159,46 @@ public static class VerificationEmailContent
         html.Append( "<tr><td style=\"padding:20px 28px;\">" );
         html.Append( "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " );
         html.Append( "style=\"background-color:#FFF7F0;border:1px solid #FFD7B0;border-radius:12px;\">" );
-        html.Append( "<tr><td align=\"center\" style=\"padding:22px 16px;\">" );
+        html.Append( "<tr><td align=\"center\" style=\"padding:22px 16px 10px 16px;\">" );
         html.Append( "<p style=\"margin:0 0 8px 0;font-size:12px;font-weight:600;letter-spacing:0.06em;" );
-        html.Append( "text-transform:uppercase;color:#C45600;\">Verification code</p>" );
+        html.Append( "text-transform:uppercase;color:#C45600;\">" ).Append( safeCodeLabel ).Append( "</p>" );
         html.Append( "<p style=\"margin:0;font-size:36px;line-height:1.2;font-weight:700;letter-spacing:0.28em;" );
-        html.Append( "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#18130F;\" " );
-        html.Append( "aria-label=\"Verification code " ).Append( safeCodeText ).Append( "\">" );
-        html.Append( safeFormattedCode ).Append( "</p></td></tr></table></td></tr>" );
+        html.Append( "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#18130F;" );
+        html.Append( "-webkit-user-select:all;user-select:all;\" " );
+        html.Append( "aria-label=\"" ).Append( safeCodeLabel ).Append( ' ' ).Append( safeCodeText ).Append( "\">" );
+        html.Append( safeFormattedCode ).Append( "</p></td></tr>" );
+        html.Append( "<tr><td align=\"center\" style=\"padding:0 16px 20px 16px;\">" );
+        // Copy: works in many webmail clients; elsewhere the code stays selectable.
+        html.Append( "<a href=\"#\" role=\"button\" " );
+        html.Append( "onclick=\"(function(c){try{if(navigator.clipboard&&navigator.clipboard.writeText)" );
+        html.Append( "{navigator.clipboard.writeText(c);}else{var t=document.createElement('textarea');" );
+        html.Append( "t.value=c;document.body.appendChild(t);t.select();document.execCommand('copy');" );
+        html.Append( "document.body.removeChild(t);}}catch(e){}})('" ).Append( jsCodeText ).Append( "');return false;\" " );
+        html.Append( "style=\"display:inline-block;padding:10px 18px;border-radius:999px;background-color:#FF6B00;" );
+        html.Append( "color:#FFFFFF;font-size:14px;font-weight:600;line-height:1;text-decoration:none;" );
+        html.Append( "border:0;mso-padding-alt:10px 18px;\">" );
+        html.Append( safeCopyCodeLabel ).Append( "</a></td></tr></table></td></tr>" );
         html.Append( "<tr><td style=\"padding:0 28px 8px 28px;\">" );
         html.Append( "<p style=\"margin:0;font-size:14px;line-height:1.5;color:#6B635A;\">" );
-        html.Append( "Enter this code in the Principles app. Do not share it with anyone.</p></td></tr>" );
+        html.Append( safeShareWarning ).Append( "</p></td></tr>" );
         html.Append( "<tr><td style=\"padding:16px 28px 28px 28px;\">" );
         html.Append( "<p style=\"margin:0;font-size:13px;line-height:1.5;color:#8A8178;\">" );
         html.Append( safeSecurityNote ).Append( "</p></td></tr>" );
         html.Append( "<tr><td style=\"padding:0 28px 24px 28px;border-top:1px solid #F0EAE2;\">" );
         html.Append( "<p style=\"margin:20px 0 0 0;font-size:12px;line-height:1.5;color:#8A8178;\">" );
-        html.Append( "- The Principles team<br>" );
+        html.Append( safeTeamSignOff ).Append( "<br>" );
         html.Append( "<a href=\"https://principles.top\" style=\"color:#C45600;text-decoration:none;\">principles.top</a>" );
         html.Append( "</p></td></tr></table></td></tr></table></body></html>" );
         return html.ToString();
     }
+
+    private sealed record Copy(
+        string Subject,
+        string Headline,
+        string Intro,
+        string CodeLabel,
+        string CopyCodeLabel,
+        string ShareWarning,
+        string SecurityNote,
+        string TeamSignOff );
 }
