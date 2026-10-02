@@ -7,6 +7,10 @@ alwaysApply: true
 
 ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in the sibling `flutter-frontend-of-principles` repo (this folder is nested as `backend/` in the multi-root workspace).
 
+## Git
+
+- Host is **GitHub only** (`origin`). Do not fetch, push, or set defaults on Bitbucket or other remotes.
+
 ## Domain
 
 - **Users / profile** — auth, slogan, mission, road-guide flag. `User.UpdatedAt` is the profile sync stamp (`LastModified` on bootstrap/profile = `UpdatedAt ?? CreatedAt`). Email/password signup: `GET api/account/signupcode` (rejects if email already exists); forget-password: `GET api/account/code` (requires existing user). Both accept optional `language` (`uk`/`en`, default English), email a branded HTML+plain multipart verification message via `IEmailSender` / `VerificationEmailContent` (`HostEmail` = batsbohdan@gmail.com), and return `{ code }` for the same client confirm dialog pattern.

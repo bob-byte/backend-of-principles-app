@@ -1,45 +1,112 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+# Principles (backend)
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+ASP.NET Core WebAPI for the Principles habit/goal app.
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
+Official install page (Android, macOS, iOS, iPadOS): [principles.top](https://principles.top)
 
----
+Clients: [Flutter](https://github.com/bob-byte/flutter-frontend-of-principles) (primary rewrite) and [MAUI](https://github.com/bob-byte/maui).
 
-## Edit a file
+## Domain
 
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
+- **Users / profile** — auth (email, Apple, Google), slogan, mission, road-guide flag
+- **Goals** — user goals with optional notes (`goal` schema)
+- **Habits** — progress, frequency, reminders, areas of life (`hbt` / `arlf`)
+- **Tasks** — one-off work with schedule, reminders, repeat, and checklists (`tsk.TaskSubtasks`)
+- **Sync** — `GET api/sync/bootstrap` for first catch-up; `GET api/sync/changes?since=` for incremental peers (changed entities + `Deleted*Ids`; `RequiresFullBootstrap` when `since` is missing/older than 14 days)
+- **Reminders** — `GET api/reminder/all`; bootstrap/changes also return `GeneralReminders` + `UserHabitReminders`
+- **AI** — Helper chat, parse-task, titles, habit/goal recommendations, profile text suggestions (`AI_API_KEY` stays server-side)
+- **Silent sync push** — FCM data-only wakeups so other devices pull changes (`PUT api/device/push-token`)
 
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
+## Architecture
 
----
+Solution: `Mentor.SET.Backend.sln`
 
-## Create a file
+| Project | Role |
+|---------|------|
+| `SET.WebAPI` | Controllers, DTOs, helpers, Startup/Program, resources |
+| `SET.BusinessLogic` | Services (`Interfaces` / `Implementation`), AI, reminders, email |
+| `SET.DAL` (`SET.DataAccess`) | `AppDbContext`, entity configs, EF migrations |
+| `SET.Shared` | Entities, shared DTOs/extensions |
+| `SET.UnitTests` | Unit tests |
 
-Next, you’ll add a new file to this repository.
+PostgreSQL via EF Core. Schemas: `app`, `goal`, `hbt`, `arlf`, `tsk`. Prefer camelCase JSON DTOs in `SET.WebAPI/Models`; do not leak EF entities as API responses.
 
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
+## Tech stack
 
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
+- .NET SDK `10.0.101` (`global.json`; roll-forward `latestFeature`)
+- ASP.NET Core WebAPI (`net10.0`)
+- EF Core 10 + Npgsql / PostgreSQL
+- JWT Bearer auth
+- AutoMapper, Serilog, Swashbuckle, Newtonsoft.Json
+- AI: `Microsoft.Extensions.AI` + Microsoft Agent Framework (`ChatClientAgent`)
+- Outbound mail: MailKit (Gmail SMTP)
+- Optional FCM v1 silent sync push
 
----
+## Prerequisites
 
-## Clone a repository
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- PostgreSQL reachable with a connection string
+- Optional: Visual Studio 2022 or JetBrains Rider
 
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
+## Getting started
 
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
+1. Copy env template and fill secrets (never commit real values):
 
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+```bash
+cp SET.WebAPI/.env.example SET.WebAPI/.env
+```
+
+DEBUG loads `SET.WebAPI/.env` via DotNetEnv. Important variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DEFAULT_CONNECTION` | PostgreSQL (DEBUG) |
+| `HOSTINGER_CONNECTION` | PostgreSQL (Release / hosted) |
+| `GOOGLE_ANDROID_CLIENT_ID` / `GOOGLE_IOS_CLIENT_ID` | Google Sign-In token audience |
+| `HOST_EMAIL_PASSWORD` | Gmail App Password for verification emails |
+| `AI_API_KEY` | AI completions (server-side only) |
+| `PRINCIPLES_SERVER_JWT_SECRET` | JWT signing |
+| `FIREBASE_CREDENTIALS_JSON` / `FIREBASE_CREDENTIALS_PATH` | Optional FCM sync push (unset = disabled) |
+
+Do not put DB passwords or Google client IDs in `appsettings*.json`.
+
+2. Restore, migrate, run:
+
+```bash
+dotnet restore Mentor.SET.Backend.sln
+dotnet ef database update --project SET.DAL --startup-project SET.WebAPI
+dotnet run --project SET.WebAPI --launch-profile https
+```
+
+Swagger opens at `https://localhost:6001/swagger` (HTTP profile uses `http://localhost:6001`).
+
+### Common commands
+
+```bash
+# from backend/
+dotnet build Mentor.SET.Backend.sln
+dotnet test SET.UnitTests/SET.UnitTests.csproj
+dotnet ef migrations add <Name> --project SET.DAL --startup-project SET.WebAPI
+dotnet ef database update --project SET.DAL --startup-project SET.WebAPI
+```
+
+## Project structure
+
+```text
+Mentor.SET.Backend.sln
+SET.WebAPI/                 # HTTP API
+  Controllers/
+  Models/
+  Helpers/
+  Program.cs / Startup.cs
+SET.BusinessLogic/          # Domain services
+SET.DAL/                    # EF Core + Migrations/
+SET.Shared/                 # Entities and shared types
+SET.UnitTests/
+```
+
+## Notes
+
+- Git host is **GitHub only** (`origin`). Do not push to Bitbucket or other remotes.
+- Never commit `.env`, Firebase service-account JSON, or live secrets.
+- Nested task `subtasks`: `null`/omitted keeps existing rows; empty array clears them. Completing a subtask does not complete the parent task.
