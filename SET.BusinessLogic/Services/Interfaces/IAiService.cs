@@ -25,6 +25,14 @@ public interface IAiService
         RecommendHabitsContext context,
         CancellationToken cancellationToken = default );
 
+    Task<IReadOnlyList<ProfileTextSuggestionResult>> SuggestProfileTextAsync(
+        SuggestProfileTextContext context,
+        CancellationToken cancellationToken = default );
+
+    Task<IReadOnlyList<RecommendedGoalResult>> RecommendGoalsAsync(
+        RecommendGoalsContext context,
+        CancellationToken cancellationToken = default );
+
     Task<string> GenerateConversationTitleAsync(
         string userMessage,
         string? assistantMessage = null,
@@ -85,6 +93,48 @@ public sealed class RecommendedHabitResult
 {
     public string Name { get; init; } = string.Empty;
     public string ReasonToFollow { get; init; } = string.Empty;
+}
+
+public enum ProfileTextKind
+{
+    Slogan,
+    Mission
+}
+
+public sealed class SuggestProfileTextContext
+{
+    public ProfileTextKind Kind { get; init; } = ProfileTextKind.Slogan;
+    public string Culture { get; init; } = "uk";
+    public string? Name { get; init; }
+    public string? Gender { get; init; }
+    public string? Mission { get; init; }
+    public string? MainSlogan { get; init; }
+    public string? Draft { get; init; }
+    public string? Hint { get; init; }
+    public IReadOnlyList<string> Goals { get; init; } = Array.Empty<string>();
+}
+
+public sealed class ProfileTextSuggestionResult
+{
+    public string Text { get; init; } = string.Empty;
+    public string Reason { get; init; } = string.Empty;
+}
+
+public sealed class RecommendGoalsContext
+{
+    public string Culture { get; init; } = "uk";
+    public string? AreaOfLife { get; init; }
+    public IReadOnlyList<string> ExistingGoals { get; init; } = Array.Empty<string>();
+    public string? Draft { get; init; }
+    public string? Mission { get; init; }
+    public string? MainSlogan { get; init; }
+    public string Gender { get; init; } = "other";
+}
+
+public sealed class RecommendedGoalResult
+{
+    public string Name { get; init; } = string.Empty;
+    public string Reason { get; init; } = string.Empty;
 }
 
 public sealed class AiServiceException : Exception

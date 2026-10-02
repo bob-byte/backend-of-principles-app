@@ -80,6 +80,52 @@ public class AiTitleResponse
     public string Title { get; set; }
 }
 
+public class AiSuggestProfileTextRequest
+{
+    /// <summary>"slogan" or "mission".</summary>
+    public string Kind { get; set; }
+    public string Culture { get; set; }
+    public string Hint { get; set; }
+    public string Draft { get; set; }
+    public string Mission { get; set; }
+    public string MainSlogan { get; set; }
+    public List<string> Goals { get; set; }
+    public int? Gender { get; set; }
+}
+
+public class AiSuggestProfileTextResponse
+{
+    public List<AiProfileTextSuggestionDto> Suggestions { get; set; }
+}
+
+public class AiProfileTextSuggestionDto
+{
+    public string Text { get; set; }
+    public string Reason { get; set; }
+}
+
+public class AiRecommendGoalsRequest
+{
+    public string Culture { get; set; }
+    public string AreaOfLife { get; set; }
+    public List<string> ExistingGoals { get; set; }
+    public string Draft { get; set; }
+    public string Mission { get; set; }
+    public string MainSlogan { get; set; }
+    public int? Gender { get; set; }
+}
+
+public class AiRecommendGoalsResponse
+{
+    public List<AiRecommendedGoalDto> Goals { get; set; }
+}
+
+public class AiRecommendedGoalDto
+{
+    public string Name { get; set; }
+    public string Reason { get; set; }
+}
+
 public class AiConversationDto
 {
     public long Id { get; set; }

@@ -23,7 +23,7 @@ public class AiService : IAiService
     internal const int MaxHelperHabits = 8;
     internal const int MaxHelperOpenTasks = 8;
 
-    // MAUI AiChatService.SystemMessage base (helper chat only — not habit recommendations).
+    // MAUI AiChatService.SystemMessage base (helper chat only - not habit recommendations).
     private const string HelperSystemPromptBase =
         "You are a self-development helper, but you can answer at any question. " +
         "If the user asks a question unrelated to self-development, success and personal growth " +
@@ -39,11 +39,11 @@ public class AiService : IAiService
         "habits are small repeating actions that automate progress toward those goals; " +
         "tasks are one-off work, reminders, and checklists that free mental load so the user can focus on habits. " +
         "Today's habits and tasks belong together for daily execution. " +
-        "Prefer connecting advice to Goal → Habits → Results, and to time management that protects " +
+        "Prefer connecting advice to Goal -> Habits -> Results, and to time management that protects " +
         "consistency over intensity. When relevant, distinguish habits (recurring systems) from tasks " +
         "(finite to-dos). Do not invent app UI steps the user did not ask for. " +
         "Language and tone: reply in the same language as the user's latest message. " +
-        "Write like a fluent native speaker of that language in a natural chat — clear, warm, and concrete. " +
+        "Write like a fluent native speaker of that language in a natural chat - clear, warm, and concrete. " +
         "Match the user's register (casual when they are casual). " +
         "Never sound like a translated English life-coach script, corporate motivational poster, or textbook. " +
         "Avoid calques and stock slogans such as \"this is not about theory, this is about actions\", " +
@@ -249,6 +249,95 @@ public class AiService : IAiService
         return habits;
     }
 
+    public async Task<IReadOnlyList<ProfileTextSuggestionResult>> SuggestProfileTextAsync(
+        SuggestProfileTextContext? context,
+        CancellationToken cancellationToken = default )
+    {
+        context ??= new SuggestProfileTextContext();
+        string culture = LanguageName( context.Culture );
+        bool isMission = context.Kind == ProfileTextKind.Mission;
+        string subject = isMission ? "personal life mission" : "personal life motto or main slogan";
+        string proposedKind = isMission ? "mission" : "slogan";
+        string textGuidance = isMission
+            ? "Each Text must be a first-person mission statement: a clear life purpose that guides choices. One or two sentences, concrete and motivating, not a vague corporate vision."
+            : "Each Text must be a short guiding motto (one sentence, memorable). It should help the person act when motivation dips or temptations appear. Avoid cliches.";
+
+        string system = $"""
+            You help the user define a {subject} inside a habits-and-goals app.
+            Reply with JSON only (no markdown). The JSON object must contain an array named "Suggestions"
+            with exactly 3 objects. Each object has "Text" (the proposed {proposedKind})
+            and "Reason" (one short sentence explaining why it fits).
+            {textGuidance}
+            All Text and Reason values must be in the {culture} language,
+            regardless of the language of the user's personal information.
+            Do not invent fake biography; stay grounded in the provided context.
+            """;
+
+        List<AiChatMessage> messages = new()
+        {
+            new AiChatMessage( "system", system ),
+            new AiChatMessage( "user", BuildSuggestProfileTextUserPrompt( context, culture ) )
+        };
+
+        string content = await CompleteAsync(
+            messages,
+            jsonObject: true,
+            RecommendMaxCompletionTokens,
+            cancellationToken ).DefaultConfigureAwait();
+
+        IReadOnlyList<ProfileTextSuggestionResult> suggestions =
+            ParseProfileTextSuggestionsJson( content );
+        if (suggestions.Count == 0)
+        {
+            throw new AiServiceException( "AI returned no suggestions.", 502 );
+        }
+
+        return suggestions;
+    }
+
+    public async Task<IReadOnlyList<RecommendedGoalResult>> RecommendGoalsAsync(
+        RecommendGoalsContext? context,
+        CancellationToken cancellationToken = default )
+    {
+        context ??= new RecommendGoalsContext();
+        string culture = LanguageName( context.Culture );
+        string area = ( context.AreaOfLife ?? string.Empty ).Trim();
+        if (string.IsNullOrWhiteSpace( area ))
+        {
+            throw new AiServiceException( "AreaOfLifeIsRequired", 400 );
+        }
+
+        string system =
+            "You help the user define goals inside a habits-and-goals app. " +
+            "Reply with JSON only (no markdown). The JSON object must contain an array named \"Goals\" " +
+            "with exactly 4 objects. Each object has \"Name\" (a clear, motivating goal the user can pursue) " +
+            "and \"Reason\" (one short sentence explaining why it fits the selected area of life). " +
+            "Prefer identity-oriented or measurable goals. Avoid vague wishes. " +
+            "Do not recommend goals that duplicate the user's existing goals. " +
+            $"All Name and Reason values must be in the {culture} language, " +
+            "regardless of the language of the user's personal information.";
+
+        List<AiChatMessage> messages = new()
+        {
+            new AiChatMessage( "system", system ),
+            new AiChatMessage( "user", BuildRecommendGoalsUserPrompt( context, culture ) )
+        };
+
+        string content = await CompleteAsync(
+            messages,
+            jsonObject: true,
+            RecommendMaxCompletionTokens,
+            cancellationToken ).DefaultConfigureAwait();
+
+        IReadOnlyList<RecommendedGoalResult> goals = ParseRecommendedGoalsJson( content );
+        if (goals.Count == 0)
+        {
+            throw new AiServiceException( "AI returned no recommended goals.", 502 );
+        }
+
+        return goals;
+    }
+
     public async Task<string> GenerateConversationTitleAsync(
         string userMessage,
         string? assistantMessage = null,
@@ -318,7 +407,9 @@ public class AiService : IAiService
             title = title.Replace( "  ", " ", StringComparison.Ordinal );
         }
 
-        title = title.Trim( ' ', '"', '\'', '`', '*', '.', '!', '?', '«', '»' );
+        title = title.Trim().Trim( ' ', '"', '*', '.', '!', '?' );
+        title = title.Trim( '\'', '`' );
+        title = title.Trim( '\u00AB', '\u00BB' );
         if (title.Length > 80)
         {
             title = title[..80].Trim();
@@ -394,6 +485,231 @@ public class AiService : IAiService
         }
 
         return builder.ToString();
+    }
+
+    internal static string BuildSuggestProfileTextUserPrompt(
+        SuggestProfileTextContext context,
+        string culture )
+    {
+        bool isMission = context.Kind == ProfileTextKind.Mission;
+        StringBuilder builder = new();
+        builder.Append(
+            isMission
+                ? "Please suggest 3 personal life missions I can choose from. "
+                : "Please suggest 3 personal life mottos (main slogans) I can choose from. " );
+        builder.Append(
+            $"Your response must be only in the {culture} language, " +
+            "regardless of the language of my personal information. " );
+
+        if (!string.IsNullOrWhiteSpace( context.Name ))
+        {
+            builder.Append( $"My name is \"{context.Name.Trim()}\". " );
+        }
+
+        string gender = string.IsNullOrWhiteSpace( context.Gender ) ? "other" : context.Gender.Trim();
+        builder.Append( $"I am a {gender}. " );
+
+        if (!string.IsNullOrWhiteSpace( context.Hint ))
+        {
+            builder.Append( $"What matters to me: \"{context.Hint.Trim()}\". " );
+        }
+
+        if (!string.IsNullOrWhiteSpace( context.Draft ))
+        {
+            builder.Append(
+                isMission
+                    ? $"My current draft mission is: \"{context.Draft.Trim()}\". Improve or offer alternatives. "
+                    : $"My current draft slogan is: \"{context.Draft.Trim()}\". Improve or offer alternatives. " );
+        }
+
+        if (isMission && !string.IsNullOrWhiteSpace( context.MainSlogan ))
+        {
+            builder.Append( $"My main slogan is: \"{context.MainSlogan.Trim()}\". The mission should fit it. " );
+        }
+        else if (!isMission && !string.IsNullOrWhiteSpace( context.Mission ))
+        {
+            builder.Append( $"My mission is: \"{context.Mission.Trim()}\". The slogan should fit it. " );
+        }
+
+        IReadOnlyList<string> goals = context.Goals ?? Array.Empty<string>();
+        List<string> goalNames = goals
+            .Where( n => !string.IsNullOrWhiteSpace( n ) )
+            .Select( n => n.Trim() )
+            .Take( 12 )
+            .ToList();
+        if (goalNames.Count > 0)
+        {
+            builder.Append( "My goals: " );
+            builder.Append( string.Join( "; ", goalNames ) );
+            builder.Append( ". " );
+        }
+
+        return builder.ToString();
+    }
+
+    internal static string BuildRecommendGoalsUserPrompt(
+        RecommendGoalsContext context,
+        string culture )
+    {
+        StringBuilder builder = new();
+        string area = ( context.AreaOfLife ?? string.Empty ).Trim();
+        builder.Append(
+            $"Please recommend 4 goals for the \"{area}\" area of my life that I can select. " );
+        builder.Append(
+            $"Your response must be only in the {culture} language, " +
+            "regardless of the language of my personal information. " );
+
+        string gender = string.IsNullOrWhiteSpace( context.Gender ) ? "other" : context.Gender.Trim();
+        builder.Append( $"I am a {gender}. " );
+
+        if (!string.IsNullOrWhiteSpace( context.Mission ))
+        {
+            builder.Append( $"They shouldn't conflict with my mission: \"{context.Mission.Trim()}\". " );
+        }
+
+        if (!string.IsNullOrWhiteSpace( context.MainSlogan ))
+        {
+            builder.Append(
+                $"They also shouldn't conflict with my main slogan of life: \"{context.MainSlogan.Trim()}\". " );
+        }
+
+        if (!string.IsNullOrWhiteSpace( context.Draft ))
+        {
+            builder.Append(
+                $"My current draft goal is: \"{context.Draft.Trim()}\". Improve or offer alternatives. " );
+        }
+
+        IReadOnlyList<string> existing = context.ExistingGoals ?? Array.Empty<string>();
+        List<string> goalNames = existing
+            .Where( n => !string.IsNullOrWhiteSpace( n ) )
+            .Select( n => n.Trim() )
+            .Take( 20 )
+            .ToList();
+        if (goalNames.Count > 0)
+        {
+            builder.Append( "I already have these goals (do not repeat them): " );
+            builder.Append( string.Join( "; ", goalNames ) );
+            builder.Append( ". " );
+        }
+
+        return builder.ToString();
+    }
+
+    internal static IReadOnlyList<ProfileTextSuggestionResult> ParseProfileTextSuggestionsJson(
+        string content )
+    {
+        string json = ExtractJsonPayload( content );
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse( json );
+            JsonElement root = document.RootElement;
+            JsonElement suggestionsElement;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                suggestionsElement = root;
+            }
+            else if (root.ValueKind == JsonValueKind.Object &&
+                     TryGetPropertyIgnoreCase( root, "Suggestions", out suggestionsElement ) &&
+                     suggestionsElement.ValueKind == JsonValueKind.Array)
+            {
+                // suggestionsElement assigned
+            }
+            else
+            {
+                throw new AiServiceException( "AI returned an unexpected response.", 502 );
+            }
+
+            List<ProfileTextSuggestionResult> results = new();
+            foreach (JsonElement item in suggestionsElement.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                string text = ( ReadStringIgnoreCase( item, "Text" ) ??
+                                ReadStringIgnoreCase( item, "Suggestion" ) ??
+                                string.Empty ).Trim();
+                string reason = ( ReadStringIgnoreCase( item, "Reason" ) ??
+                                  ReadStringIgnoreCase( item, "ReasonToFollow" ) ??
+                                  string.Empty ).Trim();
+                if (string.IsNullOrWhiteSpace( text ))
+                {
+                    continue;
+                }
+
+                results.Add( new ProfileTextSuggestionResult
+                {
+                    Text = text,
+                    Reason = reason
+                } );
+            }
+
+            return results;
+        }
+        catch (JsonException ex)
+        {
+            Log.Error( ex, "Failed to parse AI profile text suggestions JSON" );
+            throw new AiServiceException( "AI returned an unexpected response.", 502 );
+        }
+    }
+
+    internal static IReadOnlyList<RecommendedGoalResult> ParseRecommendedGoalsJson( string content )
+    {
+        string json = ExtractJsonPayload( content );
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse( json );
+            JsonElement root = document.RootElement;
+            JsonElement goalsElement;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                goalsElement = root;
+            }
+            else if (root.ValueKind == JsonValueKind.Object &&
+                     TryGetPropertyIgnoreCase( root, "Goals", out goalsElement ) &&
+                     goalsElement.ValueKind == JsonValueKind.Array)
+            {
+                // goalsElement assigned
+            }
+            else
+            {
+                throw new AiServiceException( "AI returned an unexpected response.", 502 );
+            }
+
+            List<RecommendedGoalResult> results = new();
+            foreach (JsonElement item in goalsElement.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+
+                string name = ( ReadStringIgnoreCase( item, "Name" ) ??
+                                ReadStringIgnoreCase( item, "Text" ) ??
+                                string.Empty ).Trim();
+                string reason = ( ReadStringIgnoreCase( item, "Reason" ) ??
+                                  ReadStringIgnoreCase( item, "ReasonToFollow" ) ??
+                                  string.Empty ).Trim();
+                if (string.IsNullOrWhiteSpace( name ))
+                {
+                    continue;
+                }
+
+                results.Add( new RecommendedGoalResult
+                {
+                    Name = name,
+                    Reason = reason
+                } );
+            }
+
+            return results;
+        }
+        catch (JsonException ex)
+        {
+            Log.Error( ex, "Failed to parse AI recommended goals JSON" );
+            throw new AiServiceException( "AI returned an unexpected response.", 502 );
+        }
     }
 
     internal static IReadOnlyList<RecommendedHabitResult> ParseRecommendedHabitsJson( string content )
@@ -1101,7 +1417,7 @@ public class AiService : IAiService
                 System.Globalization.DateTimeStyles.RoundtripKind,
                 out DateTime parsed ))
         {
-            // Drop timezone suffix — treat the clock face as the user's local time.
+            // Drop timezone suffix - treat the clock face as the user's local time.
             bool hasTime = parsed.TimeOfDay != TimeSpan.Zero ||
                 text.Contains( 'T', StringComparison.Ordinal ) ||
                 text.Contains( ':', StringComparison.Ordinal );

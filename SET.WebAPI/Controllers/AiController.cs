@@ -145,6 +145,69 @@ public class AiController : BaseController
         }, request );
     }
 
+    [HttpPost( "suggest-profile-text" )]
+    public Task<IActionResult> SuggestProfileTextAsync( [FromBody] AiSuggestProfileTextRequest request )
+    {
+        return TryCatchAsync( async user =>
+        {
+            try
+            {
+                SuggestProfileTextContext context = await ToSuggestProfileTextContextAsync( request, user )
+                    .DefaultConfigureAwait();
+                IReadOnlyList<ProfileTextSuggestionResult> suggestions = await m_aiService
+                    .SuggestProfileTextAsync( context, HttpContext.RequestAborted )
+                    .DefaultConfigureAwait();
+
+                return Ok( new AiSuggestProfileTextResponse
+                {
+                    Suggestions = suggestions.Select( s => new AiProfileTextSuggestionDto
+                    {
+                        Text = s.Text,
+                        Reason = s.Reason
+                    } ).ToList()
+                } );
+            }
+            catch (AiServiceException ex)
+            {
+                return StatusCode( ex.StatusCode, new { error = ex.Message } );
+            }
+        }, request );
+    }
+
+    [HttpPost( "recommend-goals" )]
+    public Task<IActionResult> RecommendGoalsAsync( [FromBody] AiRecommendGoalsRequest request )
+    {
+        return TryCatchAsync( async user =>
+        {
+            try
+            {
+                RecommendGoalsContext context = await ToRecommendGoalsContextAsync( request, user )
+                    .DefaultConfigureAwait();
+                if (string.IsNullOrWhiteSpace( context.AreaOfLife ))
+                {
+                    return BadRequest( new { error = "AreaOfLifeIsRequired" } );
+                }
+
+                IReadOnlyList<RecommendedGoalResult> goals = await m_aiService
+                    .RecommendGoalsAsync( context, HttpContext.RequestAborted )
+                    .DefaultConfigureAwait();
+
+                return Ok( new AiRecommendGoalsResponse
+                {
+                    Goals = goals.Select( g => new AiRecommendedGoalDto
+                    {
+                        Name = g.Name,
+                        Reason = g.Reason
+                    } ).ToList()
+                } );
+            }
+            catch (AiServiceException ex)
+            {
+                return StatusCode( ex.StatusCode, new { error = ex.Message } );
+            }
+        }, request );
+    }
+
     private async Task<ChatUserContext> BuildChatUserContextAsync( User user )
     {
         List<string> habits = await LoadActiveHabitNamesAsync( user.Id, MaxChatActiveHabits )
@@ -204,6 +267,80 @@ public class AiController : BaseController
             MainSlogan = slogan,
             Gender = FormatRecommendGender( gender )
         };
+    }
+
+    private async Task<SuggestProfileTextContext> ToSuggestProfileTextContextAsync(
+        AiSuggestProfileTextRequest request,
+        User user )
+    {
+        string culture = string.IsNullOrWhiteSpace( request?.Culture )
+            ? "uk"
+            : request.Culture.Trim();
+
+        ProfileTextKind kind = ParseProfileTextKind( request?.Kind );
+        List<string> goals = SanitizeNames( request?.Goals );
+        if (goals.Count == 0)
+        {
+            goals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
+        }
+
+        Gender gender = request?.Gender is int value && Enum.IsDefined( typeof( Gender ), value )
+            ? (Gender)value
+            : user.Gender;
+
+        return new SuggestProfileTextContext
+        {
+            Kind = kind,
+            Culture = culture,
+            Name = NullIfEmpty( user.Name ),
+            Gender = FormatRecommendGender( gender ),
+            Mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission ),
+            MainSlogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan ),
+            Draft = NullIfEmpty( request?.Draft ),
+            Hint = NullIfEmpty( request?.Hint ),
+            Goals = goals
+        };
+    }
+
+    private async Task<RecommendGoalsContext> ToRecommendGoalsContextAsync(
+        AiRecommendGoalsRequest request,
+        User user )
+    {
+        string culture = string.IsNullOrWhiteSpace( request?.Culture )
+            ? "uk"
+            : request.Culture.Trim();
+
+        List<string> existingGoals = SanitizeNames( request?.ExistingGoals );
+        if (existingGoals.Count == 0)
+        {
+            existingGoals = await LoadGoalNamesAsync( user.Id ).DefaultConfigureAwait();
+        }
+
+        Gender gender = request?.Gender is int value && Enum.IsDefined( typeof( Gender ), value )
+            ? (Gender)value
+            : user.Gender;
+
+        return new RecommendGoalsContext
+        {
+            Culture = culture,
+            AreaOfLife = NullIfEmpty( request?.AreaOfLife ),
+            ExistingGoals = existingGoals,
+            Draft = NullIfEmpty( request?.Draft ),
+            Mission = NullIfEmpty( request?.Mission ) ?? NullIfEmpty( user.Mission ),
+            MainSlogan = NullIfEmpty( request?.MainSlogan ) ?? NullIfEmpty( user.MainSlogan ),
+            Gender = FormatRecommendGender( gender )
+        };
+    }
+
+    private static ProfileTextKind ParseProfileTextKind( string? raw )
+    {
+        string value = ( raw ?? string.Empty ).Trim().ToLowerInvariant();
+        if (value is "mission" or "missions")
+        {
+            return ProfileTextKind.Mission;
+        }
+
+        return ProfileTextKind.Slogan;
     }
 
     private async Task<List<string>> LoadActiveHabitNamesAsync( long userId, int? maxCount = null )
