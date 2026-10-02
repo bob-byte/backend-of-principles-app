@@ -20,11 +20,30 @@ public sealed class EmailSender : IEmailSender
         m_configuration = configuration;
     }
 
-    public async Task SendPlainTextAsync(
+    public Task SendPlainTextAsync(
         string toEmail,
         string subject,
         string body,
         CancellationToken cancellationToken = default )
+    {
+        return DeliverAsync( toEmail, subject, BuildPlainBody( body ), cancellationToken );
+    }
+
+    public Task SendAsync(
+        string toEmail,
+        string subject,
+        string plainTextBody,
+        string htmlBody,
+        CancellationToken cancellationToken = default )
+    {
+        return DeliverAsync( toEmail, subject, BuildMultipartBody( plainTextBody, htmlBody ), cancellationToken );
+    }
+
+    private async Task DeliverAsync(
+        string toEmail,
+        string subject,
+        MimeEntity body,
+        CancellationToken cancellationToken )
     {
         string fromEmail = ResolveFromEmail();
         string fromPassword = ResolvePassword();
@@ -32,7 +51,7 @@ public sealed class EmailSender : IEmailSender
         int port = int.TryParse( m_configuration["Smtp:Port"], out int configuredPort )
             ? configuredPort
             : 587;
-        string fromName = m_configuration["Smtp:FromName"] ?? "Principles app";
+        string fromName = m_configuration["Smtp:FromName"] ?? "Principles";
 
         SecureSocketOptions socketOptions = port == 465
             ? SecureSocketOptions.SslOnConnect
@@ -42,7 +61,7 @@ public sealed class EmailSender : IEmailSender
         message.From.Add( new MailboxAddress( fromName, fromEmail ) );
         message.To.Add( MailboxAddress.Parse( toEmail ) );
         message.Subject = subject;
-        message.Body = new TextPart( "plain" ) { Text = body };
+        message.Body = body;
 
         using SmtpClient client = new();
 #if DEBUG
@@ -55,6 +74,29 @@ public sealed class EmailSender : IEmailSender
         await client.AuthenticateAsync( fromEmail, fromPassword, cancellationToken ).ConfigureAwait( false );
         await client.SendAsync( message, cancellationToken ).ConfigureAwait( false );
         await client.DisconnectAsync( quit: true, cancellationToken ).ConfigureAwait( false );
+    }
+
+    private static TextPart BuildPlainBody( string plainTextBody )
+    {
+        return new TextPart( "plain" )
+        {
+            Text = plainTextBody,
+            ContentTransferEncoding = ContentEncoding.QuotedPrintable
+        };
+    }
+
+    private static MultipartAlternative BuildMultipartBody( string plainTextBody, string htmlBody )
+    {
+        // Plain first, HTML last so capable clients prefer HTML.
+        return new MultipartAlternative
+        {
+            BuildPlainBody( plainTextBody ),
+            new TextPart( "html" )
+            {
+                Text = htmlBody,
+                ContentTransferEncoding = ContentEncoding.QuotedPrintable
+            }
+        };
     }
 
     private string ResolveFromEmail()

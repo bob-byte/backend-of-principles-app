@@ -392,15 +392,63 @@ public class AccountController : BaseController
             #endregion
 
             int code = GenerateRandomCode();
-            await m_emailSender.SendPlainTextAsync(
-                toEmail: emailWhereSendCode,
-                subject: "Principles App: Your Verification Code",
-                body: $"Your verification code is: {code}.\n\nIf you did not request this code, please ignore this message." ).
-                DefaultConfigureAwait();
+            await SendVerificationEmailAsync(
+                emailWhereSendCode,
+                VerificationEmailContent.Purpose.PasswordReset,
+                code ).DefaultConfigureAwait();
 
             GenerateCodeResponse response = new( code );
             return Ok( response );
         } );
+    }
+
+    /// <summary>
+    /// Sends a signup verification code to an email that is not yet registered.
+    /// Used so new users prove they own the address before <c>POST authentication</c>.
+    /// </summary>
+    [HttpGet( "signupcode" )]
+    public Task<IActionResult> GenerateSignupCode( [FromQuery] string emailWhereSendCode )
+    {
+        return TryCatchAsync( async () =>
+        {
+            #region Check parameter
+            if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
+            {
+                return BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
+            }
+
+            bool isAlreadyRegistered = await DbContext.
+                Users.
+                AnyAsync( u => u.Email.ToLower() == emailWhereSendCode.ToLower() ).
+                DefaultConfigureAwait();
+            if (isAlreadyRegistered)
+            {
+                return BadRequest( "UserWithIdenticalEmailAlreadyExists" );
+            }
+            #endregion
+
+            int code = GenerateRandomCode();
+            await SendVerificationEmailAsync(
+                emailWhereSendCode,
+                VerificationEmailContent.Purpose.Signup,
+                code ).DefaultConfigureAwait();
+
+            GenerateCodeResponse response = new( code );
+            return Ok( response );
+        } );
+    }
+
+    private Task SendVerificationEmailAsync(
+        string toEmail,
+        VerificationEmailContent.Purpose purpose,
+        int code )
+    {
+        VerificationEmailContent.Message message = VerificationEmailContent.Build( purpose, code );
+        return m_emailSender.SendAsync(
+            toEmail: toEmail,
+            subject: message.Subject,
+            plainTextBody: message.PlainTextBody,
+            htmlBody: message.HtmlBody );
     }
 
     [HttpGet( "apikey" )]
