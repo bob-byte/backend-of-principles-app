@@ -10,6 +10,12 @@ namespace SET.WebAPI.Helpers;
 /// </summary>
 public sealed class RequestCallerLoggingMiddleware
 {
+    private static readonly HashSet<string> SilentEmails = new( StringComparer.OrdinalIgnoreCase )
+    {
+        "batsbohdan@gmail.com",
+        "bac.bogdan222@gmail.com",
+    };
+
     private readonly RequestDelegate m_next;
 
     public RequestCallerLoggingMiddleware( RequestDelegate next )
@@ -103,6 +109,11 @@ public sealed class RequestCallerLoggingMiddleware
                 Log.Warning( ex, "Could not resolve email for userId {UserId} after response", userId );
                 email = $"userId:{userId}";
             }
+        }
+
+        if (SilentEmails.Contains( email ))
+        {
+            return;
         }
 
         Log.Information(
