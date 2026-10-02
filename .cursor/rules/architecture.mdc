@@ -10,7 +10,7 @@ alwaysApply: true
 | Project | Role |
 |---------|------|
 | `SET.WebAPI` | Controllers, DTOs, helpers, Startup/Program, resources |
-| `SET.BusinessLogic` | Services (`Interfaces` / `Implementation`), AI, reminders |
+| `SET.BusinessLogic` | Services in feature folders under `Services/` (`Ai`, `Auth`, `Email`, `Push`, `Reminder`); interface sits next to its implementation; single `BusinessLogic` namespace |
 | `SET.DAL` (`SET.DataAccess`) | `AppDbContext`, entity configs, EF migrations |
 | `SET.Shared` | Entities, shared DTOs/extensions |
 | `SET.UnitTests` | Unit tests |
