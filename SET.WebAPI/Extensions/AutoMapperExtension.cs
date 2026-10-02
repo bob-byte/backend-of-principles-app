@@ -19,39 +19,49 @@ public static class AutoMapperExtension
 
     public static IServiceCollection AddAutoMapper(this IServiceCollection services)
     {
-        var mapperConfig = new MapperConfiguration(cfg =>
+        // Stay on AutoMapper 14.x (MIT) for free commercial use. 15+ requires a license.
+        var mapperConfig = new MapperConfiguration( cfg =>
         {
             cfg.CreateMap<User, Models.Profile>();
-            cfg.CreateMap<UserAreaOfLifeUserHabit, DtoWithId>().ForMember( destinationMember: dest => dest.Id, memberOptions: opt => opt.MapFrom( src => src.AreaOfLifeId ) );
+            cfg.CreateMap<UserAreaOfLifeUserHabit, DtoWithId>()
+                .ForMember(
+                    destinationMember: dest => dest.Id,
+                    memberOptions: opt => opt.MapFrom( src => src.AreaOfLifeId ) );
             cfg.CreateMap<SaveLogRequest, ClientLog>();
             cfg.CreateMap<Frequency, UserHabitInProgressShortDto.FrequencyDto>();
             cfg.CreateMap<ProgressOfHabit, ProgressOfHabitDto>();
-            cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>();
-            cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() ).ForMember( u => u.Reminders, opt => opt.Ignore() );
+            cfg.CreateMap<UserHabit, UserHabitInProgressShortDto>()
+                .ForMember( u => u.AreasOfLife, opt => opt.Ignore() )
+                .ForMember( u => u.Reminders, opt => opt.Ignore() );
             cfg.CreateMap<Frequency, EditUserHabitDto.FrequencyDto>();
             cfg.CreateMap<EditUserHabitDto.FrequencyDto, Frequency>();
             cfg.CreateMap<UserAreaOfLife, UserAreaOfLifeDto>();
-            cfg.CreateMap<UserHabit, EditUserHabitDto>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() ).ForMember( u => u.Reminders, opt => opt.Ignore() );
-            cfg.CreateMap<EditUserHabitDto, UserHabit>().ForMember( u => u.AreasOfLife, opt => opt.Ignore() ).ForMember( u => u.Reminders, opt => opt.Ignore() );
+            cfg.CreateMap<UserHabit, EditUserHabitDto>()
+                .ForMember( u => u.AreasOfLife, opt => opt.Ignore() )
+                .ForMember( u => u.Reminders, opt => opt.Ignore() );
+            cfg.CreateMap<EditUserHabitDto, UserHabit>()
+                .ForMember( u => u.AreasOfLife, opt => opt.Ignore() )
+                .ForMember( u => u.Reminders, opt => opt.Ignore() );
             cfg.CreateMap<UpdateProgressDto, ProgressOfHabit>();
             cfg.CreateMap<UserGoal, UserGoalDto>();
             cfg.CreateMap<UserGoalDto, UserGoal>();
             cfg.CreateMap<UserReminder, UserReminderDto>();
             cfg.CreateMap<UserReminderDto, UserReminder>();
             cfg.CreateMap<UserHabitReminder, UserHabitReminderDto>()
-                .ForMember( dest => dest.Offsets, opt => opt.MapFrom( src => DeserializeOffsets( src.OffsetsJson ) ) );
+                .ForMember(
+                    dest => dest.Offsets,
+                    opt => opt.MapFrom( src => DeserializeOffsets( src.OffsetsJson ) ) );
             cfg.CreateMap<UserHabitReminderDto, UserHabitReminder>()
-                .ForMember( dest => dest.OffsetsJson, opt => opt.MapFrom( src => SerializeOffsets( src.Offsets ) ) )
+                .ForMember(
+                    dest => dest.OffsetsJson,
+                    opt => opt.MapFrom( src => SerializeOffsets( src.Offsets ) ) )
                 .ForMember( dest => dest.Description, opt => opt.NullSubstitute( string.Empty ) )
                 .ForMember( dest => dest.Title, opt => opt.NullSubstitute( string.Empty ) );
             cfg.CreateMap<WeekDay, WeekDayDto>();
             cfg.CreateMap<WeekDayDto, WeekDay>();
         } );
 
-        IMapper mapper = mapperConfig.CreateMapper();
-        
-        services.AddSingleton(mapper);
-
+        services.AddSingleton( mapperConfig.CreateMapper() );
         return services;
     }
 
