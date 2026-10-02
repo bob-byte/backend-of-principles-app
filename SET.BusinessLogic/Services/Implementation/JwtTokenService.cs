@@ -26,6 +26,7 @@ public class JwtTokenService : IJwtTokenService
             Subject = new ClaimsIdentity( new Claim[]
             {
                 new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
                 new(ClaimTypes.Role, "FreeAccount")
             } ),
             Expires = DateTime.Today.AddDays(7),

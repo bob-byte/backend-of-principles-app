@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SET.WebAPI.Extensions;
+using SET.WebAPI.Helpers;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel;
@@ -108,6 +109,10 @@ public class Startup
         app.UseForwardedHeaders();
 
         app.UseAuthentication();
+
+#if !DEBUG
+        app.UseMiddleware<RequestCallerLoggingMiddleware>();
+#endif
 
         app.UseAuthorization();
 
