@@ -28,6 +28,16 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
+    public void BuildHelperSystemPrompt_IncludesActionsBlockProtocol()
+    {
+        string prompt = AiService.BuildHelperSystemPrompt( null );
+
+        Assert.Contains( "<<<ACTIONS>>>", prompt, StringComparison.Ordinal );
+        Assert.Contains( "<<<END>>>", prompt, StringComparison.Ordinal );
+        Assert.Contains( "type\":\"goal|habit|task|mission|slogan", prompt, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public void BuildHelperSystemPrompt_AppendsOpenTasks()
     {
         ChatUserContext context = new()

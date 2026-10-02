@@ -57,7 +57,15 @@ public class AiService : IAiService
         "For Ukrainian: use natural modern Ukrainian phrasing a native would actually say or write in chat, " +
         "not word-for-word translations from English or Ukrainian coach-speak. " +
         "Never invent names for the user's habits, goals, or tasks; only use names listed in this system message " +
-        "(or say you do not see any if none are listed).";
+        "(or say you do not see any if none are listed). " +
+        "When you recommend a concrete goal, habit, task, mission, or main slogan the user could add in the app, " +
+        "write your normal reply first, then append exactly one machine block the app can parse " +
+        "(do not mention the block to the user): " +
+        "<<<ACTIONS>>>[{\"type\":\"goal|habit|task|mission|slogan\",\"name\":\"...\",\"reason\":\"optional\"," +
+        "\"goalName\":\"optional habit parent goal\",\"title\":\"optional task title\",\"notes\":\"optional\"," +
+        "\"text\":\"mission or slogan text\"}]<<<END>>> " +
+        "Use type goal/habit/task/mission/slogan. Prefer name for goals/habits, title for tasks, text for mission/slogan. " +
+        "Omit the block when you are not recommending something addable. At most 5 actions.";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
