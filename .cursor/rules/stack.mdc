@@ -1,15 +1,16 @@
 ---
-description: .NET 8, EF Core, Npgsql, JWT, Serilog for Principles API
+description: .NET 10, EF Core, Npgsql, JWT, Serilog for Principles API
 alwaysApply: true
 ---
 
 # Stack
 
-- **.NET 8** (`net8.0`), ASP.NET Core WebAPI
-- **EF Core 8** + **Npgsql** / PostgreSQL
+- **.NET 10** (`net10.0`), ASP.NET Core WebAPI
+- **EF Core 10** + **Npgsql** / PostgreSQL
 - **JWT Bearer** auth on API controllers
 - **AutoMapper**, **Serilog**, **Swashbuckle**, **Newtonsoft.Json** on MVC
-- Local secrets: `DotNetEnv` loads env in DEBUG (`Program.CreateHostBuilder`); never commit real `AI_API_KEY` values
+- Local secrets: `DotNetEnv` loads `SET.WebAPI/.env` in DEBUG (`Program.CreateHostBuilder`); never commit real secrets. Copy from `SET.WebAPI/.env.example`. Env names are `UPPER_CASE`: `DEFAULT_CONNECTION` (DEBUG) / `HOSTINGER_CONNECTION` (Release), `GOOGLE_ANDROID_CLIENT_ID`, `GOOGLE_IOS_CLIENT_ID`, plus `HOST_EMAIL_PASSWORD`, `AI_API_KEY`, `PRINCIPLES_SERVER_JWT_SECRET` as needed. Never put DB passwords or Google client IDs in `appsettings*.json`
+- AI: `Microsoft.Extensions.AI` `IChatClient` (`Microsoft.Extensions.AI.OpenAI`) for structured completions (parse-task, recommend, suggest, title). Helper chat (`CompleteChatAsync` / `StreamChatAsync`) uses **Microsoft Agent Framework** `ChatClientAgent` (`Microsoft.Agents.AI`). `AI_API_KEY` stays server-side only
 - Outbound mail: **MailKit** via `IEmailSender` → Gmail `smtp.gmail.com:587` (STARTTLS). `SendAsync` sends multipart HTML+plain (verification templates in `VerificationEmailContent`); `SendPlainTextAsync` remains for plain-only. `HostEmail` is the Gmail address; `HostEmailPassword` / `HOST_EMAIL_PASSWORD` must be a Google App Password when 2FA is on
 - Migrations live in `SET.DAL/Migrations` (namespace `SET.DataAccess.Migrations`)
 
