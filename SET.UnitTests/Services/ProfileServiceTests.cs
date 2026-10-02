@@ -1,0 +1,141 @@
+using BusinessLogic;
+using SET.DataAccess;
+using SET.Shared.Models;
+using SET.UnitTests.TestSupport;
+
+namespace SET.UnitTests.Services;
+
+public class ProfileServiceTests
+{
+    private static (ProfileService service, AppDbContext db) CreateSut()
+    {
+        AppDbContext db = TestDb.Create();
+        return (new ProfileService( db, BusinessLogicMapper.Create() ), db);
+    }
+
+    [Fact]
+    public async Task GetProfile_maps_user_and_falls_back_to_created_at()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 4, "me@example.com", u =>
+        {
+            u.MainSlogan = "Slogan";
+            u.Mission = "Mission";
+            u.HasSeenRoadGuide = true;
+        } );
+
+        BusinessLogic.Models.Profile profile = service.GetProfile( user );
+
+        Assert.Equal( 4, profile.Id );
+        Assert.Equal( "me@example.com", profile.Email );
+        Assert.Equal( "Slogan", profile.MainSlogan );
+        Assert.Equal( "Mission", profile.Mission );
+        Assert.Equal( Gender.Woman, profile.Gender );
+        Assert.True( profile.HasSeenRoadGuide );
+        Assert.Equal( user.CreatedAt, profile.LastModified );
+
+        DateTime updated = new( 2026, 9, 1, 0, 0, 0, DateTimeKind.Utc );
+        user.UpdatedAt = updated;
+        Assert.Equal( updated, service.GetProfile( user ).LastModified );
+    }
+
+    [Theory]
+    [InlineData( null )]
+    [InlineData( "" )]
+    [InlineData( "  " )]
+    public async Task SaveNameAsync_rejects_blank_names( string? name )
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        TestData.AssertError( await service.SaveNameAsync( user, name! ), 400, "UserNameIsNullOrWhiteSpace" );
+        Assert.Null( user.UpdatedAt );
+    }
+
+    [Fact]
+    public async Task SaveNameAsync_saves_and_bumps_updated_at()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        ServiceResult result = await service.SaveNameAsync( user, "Alice" );
+
+        Assert.True( result.IsSuccess );
+        Assert.Equal( "Alice", (await db.Users.FindAsync( 1L ))!.Name );
+        Assert.NotNull( user.UpdatedAt );
+    }
+
+    [Fact]
+    public async Task SaveGenderAsync_rejects_undefined_values()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        TestData.AssertError( await service.SaveGenderAsync( user, (Gender)42 ), 400, "GenderIsInvalid" );
+
+        Assert.True( (await service.SaveGenderAsync( user, Gender.Man )).IsSuccess );
+        Assert.Equal( Gender.Man, user.Gender );
+    }
+
+    [Fact]
+    public async Task SaveMainSloganAsync_and_SaveHasSeenRoadGuideAsync_persist()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        await service.SaveMainSloganAsync( user, "Keep going" );
+        await service.SaveHasSeenRoadGuideAsync( user, true );
+
+        User stored = (await db.Users.FindAsync( 1L ))!;
+        Assert.Equal( "Keep going", stored.MainSlogan );
+        Assert.True( stored.HasSeenRoadGuide );
+        Assert.NotNull( stored.UpdatedAt );
+    }
+
+    [Fact]
+    public async Task SaveMissionAsync_renames_reminders_that_used_old_mission()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1, configure: u => u.Mission = "Old mission" );
+        await TestData.AddUserAsync( db, 2 );
+        UserHabit habit = await TestData.AddHabitAsync( db, 1, "Habit" );
+        UserHabit foreignHabit = await TestData.AddHabitAsync( db, 2, "Foreign" );
+        UserHabitReminder habitReminder = await TestData.AddHabitReminderAsync( db, habit.Id, "Old mission" );
+        UserHabitReminder foreignReminder = await TestData.AddHabitReminderAsync( db, foreignHabit.Id, "Old mission" );
+        UserReminder report = await TestData.AddUserReminderAsync( db, 1, 1, title: "Old mission", description: "Old mission" );
+
+        await service.SaveMissionAsync( user, "New mission" );
+
+        Assert.Equal( "New mission", user.Mission );
+        Assert.Equal( "New mission", habitReminder.Title );
+        Assert.Equal( "Old mission", foreignReminder.Title );
+        Assert.Equal( ("New mission", "New mission"), (report.Title, report.Description) );
+        Assert.NotNull( user.UpdatedAt );
+    }
+
+    [Fact]
+    public async Task SaveMissionAsync_only_renames_matching_report_fields()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1, configure: u => u.Mission = "Old mission" );
+        UserReminder report = await TestData.AddUserReminderAsync( db, 1, 1, title: "Daily", description: "Old mission" );
+
+        await service.SaveMissionAsync( user, "New mission" );
+
+        Assert.Equal( ("Daily", "New mission"), (report.Title, report.Description) );
+    }
+
+    [Fact]
+    public async Task SaveMissionAsync_without_previous_mission_only_sets_it()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+        UserHabit habit = await TestData.AddHabitAsync( db, 1, "Habit" );
+        UserHabitReminder reminder = await TestData.AddHabitReminderAsync( db, habit.Id, "Title" );
+
+        await service.SaveMissionAsync( user, "Mission" );
+
+        Assert.Equal( "Mission", user.Mission );
+        Assert.Equal( "Title", reminder.Title );
+    }
+}

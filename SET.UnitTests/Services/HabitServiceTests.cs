@@ -1,0 +1,294 @@
+using BusinessLogic;
+using BusinessLogic.Models;
+using Microsoft.EntityFrameworkCore;
+using SET.DataAccess;
+using SET.Shared.Models;
+using SET.UnitTests.TestSupport;
+
+namespace SET.UnitTests.Services;
+
+public class HabitServiceTests
+{
+    private static (HabitService service, AppDbContext db, RecordingSyncPushService push) CreateSut( string? dbName = null )
+    {
+        AppDbContext db = TestDb.Create( dbName );
+        RecordingSyncPushService push = new();
+        var mapper = BusinessLogicMapper.Create();
+        return (new HabitService( db, mapper, new ReminderService( db, mapper ), push ), db, push);
+    }
+
+    private static EditUserHabitDto NewHabitDto( string name = "Read" ) => new()
+    {
+        Name = name,
+        ColorName = "#123456",
+        Status = StatusOfHabit.InProgress,
+        Frequency = new EditUserHabitDto.FrequencyDto { Type = FrequencyType.EveryDay, Repeats = 1, IntervalLengthInDays = 1 },
+        AreasOfLife = Array.Empty<UserAreaOfLifeDto>(),
+    };
+
+    private static EditUserHabitDto ExistingHabitDto( UserHabit habit, string? name = null )
+    {
+        EditUserHabitDto dto = NewHabitDto( name ?? habit.Name );
+        dto.Id = habit.Id;
+        dto.ColorName = habit.ColorName;
+        dto.Frequency.Id = habit.FrequencyId;
+        return dto;
+    }
+
+    private static UserHabitReminderDto ReminderDto( params DayOfWeek[] days ) => new()
+    {
+        Title = "Reminder",
+        Description = "Do it",
+        Time = new TimeOnly( 9, 0 ),
+        IsEnabled = true,
+        DaysOfWeek = days.Select( d => new WeekDayDto { Type = d } ).ToArray(),
+    };
+
+    [Fact]
+    public async Task GetInProgressAsync_returns_users_active_habits_by_priority_with_reminder()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit second = await TestData.AddHabitAsync( db, 1, "Second", h => h.Priority = 2 );
+        await TestData.AddHabitAsync( db, 1, "First", h => h.Priority = 1 );
+        await TestData.AddHabitAsync( db, 1, "Archived", h => h.IsArchived = true );
+        await TestData.AddHabitAsync( db, 1, "Frozen", h => h.Status = StatusOfHabit.Frozen );
+        await TestData.AddHabitAsync( db, 2, "Foreign" );
+        await TestData.AddHabitReminderAsync( db, second.Id, "Ping", (DayOfWeek.Monday, 100) );
+
+        List<UserHabitInProgressShortDto> habits = await service.GetInProgressAsync( 1 );
+
+        Assert.Equal( new[] { "First", "Second" }, habits.Select( h => h.Name ) );
+        Assert.Null( habits[0].Reminders );
+        Assert.Equal( "Ping", Assert.Single( habits[1].Reminders ).Title );
+    }
+
+    [Fact]
+    public async Task GetArchivedAsync_returns_users_archived_habits_newest_first()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit older = await TestData.AddHabitAsync( db, 1, "Older", h => h.IsArchived = true );
+        UserHabit newer = await TestData.AddHabitAsync( db, 1, "Newer", h => h.IsArchived = true );
+        await TestData.AddHabitAsync( db, 1, "Active" );
+        await TestData.AddHabitAsync( db, 2, "Foreign", h => h.IsArchived = true );
+
+        List<ArchivedHabitResponse> habits = await service.GetArchivedAsync( 1 );
+
+        Assert.Equal( new[] { newer.Id, older.Id }, habits.Select( h => h.Id ) );
+    }
+
+    [Fact]
+    public async Task GetForEditAsync_returns_bad_request_when_missing()
+    {
+        (HabitService service, _, _) = CreateSut();
+
+        TestData.AssertError( await service.GetForEditAsync( 5 ), 400, "UserHabit is not found" );
+    }
+
+    [Fact]
+    public async Task GetForEditAsync_maps_habit_with_areas_and_reminder()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
+        UserAreaOfLife area = await TestData.AddAreaOfLifeAsync( db, 1, "Health" );
+        db.UserAreasOfLifeUserHabits.Add( new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = area.Id } );
+        await db.SaveChangesAsync();
+        await TestData.AddHabitReminderAsync( db, habit.Id, "Ping", (DayOfWeek.Tuesday, 120) );
+
+        ServiceResult<EditUserHabitDto> result = await service.GetForEditAsync( habit.Id );
+
+        Assert.Equal( "Read", result.Value!.Name );
+        Assert.Equal( "Health", Assert.Single( result.Value.AreasOfLife ).Name );
+        UserHabitReminderDto reminder = Assert.Single( result.Value.Reminders );
+        Assert.Equal( 120, Assert.Single( reminder.DaysOfWeek ).UserNotificationRequestId );
+    }
+
+    [Fact]
+    public async Task SetArchiveStatusAsync_toggles_habit_and_its_reminders()
+    {
+        (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
+        UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
+        UserHabitReminder reminder = await TestData.AddHabitReminderAsync( db, habit.Id, "Ping" );
+
+        await service.SetArchiveStatusAsync( new HabitArchiveStatus { HabitId = habit.Id, IsArchived = true }, "dev" );
+
+        Assert.True( habit.IsArchived );
+        Assert.False( reminder.IsEnabled );
+        Assert.Equal( habit.UpdatedAt, habit.ArchivingTime );
+
+        await service.SetArchiveStatusAsync( new HabitArchiveStatus { HabitId = habit.Id, IsArchived = false }, "dev" );
+
+        Assert.False( habit.IsArchived );
+        Assert.True( reminder.IsEnabled );
+        Assert.Null( habit.ArchivingTime );
+        Assert.Equal( 2, push.Requests.Count );
+    }
+
+    [Fact]
+    public async Task SaveAsync_rejects_null_habit_and_frequency()
+    {
+        (HabitService service, _, RecordingSyncPushService push) = CreateSut();
+
+        TestData.AssertError( await service.SaveAsync( 1, null!, null ), 400, "HabitIsNull" );
+
+        EditUserHabitDto noFrequency = NewHabitDto();
+        noFrequency.Frequency = null!;
+        TestData.AssertError( await service.SaveAsync( 1, noFrequency, null ), 400, "FrequencyIsNull" );
+        Assert.Empty( push.Requests );
+    }
+
+    // New-habit saves are not covered: EF InMemory writes generated keys onto the entity on Add,
+    // so AddOrUpdateAsync(habit.Frequency) turns into an Update. Npgsql keeps keys temporary.
+
+    [Fact]
+    public async Task SaveAsync_updates_existing_habit_frequency_and_other_priorities()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        AppDbContext seed = TestDb.Create( dbName );
+        UserHabit habit = await TestData.AddHabitAsync( seed, 1, "Old", h => h.Priority = 1 );
+        UserHabit other = await TestData.AddHabitAsync( seed, 1, "Other", h => h.Priority = 2 );
+        (HabitService service, _, RecordingSyncPushService push) = CreateSut( dbName );
+
+        EditUserHabitDto dto = ExistingHabitDto( habit, "New" );
+        dto.Priority = 2;
+        dto.Description = "desc";
+        dto.Frequency.Type = FrequencyType.SeveralTimesPerPeriod;
+        dto.PrioritizedHabits = new List<UserHabitWithPriority> { new() { Id = other.Id, Priority = 1 } };
+
+        ServiceResult<HabitSavedResponse> result = await service.SaveAsync( 1, dto, "dev" );
+
+        Assert.Equal( habit.Id, result.Value!.Id );
+        Assert.Equal( habit.FrequencyId, result.Value.FrequencyId );
+        AppDbContext check = TestDb.Create( dbName );
+        UserHabit stored = await check.UserHabits.Include( h => h.Frequency ).SingleAsync( h => h.Id == habit.Id );
+        Assert.Equal( "New", stored.Name );
+        Assert.Equal( "desc", stored.Description );
+        Assert.Equal( 2, stored.Priority );
+        Assert.NotNull( stored.UpdatedAt );
+        Assert.Equal( FrequencyType.SeveralTimesPerPeriod, stored.Frequency.Type );
+        Assert.Equal( 1, (await check.UserHabits.SingleAsync( h => h.Id == other.Id )).Priority );
+        Assert.Equal( "dev", Assert.Single( push.Requests ).OriginDeviceId );
+    }
+
+    [Theory]
+    [InlineData( null, "#1C1C1C" )]
+    [InlineData( "  ", "#1C1C1C" )]
+    [InlineData( "#ABCDEF", "#ABCDEF" )]
+    [InlineData( "#123456789ABCDEF", "#123456789" )]
+    public async Task SaveAsync_sanitizes_color_name( string? colorName, string expected )
+    {
+        string dbName = Guid.NewGuid().ToString();
+        UserHabit habit = await TestData.AddHabitAsync( TestDb.Create( dbName ), 1, "Read" );
+        (HabitService service, _, _) = CreateSut( dbName );
+        EditUserHabitDto dto = ExistingHabitDto( habit );
+        dto.ColorName = colorName!;
+
+        await service.SaveAsync( 1, dto, null );
+
+        Assert.Equal( expected, (await TestDb.Create( dbName ).UserHabits.SingleAsync()).ColorName );
+    }
+
+    [Fact]
+    public async Task SaveAsync_keeps_own_goal_and_drops_foreign_goal()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        AppDbContext seed = TestDb.Create( dbName );
+        UserGoal mine = await TestData.AddGoalAsync( seed, 1, "Mine" );
+        UserGoal theirs = await TestData.AddGoalAsync( seed, 2, "Theirs" );
+        UserHabit own = await TestData.AddHabitAsync( seed, 1, "Own" );
+        UserHabit foreign = await TestData.AddHabitAsync( seed, 1, "Foreign" );
+
+        EditUserHabitDto ownDto = ExistingHabitDto( own );
+        ownDto.Goal = new UserGoalDto { Id = mine.Id, Name = mine.Name };
+        EditUserHabitDto foreignDto = ExistingHabitDto( foreign );
+        foreignDto.Goal = new UserGoalDto { Id = theirs.Id, Name = theirs.Name };
+
+        await CreateSut( dbName ).service.SaveAsync( 1, ownDto, null );
+        await CreateSut( dbName ).service.SaveAsync( 1, foreignDto, null );
+
+        AppDbContext check = TestDb.Create( dbName );
+        Assert.Equal( mine.Id, (await check.UserHabits.FindAsync( own.Id ))!.GoalId );
+        Assert.Null( (await check.UserHabits.FindAsync( foreign.Id ))!.GoalId );
+    }
+
+    [Fact]
+    public async Task SaveAsync_new_reminders_get_notification_ids_from_tracking()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        UserHabit habit = await TestData.AddHabitAsync( TestDb.Create( dbName ), 1, "Read" );
+        (HabitService service, _, _) = CreateSut( dbName );
+        EditUserHabitDto dto = ExistingHabitDto( habit );
+        dto.Reminders = new List<UserHabitReminderDto> { ReminderDto( DayOfWeek.Monday, DayOfWeek.Wednesday ) };
+
+        ServiceResult<HabitSavedResponse> result = await service.SaveAsync( 1, dto, null );
+
+        ReminderIds reminder = Assert.Single( result.Value!.ReminderIds );
+        Assert.Equal( new[] { 100, 101 }, reminder.DaysOfWeek.Select( d => d.NotificationRequestId ).Order() );
+        AppDbContext check = TestDb.Create( dbName );
+        Assert.Equal( 101, (await check.TrackingOfUserNotificationRequests.SingleAsync()).MaxNotificationRequestId );
+        Assert.Equal( "Reminder", (await check.UserHabitReminders.SingleAsync()).Title );
+    }
+
+    [Fact]
+    public async Task SaveAsync_unlinks_areas_of_life_missing_from_request()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        AppDbContext seed = TestDb.Create( dbName );
+        UserHabit habit = await TestData.AddHabitAsync( seed, 1, "Read" );
+        UserAreaOfLife kept = await TestData.AddAreaOfLifeAsync( seed, 1, "Health" );
+        UserAreaOfLife removed = await TestData.AddAreaOfLifeAsync( seed, 1, "Work" );
+        seed.UserAreasOfLifeUserHabits.AddRange(
+            new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = kept.Id },
+            new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = removed.Id } );
+        await seed.SaveChangesAsync();
+
+        EditUserHabitDto dto = ExistingHabitDto( habit );
+        dto.AreasOfLife = new[] { new UserAreaOfLifeDto { Id = kept.Id, Name = kept.Name } };
+
+        await CreateSut( dbName ).service.SaveAsync( 1, dto, null );
+
+        UserAreaOfLifeUserHabit link = await TestDb.Create( dbName ).UserAreasOfLifeUserHabits.SingleAsync();
+        Assert.Equal( kept.Id, link.AreaOfLifeId );
+    }
+
+    [Fact]
+    public async Task ResetPrioritiesAsync_requires_two_habits()
+    {
+        (HabitService service, _, _) = CreateSut();
+
+        TestData.AssertError( await service.ResetPrioritiesAsync( 1, null! ), 400, "Habits with priorities are less than 2" );
+        TestData.AssertError(
+            await service.ResetPrioritiesAsync( 1, new List<UserHabitWithPriority> { new() { Id = 1, Priority = 1 } } ),
+            400,
+            "Habits with priorities are less than 2" );
+    }
+
+    [Fact]
+    public async Task ResetPrioritiesAsync_applies_priorities_to_users_habits()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit a = await TestData.AddHabitAsync( db, 1, "A", h => h.Priority = 1 );
+        UserHabit b = await TestData.AddHabitAsync( db, 1, "B", h => h.Priority = 2 );
+
+        ServiceResult result = await service.ResetPrioritiesAsync( 1, new List<UserHabitWithPriority>
+        {
+            new() { Id = a.Id, Priority = 2 },
+            new() { Id = b.Id, Priority = 1 },
+        } );
+
+        Assert.True( result.IsSuccess );
+        Assert.Equal( 2, a.Priority );
+        Assert.Equal( 1, b.Priority );
+    }
+
+    [Fact]
+    public async Task DeleteAsync_rejects_zero_and_foreign_habits()
+    {
+        (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
+        UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );
+
+        TestData.AssertError( await service.DeleteAsync( 1, 0, null ), 400, "HabitIdIsZero" );
+        TestData.AssertError( await service.DeleteAsync( 1, foreign.Id, null ), 404, $"HabitIsNotFoundWithId {foreign.Id}" );
+        Assert.Empty( push.Requests );
+        Assert.Empty( db.SyncDeletions );
+    }
+}
