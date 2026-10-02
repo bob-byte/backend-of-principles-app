@@ -84,14 +84,15 @@ public class SyncController : BaseController
 
             List<UserGoalDto> goals = await DbContext.UserGoals
                 .Where( g => g.UserId == user.Id
-                             && ( ( g.UpdatedAt ?? g.CreatedAt ) > sinceUtc ) )
+                             && ( ( g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt ) > sinceUtc ) )
                 .Select( g => new UserGoalDto
                 {
                     Id = g.Id,
                     Name = g.Name,
                     Notes = g.Notes,
                     IsCompleted = g.IsCompleted,
-                    LastModified = g.UpdatedAt ?? g.CreatedAt
+                    IsArchived = g.IsArchived,
+                    LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt
                 } )
                 .ToListAsync()
                 .DefaultConfigureAwait();
@@ -207,7 +208,8 @@ public class SyncController : BaseController
                 Name = g.Name,
                 Notes = g.Notes,
                 IsCompleted = g.IsCompleted,
-                LastModified = g.UpdatedAt ?? g.CreatedAt
+                IsArchived = g.IsArchived,
+                LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt
             } )
             .ToListAsync()
             .DefaultConfigureAwait();

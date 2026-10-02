@@ -20,19 +20,73 @@ public class GoalController : BaseController
         return TryCatchAsync( async (user) =>
         {
             List<UserGoalDto> userGoals = await DbContext.UserGoals.
-                Where( g => g.UserId == user.Id ).
+                Where( g => g.UserId == user.Id && !g.IsArchived ).
                 Select( g => new UserGoalDto
                 {
                     Id = g.Id,
                     Name = g.Name,
                     Notes = g.Notes,
                     IsCompleted = g.IsCompleted,
+                    IsArchived = g.IsArchived,
                     LastModified = g.UpdatedAt ?? g.CreatedAt
                 } ).
                 ToListAsync().
                 DefaultConfigureAwait();
 
             return Ok( userGoals );
+        } );
+    }
+
+    [HttpGet( template: "archive" )]
+    public Task<IActionResult> GetArchiveGoals()
+    {
+        return TryCatchAsync( async ( user ) =>
+        {
+            OkObjectResult result = Ok( await DbContext.UserGoals
+                .Where( g => g.IsArchived && g.UserId == user.Id )
+                .Select( g => new { g.Id, g.Name, g.IsCompleted, LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt } )
+                .OrderByDescending( g => g.Id )
+                .ToListAsync()
+                .DefaultConfigureAwait() );
+            return result;
+        } );
+    }
+
+    [HttpPost( template: "archivestatus" )]
+    public Task<IActionResult> SetGoalArchiveStatus( [FromBody] GoalArchiveStatus goalArchiveStatus )
+    {
+        return TryCatchAsync( async () =>
+        {
+            #region Check parameter
+            if (goalArchiveStatus is null)
+            {
+                return BadRequest( "GoalArchiveStatusIsNull" );
+            }
+
+            if (goalArchiveStatus.GoalId == 0)
+            {
+                return BadRequest( "GoalIdIsZero" );
+            }
+            #endregion
+
+            UserGoal? goal = await DbContext.UserGoals
+                .Where( g => g.Id == goalArchiveStatus.GoalId )
+                .FirstOrDefaultAsync()
+                .DefaultConfigureAwait();
+
+            if (goal is null)
+            {
+                return BadRequest( "GoalIsNotFound" );
+            }
+
+            goal.IsArchived = goalArchiveStatus.IsArchived;
+            goal.UpdatedAt = DateTime.UtcNow;
+            goal.ArchivingTime = goal.IsArchived ? goal.UpdatedAt : null;
+
+            await DbContext.SaveChangesAsync().DefaultConfigureAwait();
+            NotifyOtherDevices( goal.UserId );
+
+            return Ok();
         } );
     }
 
@@ -127,7 +181,9 @@ public class GoalController : BaseController
                     Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim(),
                     UserId = user.Id,
                     CreatedAt = DateTime.UtcNow,
-                    IsCompleted = userGoal.IsCompleted
+                    IsCompleted = userGoal.IsCompleted,
+                    IsArchived = userGoal.IsArchived,
+                    ArchivingTime = userGoal.IsArchived ? DateTime.UtcNow : null,
                 };
 
                 await DbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
@@ -155,7 +211,9 @@ public class GoalController : BaseController
                 existingGoal.Name = userGoal.Name;
                 existingGoal.Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim();
                 existingGoal.IsCompleted = userGoal.IsCompleted;
+                existingGoal.IsArchived = userGoal.IsArchived;
                 existingGoal.UpdatedAt = DateTime.UtcNow;
+                existingGoal.ArchivingTime = existingGoal.IsArchived ? existingGoal.UpdatedAt : null;
 
                 DbContext.UserGoals.Update( existingGoal );
                 await DbContext.SaveChangesAsync().DefaultConfigureAwait();

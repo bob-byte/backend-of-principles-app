@@ -40,6 +40,13 @@ internal class UserGoalConfigurations : IEntityTypeConfiguration<UserGoal>
             IsRequired().
             HasDefaultValue( false );
 
+        builder.Property( u => u.IsArchived ).
+            IsRequired().
+            HasDefaultValue( false );
+
+        builder.Property( u => u.ArchivingTime ).
+            IsRequired( false );
+
         builder.HasMany( u => u.UserHabits ).
             WithOne( u => u.Goal ).
             HasForeignKey( u => u.GoalId ).
