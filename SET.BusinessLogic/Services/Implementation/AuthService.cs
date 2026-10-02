@@ -110,9 +110,16 @@ public class AuthService : IAuthService
 
     private Task<GoogleJsonWebSignature.Payload> ValidateGoogleTokenAsync( string accessToken )
     {
-        string[] audience = new string[2];
-        audience[0] = m_configuration["Google:AndroidClientId"]!;
-        audience[1] = m_configuration["Google:iOSClientId"]!;
+        string? androidClientId = m_configuration["GOOGLE_ANDROID_CLIENT_ID"];
+        string? iosClientId = m_configuration["GOOGLE_IOS_CLIENT_ID"];
+        if (string.IsNullOrWhiteSpace( androidClientId ) || string.IsNullOrWhiteSpace( iosClientId ))
+        {
+            throw new InvalidOperationException(
+                "GOOGLE_ANDROID_CLIENT_ID / GOOGLE_IOS_CLIENT_ID are not set. " +
+                "Add them to SET.WebAPI/.env or the process environment." );
+        }
+
+        string[] audience = [ androidClientId, iosClientId ];
 
         GoogleJsonWebSignature.ValidationSettings validationSettings = new()
         {

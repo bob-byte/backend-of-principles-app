@@ -6,6 +6,8 @@ using Microsoft.Extensions.Hosting;
 
 using SET.WebAPI.Helpers;
 
+using System.IO;
+
 namespace SET.WebAPI;
 
 public static class Program
@@ -57,7 +59,12 @@ public static class Program
 #if DEBUG
             .ConfigureAppConfiguration( ( hostingContext, config ) =>
             {
-                Env.Load();
+                string envFile = Path.Combine( hostingContext.HostingEnvironment.ContentRootPath, ".env" );
+                if (File.Exists( envFile ))
+                {
+                    Env.Load( envFile );
+                }
+
                 config.AddEnvironmentVariables();
             } )
 #endif
