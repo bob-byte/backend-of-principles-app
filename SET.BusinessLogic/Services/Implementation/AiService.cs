@@ -1,14 +1,19 @@
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
-
-using System.IO;
+using OpenAI;
+using System.ClientModel;
+using System.ClientModel.Primitives;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
+using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using ChatResponseFormat = Microsoft.Extensions.AI.ChatResponseFormat;
+using ChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace BusinessLogic;
 
@@ -50,19 +55,21 @@ public class AiService : IAiService
         "\"clear steps\", \"own your journey\", or similar template praise. " +
         "Do not open with hollow pep-talk summaries of what the user already said; answer the question directly. " +
         "For Ukrainian: use natural modern Ukrainian phrasing a native would actually say or write in chat, " +
-        "not word-for-word translations from English or Russian coach-speak.";
+        "not word-for-word translations from English or Ukrainian coach-speak. " +
+        "Never invent names for the user's habits, goals, or tasks; only use names listed in this system message " +
+        "(or say you do not see any if none are listed).";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly HttpClient m_httpClient;
+    private readonly IChatClient m_chatClient;
     private readonly IConfiguration m_configuration;
 
-    public AiService( HttpClient httpClient, IConfiguration configuration )
+    public AiService( IChatClient chatClient, IConfiguration configuration )
     {
-        m_httpClient = httpClient;
+        m_chatClient = chatClient;
         m_configuration = configuration;
     }
 
@@ -71,31 +78,16 @@ public class AiService : IAiService
         ChatUserContext? userContext = null,
         CancellationToken cancellationToken = default )
     {
-        return await CompleteAsync(
-            BuildChatMessages( messages, userContext ),
-            jsonObject: false,
-            ChatMaxCompletionTokens,
-            cancellationToken ).DefaultConfigureAwait();
-    }
-
-    public async IAsyncEnumerable<string> StreamChatAsync(
-        IReadOnlyList<AiChatMessage> messages,
-        ChatUserContext? userContext = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default )
-    {
+        ResolveApiKey();
         List<AiChatMessage> sanitized = BuildChatMessages( messages, userContext );
+        ChatClientAgent agent = CreateHelperAgent( sanitized[0].Content );
+        List<ChatMessage> history = ToChatMessages( sanitized.Skip( 1 ).ToList() );
 
-        using HttpRequestMessage request = CreateCompletionRequest(
-            sanitized,
-            jsonObject: false,
-            ChatMaxCompletionTokens,
-            stream: true );
-
-        HttpResponseMessage response;
+        AgentResponse response;
         try
         {
-            response = await m_httpClient
-                .SendAsync( request, HttpCompletionOption.ResponseHeadersRead, cancellationToken )
+            response = await agent
+                .RunAsync( history, cancellationToken: cancellationToken )
                 .DefaultConfigureAwait();
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -107,44 +99,65 @@ public class AiService : IAiService
             Log.Error( ex, "OpenAI HTTP request failed" );
             throw new AiServiceException( "Could not reach the AI service.", 502 );
         }
-
-        using HttpResponseMessage openaiResponse = response;
-        if (!openaiResponse.IsSuccessStatusCode)
+        catch (ClientResultException ex)
         {
-            string body = await openaiResponse.Content.ReadAsStringAsync().DefaultConfigureAwait();
-            throw MapOpenAiError( (int)openaiResponse.StatusCode, body );
+            throw MapClientResultException( ex );
         }
 
-        await using Stream stream = await openaiResponse.Content.ReadAsStreamAsync().DefaultConfigureAwait();
-        using StreamReader reader = new( stream, Encoding.UTF8 );
-        bool yielded = false;
+        string content = response.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace( content ))
+        {
+            return content;
+        }
 
+        throw new AiServiceException( "AI returned an empty response.", 502 );
+    }
+
+    public async IAsyncEnumerable<string> StreamChatAsync(
+        IReadOnlyList<AiChatMessage> messages,
+        ChatUserContext? userContext = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default )
+    {
+        ResolveApiKey();
+        List<AiChatMessage> sanitized = BuildChatMessages( messages, userContext );
+        ChatClientAgent agent = CreateHelperAgent( sanitized[0].Content );
+        List<ChatMessage> history = ToChatMessages( sanitized.Skip( 1 ).ToList() );
+
+        IAsyncEnumerable<AgentResponseUpdate> updates = agent.RunStreamingAsync(
+            history,
+            cancellationToken: cancellationToken );
+
+        await using IAsyncEnumerator<AgentResponseUpdate> enumerator =
+            updates.GetAsyncEnumerator( cancellationToken );
+
+        bool yielded = false;
         while (true)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            string? line = await reader.ReadLineAsync().DefaultConfigureAwait();
-            if (line is null)
+            bool moved;
+            try
+            {
+                moved = await enumerator.MoveNextAsync().ConfigureAwait( false );
+            }
+            catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                throw new AiServiceException( "AI request timed out.", 504 );
+            }
+            catch (HttpRequestException ex)
+            {
+                Log.Error( ex, "OpenAI HTTP request failed" );
+                throw new AiServiceException( "Could not reach the AI service.", 502 );
+            }
+            catch (ClientResultException ex)
+            {
+                throw MapClientResultException( ex );
+            }
+
+            if (!moved)
             {
                 break;
             }
 
-            if (!line.StartsWith( "data:", StringComparison.Ordinal ))
-            {
-                continue;
-            }
-
-            string data = line["data:".Length..].Trim();
-            if (data.Length == 0)
-            {
-                continue;
-            }
-
-            if (data == "[DONE]")
-            {
-                break;
-            }
-
-            string? delta = ExtractStreamDelta( data );
+            string? delta = enumerator.Current.Text;
             if (string.IsNullOrEmpty( delta ))
             {
                 continue;
@@ -950,55 +963,63 @@ public class AiService : IAiService
         return builder.ToString();
     }
 
-    private HttpRequestMessage CreateCompletionRequest(
-        IReadOnlyList<AiChatMessage> messages,
-        bool jsonObject,
-        int maxCompletionTokens,
-        bool stream )
+    private ChatClientAgent CreateHelperAgent( string instructions )
     {
-        string apiKey = ResolveApiKey();
-        string model = ResolveModel();
+        ChatOptions options = CreateChatOptions(
+            jsonObject: false,
+            ChatMaxCompletionTokens );
+        options.Instructions = instructions;
 
-        var payload = new Dictionary<string, object?>
-        {
-            ["model"] = model,
-            ["messages"] = messages.Select( m => new Dictionary<string, string>
+        return new ChatClientAgent(
+            m_chatClient,
+            new ChatClientAgentOptions
             {
-                ["role"] = m.Role,
-                ["content"] = m.Content
-            } ).ToList(),
-            ["max_completion_tokens"] = maxCompletionTokens
+                Name = "principles-helper",
+                Description = "Self-development helper inside the Principles app (goals, habits, tasks).",
+                ChatOptions = options
+            } );
+    }
+
+    private ChatOptions CreateChatOptions( bool jsonObject, int maxCompletionTokens )
+    {
+        string model = ResolveModel();
+        ChatOptions options = new()
+        {
+            ModelId = model,
+            MaxOutputTokens = maxCompletionTokens,
+            ResponseFormat = jsonObject ? ChatResponseFormat.Json : null
         };
-
-        if (jsonObject)
-        {
-            payload["response_format"] = new Dictionary<string, string> { ["type"] = "json_object" };
-        }
-
-        if (stream)
-        {
-            payload["stream"] = true;
-        }
 
         if (model.StartsWith( "gpt-5", StringComparison.OrdinalIgnoreCase ))
         {
-            payload["reasoning_effort"] = "minimal";
+            // Preserve prior Chat Completions `reasoning_effort: minimal` for gpt-5*.
+#pragma warning disable OPENAI001 // ReasoningEffortLevel is experimental in the OpenAI SDK.
+            options.RawRepresentationFactory = _ => new OpenAI.Chat.ChatCompletionOptions
+            {
+                ReasoningEffortLevel = new OpenAI.Chat.ChatReasoningEffortLevel( "minimal" )
+            };
+#pragma warning restore OPENAI001
         }
 
-        HttpRequestMessage request = new( HttpMethod.Post, "chat/completions" )
+        return options;
+    }
+
+    private static List<ChatMessage> ToChatMessages( IReadOnlyList<AiChatMessage> messages )
+    {
+        List<ChatMessage> result = new( messages.Count );
+        foreach (AiChatMessage message in messages)
         {
-            Content = new StringContent(
-                JsonSerializer.Serialize( payload ),
-                Encoding.UTF8,
-                "application/json" )
-        };
-        request.Headers.Authorization = new AuthenticationHeaderValue( "Bearer", apiKey );
-        if (stream)
-        {
-            request.Headers.Accept.ParseAdd( "text/event-stream" );
+            ChatRole role = message.Role.ToLowerInvariant() switch
+            {
+                "system" => ChatRole.System,
+                "assistant" => ChatRole.Assistant,
+                "tool" => ChatRole.Tool,
+                _ => ChatRole.User
+            };
+            result.Add( new ChatMessage( role, message.Content ) );
         }
 
-        return request;
+        return result;
     }
 
     private async Task<string> CompleteAsync(
@@ -1007,16 +1028,15 @@ public class AiService : IAiService
         int maxCompletionTokens,
         CancellationToken cancellationToken )
     {
-        using HttpRequestMessage request = CreateCompletionRequest(
-            messages,
-            jsonObject,
-            maxCompletionTokens,
-            stream: false );
+        ResolveApiKey();
+        ChatOptions options = CreateChatOptions( jsonObject, maxCompletionTokens );
 
-        HttpResponseMessage response;
+        ChatResponse response;
         try
         {
-            response = await m_httpClient.SendAsync( request, cancellationToken ).DefaultConfigureAwait();
+            response = await m_chatClient
+                .GetResponseAsync( ToChatMessages( messages ), options, cancellationToken )
+                .DefaultConfigureAwait();
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -1027,24 +1047,56 @@ public class AiService : IAiService
             Log.Error( ex, "OpenAI HTTP request failed" );
             throw new AiServiceException( "Could not reach the AI service.", 502 );
         }
-
-        string body = await response.Content.ReadAsStringAsync().DefaultConfigureAwait();
-        using HttpResponseMessage _ = response;
-
-        if (!response.IsSuccessStatusCode)
+        catch (ClientResultException ex)
         {
-            throw MapOpenAiError( (int)response.StatusCode, body );
+            throw MapClientResultException( ex );
         }
 
-        return ExtractAssistantContent( body );
+        string content = response.Text?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace( content ))
+        {
+            return content;
+        }
+
+        string? finish = response.FinishReason?.ToString();
+        throw new AiServiceException(
+            string.Equals( finish, "Length", StringComparison.OrdinalIgnoreCase ) ||
+            string.Equals( finish, "length", StringComparison.OrdinalIgnoreCase )
+                ? "The model ran out of tokens before finishing. Try a shorter request."
+                : "AI returned an empty response.",
+            502 );
     }
 
-    private string ResolveApiKey()
+    public static IChatClient CreateChatClient( IConfiguration configuration )
+    {
+        // Allow host startup without AI configured; ResolveApiKey still gates requests.
+        string apiKey = FirstNonEmpty(
+            configuration["AI_API_KEY"],
+            configuration["OpenAi:ApiKey"],
+            configuration["AiApiKey"] ) ?? "missing";
+        if (apiKey == "123321")
+        {
+            apiKey = "missing";
+        }
+
+        string model = ResolveModel( configuration );
+        Uri endpoint = new( ResolveBaseUrl( configuration ) );
+
+        OpenAIClient openAi = new(
+            new ApiKeyCredential( apiKey ),
+            new OpenAIClientOptions { Endpoint = endpoint } );
+
+        return openAi.GetChatClient( model ).AsIChatClient();
+    }
+
+    private string ResolveApiKey() => ResolveApiKey( m_configuration );
+
+    private static string ResolveApiKey( IConfiguration configuration )
     {
         string? apiKey = FirstNonEmpty(
-            m_configuration["AI_API_KEY"],
-            m_configuration["OpenAi:ApiKey"],
-            m_configuration["AiApiKey"] );
+            configuration["AI_API_KEY"],
+            configuration["OpenAi:ApiKey"],
+            configuration["AiApiKey"] );
 
         if (string.IsNullOrWhiteSpace( apiKey ) || apiKey == "123321")
         {
@@ -1054,136 +1106,52 @@ public class AiService : IAiService
         return apiKey!;
     }
 
-    private string ResolveModel()
+    private string ResolveModel() => ResolveModel( m_configuration );
+
+    private static string ResolveModel( IConfiguration configuration )
     {
         return FirstNonEmpty(
-            m_configuration["OPENAI_MODEL"],
-            m_configuration["OpenAi:Model"],
+            configuration["OPENAI_MODEL"],
+            configuration["OpenAi:Model"],
             DefaultModel ) ?? DefaultModel;
     }
 
-    private static string ExtractAssistantContent( string body )
+    internal static string ResolveBaseUrl( IConfiguration configuration )
     {
-        JsonDocument document;
-        try
+        string baseUrl = FirstNonEmpty(
+            configuration["OpenAi:BaseUrl"],
+            "https://api.openai.com/v1/" ) ?? "https://api.openai.com/v1/";
+
+        if (!baseUrl.EndsWith( '/' ))
         {
-            document = JsonDocument.Parse( body );
-        }
-        catch (JsonException ex)
-        {
-            Log.Error( ex, "OpenAI returned non-JSON" );
-            throw new AiServiceException( "AI returned an unexpected response.", 502 );
+            baseUrl += "/";
         }
 
-        using JsonDocument _ = document;
-        JsonElement root = document.RootElement;
-
-        if (root.TryGetProperty( "error", out JsonElement errorElement ))
-        {
-            throw MapOpenAiError( 502, body );
-        }
-
-        if (!root.TryGetProperty( "choices", out JsonElement choices ) ||
-            choices.ValueKind != JsonValueKind.Array ||
-            choices.GetArrayLength() == 0)
-        {
-            throw new AiServiceException( "AI returned no choices.", 502 );
-        }
-
-        JsonElement first = choices[0];
-        string? content = null;
-        if (first.TryGetProperty( "message", out JsonElement message ) &&
-            message.TryGetProperty( "content", out JsonElement contentElement ))
-        {
-            content = contentElement.GetString();
-        }
-
-        content = content?.Trim();
-        if (string.IsNullOrWhiteSpace( content ))
-        {
-            string? finish = first.TryGetProperty( "finish_reason", out JsonElement finishElement )
-                ? finishElement.GetString()
-                : null;
-            throw new AiServiceException(
-                finish == "length"
-                    ? "The model ran out of tokens before finishing. Try a shorter request."
-                    : "AI returned an empty response.",
-                502 );
-        }
-
-        return content;
+        return baseUrl;
     }
 
-    internal static string? ExtractStreamDelta( string data )
+    private static AiServiceException MapClientResultException( ClientResultException ex )
     {
-        JsonDocument document;
+        string body = string.Empty;
         try
         {
-            document = JsonDocument.Parse( data );
+            PipelineResponse? raw = ex.GetRawResponse();
+            if (raw is not null)
+            {
+                body = raw.Content.ToString() ?? string.Empty;
+            }
         }
-        catch (JsonException)
+        catch
         {
-            return null;
+            // Fall back to exception message below.
         }
 
-        using (document)
+        if (string.IsNullOrWhiteSpace( body ))
         {
-            JsonElement root = document.RootElement;
-
-            if (root.TryGetProperty( "error", out _ ))
-            {
-                throw MapOpenAiError( 502, data );
-            }
-
-            if (!root.TryGetProperty( "choices", out JsonElement choices ) ||
-                choices.ValueKind != JsonValueKind.Array ||
-                choices.GetArrayLength() == 0)
-            {
-                return null;
-            }
-
-            JsonElement first = choices[0];
-            if (!first.TryGetProperty( "delta", out JsonElement delta ))
-            {
-                return null;
-            }
-
-            if (!delta.TryGetProperty( "content", out JsonElement contentElement ))
-            {
-                return null;
-            }
-
-            return ReadDeltaContent( contentElement );
-        }
-    }
-
-    private static string? ReadDeltaContent( JsonElement contentElement )
-    {
-        if (contentElement.ValueKind == JsonValueKind.String)
-        {
-            return contentElement.GetString();
+            body = ex.Message;
         }
 
-        if (contentElement.ValueKind != JsonValueKind.Array)
-        {
-            return null;
-        }
-
-        StringBuilder builder = new();
-        foreach (JsonElement part in contentElement.EnumerateArray())
-        {
-            if (part.ValueKind == JsonValueKind.String)
-            {
-                builder.Append( part.GetString() );
-            }
-            else if (part.ValueKind == JsonValueKind.Object &&
-                     part.TryGetProperty( "text", out JsonElement text ))
-            {
-                builder.Append( text.GetString() );
-            }
-        }
-
-        return builder.Length == 0 ? null : builder.ToString();
+        return MapOpenAiError( ex.Status, body );
     }
 
     private static AiServiceException MapOpenAiError( int statusCode, string body )
@@ -1231,6 +1199,7 @@ public class AiService : IAiService
 
         return null;
     }
+
 
     private static string ExtractJsonObject( string content )
     {

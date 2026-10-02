@@ -11,7 +11,7 @@ public class AiServiceHelperPromptTests
 
         Assert.Contains( "Principles app", prompt, StringComparison.Ordinal );
         Assert.Contains( "identity-oriented", prompt, StringComparison.Ordinal );
-        Assert.Contains( "Goal → Habits → Results", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Goal -> Habits -> Results", prompt, StringComparison.Ordinal );
         Assert.Contains( "finite to-dos", prompt, StringComparison.Ordinal );
         Assert.Contains( "consistency over intensity", prompt, StringComparison.Ordinal );
     }
@@ -39,6 +39,7 @@ public class AiServiceHelperPromptTests
 
         Assert.Contains( "Buy groceries; Call coach.", prompt, StringComparison.Ordinal );
         Assert.Contains( "not a full inbox", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Never invent names", prompt, StringComparison.Ordinal );
     }
 
     [Fact]

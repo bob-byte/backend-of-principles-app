@@ -1,6 +1,7 @@
 using BusinessLogic;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SET.WebAPI.Extensions;
@@ -60,30 +61,28 @@ public class Startup
         {
             string? connectionString;
 #if DEBUG
-            connectionString = Configuration.GetConnectionString( name: "DefaultConnection" );
+            connectionString = Configuration["DEFAULT_CONNECTION"];
 #else
-            connectionString = Configuration.GetConnectionString( "Hostinger" );
+            connectionString = Configuration["HOSTINGER_CONNECTION"];
 #endif
+            if (string.IsNullOrWhiteSpace( connectionString ))
+            {
+                throw new InvalidOperationException(
+#if DEBUG
+                    "DEFAULT_CONNECTION is not set. Add it to SET.WebAPI/.env or the process environment."
+#else
+                    "HOSTINGER_CONNECTION is not set. Set it in the process environment."
+#endif
+                );
+            }
+
             options.UseNpgsql( connectionString );
         });
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IReminderService, ReminderService>();
-        services.AddHttpClient<IAiService, AiService>( client =>
-        {
-            string baseUrl = Configuration["OpenAi:BaseUrl"];
-            if (string.IsNullOrWhiteSpace( baseUrl ))
-            {
-                baseUrl = "https://api.openai.com/v1/";
-            }
-            if (!baseUrl.EndsWith( '/' ))
-            {
-                baseUrl += "/";
-            }
-
-            client.BaseAddress = new Uri( baseUrl );
-            client.Timeout = TimeSpan.FromSeconds( 120 );
-        } );
+        services.AddChatClient( _ => AiService.CreateChatClient( Configuration ) );
+        services.AddScoped<IAiService, AiService>();
         services.AddSingleton<FcmCredentials>();
         services.AddHttpClient<IPushSender, FcmPushSender>( client => client.Timeout = TimeSpan.FromSeconds( 15 ) );
         services.AddSingleton<SyncPushDispatcher>();
