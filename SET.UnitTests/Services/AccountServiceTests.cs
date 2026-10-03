@@ -221,6 +221,22 @@ public class AccountServiceTests
     }
 
     [Fact]
+    public void GetEncryptedAiApiKey_throws_when_key_is_missing()
+    {
+        IConfiguration configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection( new Dictionary<string, string?>
+            {
+                ["EncryptionSettingsForAiApi:FirstKey"] = FirstKey,
+                ["EncryptionSettingsForAiApi:SecondKey"] = SecondKey,
+            } )
+            .Build();
+        AccountService service = new( m_db, m_auth.Object, m_jwt.Object, m_email.Object, configuration );
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>( () => service.GetEncryptedAiApiKey() );
+        Assert.Equal( "API key not found in configuration.", ex.Message );
+    }
+
+    [Fact]
     public async Task ChangePasswordAsync_validates_request()
     {
         await TestData.AddUserAsync( m_db, 1, "me@example.com" );

@@ -323,6 +323,10 @@ public class AccountService : IAccountService
     public EncryptedValueResponse GetEncryptedAiApiKey()
     {
         string? apiKey = m_configuration["AI_API_KEY"];
+        if (string.IsNullOrWhiteSpace( apiKey ))
+        {
+            throw new InvalidOperationException( "API key not found in configuration." );
+        }
 
         string? firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
                            m_configuration["EncryptionSettingsForAiApi:FirstKey"];
@@ -331,11 +335,6 @@ public class AccountService : IAccountService
                             m_configuration["EncryptionSettingsForAiApi:SecondKey"];
 
         string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
-
-        if (string.IsNullOrWhiteSpace( encryptedApiKey ))
-        {
-            throw new InvalidOperationException( "API key not found in configuration." );
-        }
 
         return new EncryptedValueResponse { Value = encryptedApiKey };
     }
