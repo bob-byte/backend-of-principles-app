@@ -12,5 +12,4 @@ public class UserAreaOfLife
     public string Name { get; set; }
     public User User { get; set; }
     public long UserId { get; set; }
-    public ICollection<UserAreaOfLifeUserHabit> Habits { get; set; }
 }

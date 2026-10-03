@@ -242,11 +242,10 @@ public class AccountService : IAccountService
         try
         {
             List<UserHabit> habits = await m_dbContext.UserHabits.Where( u => u.UserId == user.Id )
-                .Include( u => u.Frequency ).Include( u => u.Progresses ).Include( u => u.AreasOfLife )
+                .Include( u => u.Frequency ).Include( u => u.Progresses )
                 .AsSplitQuery().ToListAsync().DefaultConfigureAwait();
 
             m_dbContext.ProgressesOfHabits.RemoveRange( habits.SelectMany( u => u.Progresses ) );
-            m_dbContext.UserAreasOfLifeUserHabits.RemoveRange( habits.SelectMany( u => u.AreasOfLife ) );
             m_dbContext.UserHabits.RemoveRange( habits );
             m_dbContext.Frequencies.RemoveRange( habits.Select( u => u.Frequency ) );
 

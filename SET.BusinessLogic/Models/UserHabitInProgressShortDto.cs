@@ -14,7 +14,6 @@ public class UserHabitInProgressShortDto
     public long Id { get; set; }
     public string Name { get; set; }
     public TypeOfHabit Type { get; set; }
-    public IEnumerable<UserAreaOfLifeDto> AreasOfLife { get; set; }
     public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
     public FrequencyDto Frequency { get; set; }
     public int Complexity { get; set; }

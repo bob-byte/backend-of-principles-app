@@ -15,7 +15,7 @@ public interface IHabitService
     /// <summary>Also enables/disables the habit's reminders.</summary>
     Task<ServiceResult> SetArchiveStatusAsync( long userId, HabitArchiveStatus habitArchiveStatus, string? originDeviceId );
 
-    /// <summary>Creates the habit when <c>Id</c> is 0; otherwise updates it. Merges areas of life and reminders.</summary>
+    /// <summary>Creates the habit when <c>Id</c> is 0; otherwise updates it. Merges reminders.</summary>
     Task<ServiceResult<HabitSavedResponse>> SaveAsync( long userId, EditUserHabitDto habitDto, string? originDeviceId );
 
     Task<ServiceResult> ResetPrioritiesAsync( long userId, List<UserHabitWithPriority> habits );

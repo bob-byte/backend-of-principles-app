@@ -23,7 +23,6 @@ public class HabitServiceTests
         ColorName = "#123456",
         Status = StatusOfHabit.InProgress,
         Frequency = new EditUserHabitDto.FrequencyDto { Type = FrequencyType.EveryDay, Repeats = 1, IntervalLengthInDays = 1 },
-        AreasOfLife = Array.Empty<UserAreaOfLifeDto>(),
     };
 
     private static EditUserHabitDto ExistingHabitDto( UserHabit habit, string? name = null )
@@ -85,19 +84,15 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task GetForEditAsync_maps_habit_with_areas_and_reminder()
+    public async Task GetForEditAsync_maps_habit_with_reminder()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
-        UserAreaOfLife area = await TestData.AddAreaOfLifeAsync( db, 1, "Health" );
-        db.UserAreasOfLifeUserHabits.Add( new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = area.Id } );
-        await db.SaveChangesAsync();
         await TestData.AddHabitReminderAsync( db, habit.Id, "Ping", (DayOfWeek.Tuesday, 120) );
 
         ServiceResult<EditUserHabitDto> result = await service.GetForEditAsync( 1, habit.Id );
 
         Assert.Equal( "Read", result.Value!.Name );
-        Assert.Equal( "Health", Assert.Single( result.Value.AreasOfLife ).Name );
         UserHabitReminderDto reminder = Assert.Single( result.Value.Reminders );
         Assert.Equal( 120, Assert.Single( reminder.DaysOfWeek ).UserNotificationRequestId );
     }
@@ -293,28 +288,6 @@ public class HabitServiceTests
         AppDbContext check = TestDb.Create( dbName );
         Assert.Equal( 101, (await check.TrackingOfUserNotificationRequests.SingleAsync()).MaxNotificationRequestId );
         Assert.Equal( "Reminder", (await check.UserHabitReminders.SingleAsync()).Title );
-    }
-
-    [Fact]
-    public async Task SaveAsync_unlinks_areas_of_life_missing_from_request()
-    {
-        string dbName = Guid.NewGuid().ToString();
-        AppDbContext seed = TestDb.Create( dbName );
-        UserHabit habit = await TestData.AddHabitAsync( seed, 1, "Read" );
-        UserAreaOfLife kept = await TestData.AddAreaOfLifeAsync( seed, 1, "Health" );
-        UserAreaOfLife removed = await TestData.AddAreaOfLifeAsync( seed, 1, "Work" );
-        seed.UserAreasOfLifeUserHabits.AddRange(
-            new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = kept.Id },
-            new UserAreaOfLifeUserHabit { HabitId = habit.Id, AreaOfLifeId = removed.Id } );
-        await seed.SaveChangesAsync();
-
-        EditUserHabitDto dto = ExistingHabitDto( habit );
-        dto.AreasOfLife = new[] { new UserAreaOfLifeDto { Id = kept.Id, Name = kept.Name } };
-
-        await CreateSut( dbName ).service.SaveAsync( 1, dto, null );
-
-        UserAreaOfLifeUserHabit link = await TestDb.Create( dbName ).UserAreasOfLifeUserHabits.SingleAsync();
-        Assert.Equal( kept.Id, link.AreaOfLifeId );
     }
 
     [Fact]

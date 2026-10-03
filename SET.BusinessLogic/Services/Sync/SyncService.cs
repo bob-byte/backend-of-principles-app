@@ -260,14 +260,7 @@ public class SyncService : ISyncService
 
     private async Task<UserHabitInProgressShortDto> MapActiveHabitDtoAsync( UserHabit habit )
     {
-        List<UserAreaOfLife> areasOfLife = await m_dbContext.UserAreasOfLife
-            .Include( u => u.Habits )
-            .Where( u => u.Habits.Any( up => up.HabitId == habit.Id ) )
-            .ToListAsync()
-            .DefaultConfigureAwait();
-
         UserHabitInProgressShortDto habitDto = m_mapper.Map<UserHabitInProgressShortDto>( habit );
-        habitDto.AreasOfLife = m_mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
         habitDto.LastModified = habit.UpdatedAt ?? habit.CreatedAt;
 
         UserHabitReminder? reminder = await m_dbContext.UserHabitReminders

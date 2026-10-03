@@ -21,7 +21,6 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<UserAreaOfLife> UserAreasOfLife { get; set; }
-    public DbSet<UserAreaOfLifeUserHabit> UserAreasOfLifeUserHabits { get; set; }
     public DbSet<UserHabit> UserHabits { get; set; }
     public DbSet<ProgressOfHabit> ProgressesOfHabits { get; set; }
     public DbSet<Frequency> Frequencies { get; set; }
@@ -42,7 +41,6 @@ public class AppDbContext : DbContext
     {
         modelBuilder.ApplyConfiguration( new UserConfigurations() );
         modelBuilder.ApplyConfiguration( new FrequencyConfigurations() );
-        modelBuilder.ApplyConfiguration( new UserAreaOfLifeUserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new UserAreaOfLifeConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
@@ -58,10 +56,6 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new AiMessageConfiguration() );
         modelBuilder.ApplyConfiguration( new SyncDeletionConfigurations() );
         modelBuilder.ApplyConfiguration( new UserDeviceConfigurations() );
-
-        modelBuilder.HasSequence<long>( "sq__user_areas_of_life_user_habits", Schemas.AREA_OF_LIFE ).
-        StartsAt( 100 ).
-        IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).

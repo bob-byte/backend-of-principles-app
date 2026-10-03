@@ -40,7 +40,6 @@ public class HabitService : IHabitService
         foreach (UserHabit habit in listOfHabits)
         {
             UserHabitInProgressShortDto habitDto = m_mapper.Map<UserHabitInProgressShortDto>( habit );
-            habitDto.AreasOfLife = await LoadAreasOfLifeAsync( habit.Id ).DefaultConfigureAwait();
 
             UserHabitReminderDto? reminder = await LoadReminderAsync( habit.Id ).DefaultConfigureAwait();
             if (reminder is not null)
@@ -79,7 +78,6 @@ public class HabitService : IHabitService
         }
 
         EditUserHabitDto resultData = m_mapper.Map<EditUserHabitDto>( habit );
-        resultData.AreasOfLife = await LoadAreasOfLifeAsync( habitId ).DefaultConfigureAwait();
 
         UserHabitReminderDto? reminder = await LoadReminderAsync( habitId ).DefaultConfigureAwait();
         if (reminder is not null)
@@ -218,40 +216,6 @@ public class HabitService : IHabitService
 
             if (isNewHabit)
             {
-                if (habitDto.AreasOfLife?.Any() == true)
-                {
-                    foreach (UserAreaOfLifeDto area in habitDto.AreasOfLife)
-                    {
-                        await m_dbContext.UserAreasOfLifeUserHabits.AddAsync( new UserAreaOfLifeUserHabit
-                        {
-                            Habit = habit, AreaOfLifeId = area.Id
-                        } );
-                    }
-                }
-            }
-            else
-            {
-                UserAreaOfLifeDto[] sourceAreas = habitDto.AreasOfLife;
-
-                UserAreaOfLifeUserHabit[] targetAreasAndHabits = await m_dbContext.UserAreasOfLifeUserHabits
-                    .Where( u => u.HabitId == habit.Id ).ToArrayAsync().DefaultConfigureAwait();
-
-                await m_dbContext.UserAreasOfLifeUserHabits.MergeAsync(
-                    targetAreasAndHabits,
-                    sourceAreas,
-                    ( areasToInsert ) =>
-                    {
-                        return areasToInsert.Select(
-                            area => new UserAreaOfLifeUserHabit() { AreaOfLifeId = area.Id, HabitId = habit.Id }
-                        );
-                    },
-                    t => t.AreaOfLifeId,
-                    s => s.Id
-                );
-            }
-
-            if (isNewHabit)
-            {
                 await m_dbContext.UserHabits.AddOrUpdateAsync( habit ).DefaultConfigureAwait();
             }
             else
@@ -364,8 +328,6 @@ public class HabitService : IHabitService
             } );
             await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
 
-            await m_dbContext.UserAreasOfLifeUserHabits.Where( p => p.HabitId == habitId ).ExecuteDeleteAsync()
-                .DefaultConfigureAwait();
             await m_dbContext.UserHabits.Where( u => u.Id == habitId ).ExecuteDeleteAsync()
                 .DefaultConfigureAwait();
             await m_dbContext.Frequencies.Where( f => f.Id == habit.FrequencyId ).ExecuteDeleteAsync()
@@ -486,18 +448,6 @@ public class HabitService : IHabitService
         }
 
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
-    }
-
-    private async Task<UserAreaOfLifeDto[]> LoadAreasOfLifeAsync( long habitId )
-    {
-        List<UserAreaOfLife> areasOfLife = await m_dbContext.
-            UserAreasOfLife.
-            Include( u => u.Habits ).
-            Where( u => u.Habits.Any( up => up.HabitId == habitId ) ).
-            ToListAsync().
-            DefaultConfigureAwait();
-
-        return m_mapper.Map<UserAreaOfLifeDto[]>( areasOfLife );
     }
 
     private async Task<UserHabitReminderDto?> LoadReminderAsync( long habitId )
