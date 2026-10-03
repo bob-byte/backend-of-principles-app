@@ -52,7 +52,6 @@ public static class VerificationEmailContent
             Headline: "Confirm your email",
             Intro: "Welcome to Principles. Enter this code in the app to finish creating your account:",
             CodeLabel: "Verification code",
-            CopyCodeLabel: "Copy code",
             ShareWarning: "Enter this code in the Principles app. Do not share it with anyone.",
             SecurityNote:
             "If you did not try to sign up for Principles, you can ignore this email — no account will be created.",
@@ -62,7 +61,6 @@ public static class VerificationEmailContent
             Headline: "Reset your password",
             Intro: "Enter this code in the Principles app to continue resetting your password:",
             CodeLabel: "Verification code",
-            CopyCodeLabel: "Copy code",
             ShareWarning: "Enter this code in the Principles app. Do not share it with anyone.",
             SecurityNote:
             "If you did not request a password reset, you can ignore this email. Your password will stay the same.",
@@ -78,7 +76,6 @@ public static class VerificationEmailContent
             Intro:
             "Ласкаво просимо до Principles. Введіть цей код у додатку, щоб завершити створення облікового запису:",
             CodeLabel: "Код підтвердження",
-            CopyCodeLabel: "Копіювати код",
             ShareWarning: "Введіть цей код у додатку Principles. Нікому його не повідомляйте.",
             SecurityNote:
             "Якщо ви не намагалися зареєструватися в Principles, можете проігнорувати цей лист — обліковий запис не буде створено.",
@@ -88,7 +85,6 @@ public static class VerificationEmailContent
             Headline: "Скидання пароля",
             Intro: "Введіть цей код у додатку Principles, щоб продовжити скидання пароля:",
             CodeLabel: "Код підтвердження",
-            CopyCodeLabel: "Копіювати код",
             ShareWarning: "Введіть цей код у додатку Principles. Нікому його не повідомляйте.",
             SecurityNote:
             "Якщо ви не запитували скидання пароля, можете проігнорувати цей лист. Ваш пароль залишиться без змін.",
@@ -129,13 +125,10 @@ public static class VerificationEmailContent
         string safeCodeText = WebUtility.HtmlEncode( codeText );
         string safeSecurityNote = WebUtility.HtmlEncode( copy.SecurityNote );
         string safeCodeLabel = WebUtility.HtmlEncode( copy.CodeLabel );
-        string safeCopyCodeLabel = WebUtility.HtmlEncode( copy.CopyCodeLabel );
         string safeShareWarning = WebUtility.HtmlEncode( copy.ShareWarning );
         string safeTeamSignOff = WebUtility.HtmlEncode( copy.TeamSignOff );
-        // Escape for JS string literal inside onclick (digits only — still quote-safe).
-        string jsCodeText = codeText.Replace( "\\", "\\\\" ).Replace( "'", "\\'" );
 
-        StringBuilder html = new( capacity: 4600 );
+        StringBuilder html = new( capacity: 4200 );
         html.Append( "<!DOCTYPE html><html lang=\"" ).Append( htmlLang ).Append( "\"><head>" );
         html.Append( "<meta charset=\"utf-8\">" );
         html.Append( "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" );
@@ -159,25 +152,15 @@ public static class VerificationEmailContent
         html.Append( "<tr><td style=\"padding:20px 28px;\">" );
         html.Append( "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" " );
         html.Append( "style=\"background-color:#FFF7F0;border:1px solid #FFD7B0;border-radius:12px;\">" );
-        html.Append( "<tr><td align=\"center\" style=\"padding:22px 16px 10px 16px;\">" );
+        html.Append( "<tr><td align=\"center\" style=\"padding:22px 16px;\">" );
         html.Append( "<p style=\"margin:0 0 8px 0;font-size:12px;font-weight:600;letter-spacing:0.06em;" );
         html.Append( "text-transform:uppercase;color:#C45600;\">" ).Append( safeCodeLabel ).Append( "</p>" );
+        // Selectable digits — email clients block clipboard JS, so no copy button.
         html.Append( "<p style=\"margin:0;font-size:36px;line-height:1.2;font-weight:700;letter-spacing:0.28em;" );
         html.Append( "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#18130F;" );
         html.Append( "-webkit-user-select:all;user-select:all;\" " );
         html.Append( "aria-label=\"" ).Append( safeCodeLabel ).Append( ' ' ).Append( safeCodeText ).Append( "\">" );
-        html.Append( safeFormattedCode ).Append( "</p></td></tr>" );
-        html.Append( "<tr><td align=\"center\" style=\"padding:0 16px 20px 16px;\">" );
-        // Copy: works in many webmail clients; elsewhere the code stays selectable.
-        html.Append( "<a href=\"#\" role=\"button\" " );
-        html.Append( "onclick=\"(function(c){try{if(navigator.clipboard&&navigator.clipboard.writeText)" );
-        html.Append( "{navigator.clipboard.writeText(c);}else{var t=document.createElement('textarea');" );
-        html.Append( "t.value=c;document.body.appendChild(t);t.select();document.execCommand('copy');" );
-        html.Append( "document.body.removeChild(t);}}catch(e){}})('" ).Append( jsCodeText ).Append( "');return false;\" " );
-        html.Append( "style=\"display:inline-block;padding:10px 18px;border-radius:999px;background-color:#FF6B00;" );
-        html.Append( "color:#FFFFFF;font-size:14px;font-weight:600;line-height:1;text-decoration:none;" );
-        html.Append( "border:0;mso-padding-alt:10px 18px;\">" );
-        html.Append( safeCopyCodeLabel ).Append( "</a></td></tr></table></td></tr>" );
+        html.Append( safeFormattedCode ).Append( "</p></td></tr></table></td></tr>" );
         html.Append( "<tr><td style=\"padding:0 28px 8px 28px;\">" );
         html.Append( "<p style=\"margin:0;font-size:14px;line-height:1.5;color:#6B635A;\">" );
         html.Append( safeShareWarning ).Append( "</p></td></tr>" );
@@ -197,7 +180,6 @@ public static class VerificationEmailContent
         string Headline,
         string Intro,
         string CodeLabel,
-        string CopyCodeLabel,
         string ShareWarning,
         string SecurityNote,
         string TeamSignOff );

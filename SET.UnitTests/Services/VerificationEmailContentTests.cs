@@ -17,8 +17,8 @@ public sealed class VerificationEmailContentTests
         Assert.Contains( "123 456", message.HtmlBody );
         Assert.Contains( "lang=\"en\"", message.HtmlBody );
         Assert.Contains( "FF6B00", message.HtmlBody );
-        Assert.Contains( "Copy code", message.HtmlBody );
-        Assert.Contains( "navigator.clipboard.writeText", message.HtmlBody );
+        Assert.DoesNotContain( "Copy code", message.HtmlBody );
+        Assert.DoesNotContain( "navigator.clipboard", message.HtmlBody );
         Assert.DoesNotContain( "<script", message.HtmlBody );
     }
 
@@ -63,7 +63,7 @@ public sealed class VerificationEmailContentTests
         Assert.Contains( "обліковий запис не буде створено", message.PlainTextBody );
         Assert.Contains( "lang=\"uk\"", message.HtmlBody );
         Assert.Contains( "Код підтвердження", message.HtmlBody );
-        Assert.Contains( "Копіювати код", message.HtmlBody );
+        Assert.DoesNotContain( "Копіювати код", message.HtmlBody );
     }
 
     [Fact]
