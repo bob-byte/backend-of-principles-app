@@ -44,7 +44,7 @@ public class HabitServiceTests
     };
 
     [Fact]
-    public async Task GetInProgressAsync_returns_users_active_habits_by_priority_with_reminder()
+    public async Task GetInProgressAsync_ActiveHabits_ReturnsOrderedWithReminders()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit second = await TestData.AddHabitAsync( db, 1, "Second", h => h.Priority = 2 );
@@ -62,7 +62,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task GetArchivedAsync_returns_users_archived_habits_newest_first()
+    public async Task GetArchivedAsync_ArchivedHabits_ReturnsNewestFirst()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit older = await TestData.AddHabitAsync( db, 1, "Older", h => h.IsArchived = true );
@@ -76,7 +76,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task GetForEditAsync_returns_bad_request_when_missing()
+    public async Task GetForEditAsync_MissingHabit_ReturnsBadRequest()
     {
         (HabitService service, _, _) = CreateSut();
 
@@ -84,7 +84,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task GetForEditAsync_maps_habit_with_reminder()
+    public async Task GetForEditAsync_OwnedHabit_MapsWithReminder()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
@@ -98,7 +98,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SetArchiveStatusAsync_toggles_habit_and_its_reminders()
+    public async Task SetArchiveStatusAsync_OwnedHabit_TogglesArchiveAndReminders()
     {
         (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
@@ -119,7 +119,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task GetForEditAsync_hides_other_users_habit()
+    public async Task GetForEditAsync_OtherUsersHabit_ReturnsBadRequest()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );
@@ -128,7 +128,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SetArchiveStatusAsync_rejects_null_missing_and_foreign_habits()
+    public async Task SetArchiveStatusAsync_NullMissingOrForeign_ReturnsError()
     {
         (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );
@@ -150,7 +150,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_rejects_id_that_is_not_the_users_habit()
+    public async Task SaveAsync_OtherUsersHabitId_ReturnsNotFound()
     {
         string dbName = Guid.NewGuid().ToString();
         UserHabit foreign = await TestData.AddHabitAsync( TestDb.Create( dbName ), 2, "Foreign" );
@@ -165,7 +165,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_update_keeps_its_own_frequency_row()
+    public async Task SaveAsync_Update_KeepsOwnedFrequencyRow()
     {
         string dbName = Guid.NewGuid().ToString();
         AppDbContext seed = TestDb.Create( dbName );
@@ -186,7 +186,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_rejects_null_habit_and_frequency()
+    public async Task SaveAsync_NullHabitOrFrequency_ReturnsBadRequest()
     {
         (HabitService service, _, RecordingSyncPushService push) = CreateSut();
 
@@ -202,7 +202,7 @@ public class HabitServiceTests
     // so AddOrUpdateAsync(habit.Frequency) turns into an Update. Npgsql keeps keys temporary.
 
     [Fact]
-    public async Task SaveAsync_updates_existing_habit_frequency_and_other_priorities()
+    public async Task SaveAsync_ExistingHabit_UpdatesFrequencyAndPriorities()
     {
         string dbName = Guid.NewGuid().ToString();
         AppDbContext seed = TestDb.Create( dbName );
@@ -236,7 +236,7 @@ public class HabitServiceTests
     [InlineData( "  ", "#1C1C1C" )]
     [InlineData( "#ABCDEF", "#ABCDEF" )]
     [InlineData( "#123456789ABCDEF", "#123456789" )]
-    public async Task SaveAsync_sanitizes_color_name( string? colorName, string expected )
+    public async Task SaveAsync_InvalidColorName_SanitizesValue( string? colorName, string expected )
     {
         string dbName = Guid.NewGuid().ToString();
         UserHabit habit = await TestData.AddHabitAsync( TestDb.Create( dbName ), 1, "Read" );
@@ -250,7 +250,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_keeps_own_goal_and_drops_foreign_goal()
+    public async Task SaveAsync_ForeignGoalId_DropsLinkKeepsOwn()
     {
         string dbName = Guid.NewGuid().ToString();
         AppDbContext seed = TestDb.Create( dbName );
@@ -273,7 +273,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_new_reminders_get_notification_ids_from_tracking()
+    public async Task SaveAsync_NewReminders_AssignsNotificationRequestIds()
     {
         string dbName = Guid.NewGuid().ToString();
         UserHabit habit = await TestData.AddHabitAsync( TestDb.Create( dbName ), 1, "Read" );
@@ -291,7 +291,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task ResetPrioritiesAsync_requires_two_habits()
+    public async Task ResetPrioritiesAsync_FewerThanTwoHabits_ReturnsBadRequest()
     {
         (HabitService service, _, _) = CreateSut();
 
@@ -303,7 +303,7 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task ResetPrioritiesAsync_applies_priorities_to_users_habits()
+    public async Task ResetPrioritiesAsync_ValidPayload_AppliesPriorities()
     {
         (HabitService service, AppDbContext db, _) = CreateSut();
         UserHabit a = await TestData.AddHabitAsync( db, 1, "A", h => h.Priority = 1 );
@@ -321,7 +321,27 @@ public class HabitServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_rejects_zero_and_foreign_habits()
+    public async Task ResetPrioritiesAsync_PartialPayload_SkipsMissingHabits()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit a = await TestData.AddHabitAsync( db, 1, "A", h => h.Priority = 1 );
+        UserHabit b = await TestData.AddHabitAsync( db, 1, "B", h => h.Priority = 2 );
+        UserHabit c = await TestData.AddHabitAsync( db, 1, "C", h => h.Priority = 3 );
+
+        ServiceResult result = await service.ResetPrioritiesAsync( 1, new List<UserHabitWithPriority>
+        {
+            new() { Id = a.Id, Priority = 9 },
+            new() { Id = b.Id, Priority = 8 },
+        } );
+
+        Assert.True( result.IsSuccess );
+        Assert.Equal( 9, a.Priority );
+        Assert.Equal( 8, b.Priority );
+        Assert.Equal( 3, c.Priority );
+    }
+
+    [Fact]
+    public async Task DeleteAsync_ZeroOrForeignId_ReturnsError()
     {
         (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );

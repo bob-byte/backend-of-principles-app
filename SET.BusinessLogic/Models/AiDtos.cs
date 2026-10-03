@@ -5,8 +5,10 @@ namespace BusinessLogic.Models;
 
 public class AiChatRequest
 {
-    public List<AiChatMessageDto> Messages { get; set; }
-    public string Prompt { get; set; }
+    public List<AiChatMessageDto>? Messages { get; set; }
+
+    /// <summary>Optional; Flutter sends the latest turn inside <see cref="Messages"/> only.</summary>
+    public string? Prompt { get; set; }
 }
 
 public class AiChatMessageDto
@@ -25,7 +27,7 @@ public class AiParseTaskRequest
     public string Prompt { get; set; }
 
     /// Client local calendar date (<c>yyyy-MM-dd</c>) for relative dates.
-    public string LocalDate { get; set; }
+    public string? LocalDate { get; set; }
 
     /// Minutes east of UTC (e.g. Kyiv winter = 120).
     public int? UtcOffsetMinutes { get; set; }
@@ -72,7 +74,7 @@ public class AiRecommendedHabitDto
 public class AiTitleRequest
 {
     public string UserMessage { get; set; }
-    public string AssistantMessage { get; set; }
+    public string? AssistantMessage { get; set; }
 }
 
 public class AiTitleResponse

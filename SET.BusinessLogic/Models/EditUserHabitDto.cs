@@ -23,9 +23,11 @@ public class EditUserHabitDto
     public int Priority { get; set; }
     public string ColorName { get; set; }
     public UserGoalDto? Goal { get; set; }
-    public List<UserHabitWithPriority> PrioritizedHabits { get; set; }
-    public List<UserHabitReminderDto> Reminders { get; set; }
-    public IEnumerable<ProgressOfHabitDto> Progresses { get; set; }
+    public List<UserHabitWithPriority>? PrioritizedHabits { get; set; }
+    public List<UserHabitReminderDto>? Reminders { get; set; }
+
+    /// <summary>Optional; progress is written via <c>/progressesofhabit</c>, not habit save.</summary>
+    public IEnumerable<ProgressOfHabitDto>? Progresses { get; set; }
     public DateOnly? EndDate { get; set; }
     public TimeOnly? EndTime { get; set; }
     public bool AllDay { get; set; }

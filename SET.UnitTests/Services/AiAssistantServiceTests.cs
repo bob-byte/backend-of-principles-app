@@ -24,7 +24,7 @@ public class AiAssistantServiceTests
         } );
 
     [Fact]
-    public async Task PrepareChatAsync_requires_some_content()
+    public async Task PrepareChatAsync_EmptyContent_ReturnsPromptRequired()
     {
         User user = await AddUserAsync();
 
@@ -39,7 +39,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task PrepareChatAsync_appends_prompt_and_defaults_role()
+    public async Task PrepareChatAsync_MessagesAndPrompt_AppendsAndDefaultsRole()
     {
         User user = await AddUserAsync();
 
@@ -60,7 +60,25 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task PrepareChatAsync_builds_capped_user_context()
+    public async Task PrepareChatAsync_MessagesOnly_AcceptsWithoutPrompt()
+    {
+        // Flutter Helper posts only `messages` (latest user turn included).
+        User user = await AddUserAsync();
+
+        ServiceResult<AiChatSession> result = await CreateSut().PrepareChatAsync( user, new AiChatRequest
+        {
+            Messages = new List<AiChatMessageDto>
+            {
+                new() { Role = "user", Content = "hello" },
+            },
+        } );
+
+        Assert.Null( result.Error );
+        Assert.Equal( new[] { ("user", "hello") }, result.Value!.Messages.Select( m => (m.Role, m.Content) ) );
+    }
+
+    [Fact]
+    public async Task PrepareChatAsync_LargeLists_BuildsCappedUserContext()
     {
         User user = await AddUserAsync( Gender.Other );
         for (int i = 0; i < 10; i++)
@@ -89,7 +107,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task StreamChatAsync_forwards_session_to_ai_service()
+    public async Task StreamChatAsync_ValidSession_ForwardsToAiService()
     {
         AiChatSession session = new( new[] { new AiChatMessage( "user", "hi" ) }, new ChatUserContext() );
         m_ai.Setup( a => a.StreamChatAsync( session.Messages, session.UserContext, It.IsAny<CancellationToken>() ) )
@@ -105,7 +123,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task ParseTaskAsync_requires_prompt()
+    public async Task ParseTaskAsync_BlankPrompt_ReturnsPromptRequired()
     {
         ServiceResult<AiTaskDraftDto> result = await CreateSut().ParseTaskAsync( new AiParseTaskRequest { Prompt = " " }, default );
 
@@ -113,7 +131,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task ParseTaskAsync_caps_prompt_and_maps_draft()
+    public async Task ParseTaskAsync_LongPrompt_CapsAndMapsDraft()
     {
         string? sentPrompt = null;
         m_ai.Setup( a => a.ParseTaskDraftAsync( It.IsAny<string>(), "2026-10-02", 180, It.IsAny<CancellationToken>() ) )
@@ -142,7 +160,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task ParseTaskAsync_maps_ai_failures_to_status_and_error_body()
+    public async Task ParseTaskAsync_AiFailure_MapsStatusAndErrorBody()
     {
         m_ai.Setup( a => a.ParseTaskDraftAsync( It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<int?>(), It.IsAny<CancellationToken>() ) )
             .ThrowsAsync( new AiServiceException( "AiIsDown", 503 ) );
@@ -154,7 +172,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendHabitsAsync_falls_back_to_stored_habits_goals_and_profile()
+    public async Task RecommendHabitsAsync_EmptyRequest_FallsBackToStoredData()
     {
         User user = await AddUserAsync( Gender.Man );
         await TestData.AddHabitAsync( m_db, 1, "Read" );
@@ -176,7 +194,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendHabitsAsync_prefers_request_values()
+    public async Task RecommendHabitsAsync_RequestValues_PrefersThemOverStored()
     {
         User user = await AddUserAsync();
         await TestData.AddGoalAsync( m_db, 1, "Stored goal" );
@@ -203,7 +221,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendHabitsAsync_ignores_undefined_gender_from_request()
+    public async Task RecommendHabitsAsync_UndefinedGender_UsesUserGender()
     {
         User user = await AddUserAsync( Gender.Woman );
         RecommendHabitsContext? context = null;
@@ -217,18 +235,23 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task GenerateTitleAsync_requires_user_message_and_returns_title()
+    public async Task GenerateTitleAsync_ValidAndNullAssistant_ReturnsTitle()
     {
         AiAssistantService service = CreateSut();
         Assert.Equal( "PromptIsRequired", TestData.AiErrorMessage( (await service.GenerateTitleAsync( new AiTitleRequest(), default )).Error! ) );
 
         m_ai.Setup( a => a.GenerateConversationTitleAsync( "hello", "hi", It.IsAny<CancellationToken>() ) )
             .ReturnsAsync( "Greeting" );
+        m_ai.Setup( a => a.GenerateConversationTitleAsync( "solo", null, It.IsAny<CancellationToken>() ) )
+            .ReturnsAsync( "Solo" );
 
         ServiceResult<AiTitleResponse> result =
             await service.GenerateTitleAsync( new AiTitleRequest { UserMessage = " hello ", AssistantMessage = "hi" }, default );
+        ServiceResult<AiTitleResponse> nullAssistant =
+            await service.GenerateTitleAsync( new AiTitleRequest { UserMessage = "solo" }, default );
 
         Assert.Equal( "Greeting", result.Value!.Title );
+        Assert.Equal( "Solo", nullAssistant.Value!.Title );
     }
 
     [Theory]
@@ -236,7 +259,7 @@ public class AiAssistantServiceTests
     [InlineData( " Missions ", ProfileTextKind.Mission )]
     [InlineData( "slogan", ProfileTextKind.Slogan )]
     [InlineData( null, ProfileTextKind.Slogan )]
-    public async Task SuggestProfileTextAsync_parses_kind( string? kind, ProfileTextKind expected )
+    public async Task SuggestProfileTextAsync_VariousKinds_ParsesKind( string? kind, ProfileTextKind expected )
     {
         User user = await AddUserAsync();
         SuggestProfileTextContext? context = null;
@@ -253,7 +276,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendGoalsAsync_requires_area_of_life_without_calling_ai()
+    public async Task RecommendGoalsAsync_MissingAreaOfLife_ReturnsBadRequest()
     {
         User user = await AddUserAsync();
 
@@ -265,7 +288,7 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendGoalsAsync_uses_stored_goals_when_request_has_none()
+    public async Task RecommendGoalsAsync_EmptyExistingGoals_UsesStoredGoals()
     {
         User user = await AddUserAsync();
         await TestData.AddGoalAsync( m_db, 1, "Existing" );
