@@ -15,4 +15,5 @@ alwaysApply: false
 - Scope queries with `user.Id`; never trust client-supplied user ids for ownership
 - Prefer `DefaultConfigureAwait()` on awaited EF/async calls (project extension)
 - DTOs in `SET.BusinessLogic/Models` (`BusinessLogic.Models`); map with helpers or AutoMapper — do not return EF entities
+- Request DTO fields clients may omit or send as JSON `null` must be nullable (`string?`, `List<T>?`, …). `SET.BusinessLogic` has `<Nullable>enable</Nullable>`, so non-nullable refs are implicit `[Required]` and `[ApiController]` returns 400 before the action (Flutter chat omits `prompt`, habit save omits `progresses`, title may send null `assistantMessage`)
 - AI: keep prompts bounded; never expose `AI_API_KEY` to clients

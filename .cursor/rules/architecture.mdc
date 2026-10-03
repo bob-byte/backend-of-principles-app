@@ -37,5 +37,6 @@ Solution: `Mentor.SET.Backend.sln`.
 
 ## Tests
 
+- Unit test method names: `[MethodName]_[ConditionOrState]_[ExpectedBehavior]` with PascalCase segments (e.g. `Withdraw_AmountGreaterThanBalance_ThrowsException`, `SaveAsync_BlankNotes_StoresNull`)
 - EF InMemory has no transactions (warning ignored in `TestDb`) and no `ExecuteUpdate`/`ExecuteDelete`; those success paths (goal/habit/account delete, habit progress save) are not unit-testable there
 - InMemory writes generated keys onto entities on `Add`, unlike Npgsql temporary keys; seed with one `TestDb.Create(name)` context and act with another when the service relies on `Id == 0` checks
