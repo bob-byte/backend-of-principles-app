@@ -10,10 +10,10 @@ public interface IHabitService
 
     Task<List<ArchivedHabitResponse>> GetArchivedAsync( long userId );
 
-    Task<ServiceResult<EditUserHabitDto>> GetForEditAsync( long habitId );
+    Task<ServiceResult<EditUserHabitDto>> GetForEditAsync( long userId, long habitId );
 
     /// <summary>Also enables/disables the habit's reminders.</summary>
-    Task SetArchiveStatusAsync( HabitArchiveStatus habitArchiveStatus, string? originDeviceId );
+    Task<ServiceResult> SetArchiveStatusAsync( long userId, HabitArchiveStatus habitArchiveStatus, string? originDeviceId );
 
     /// <summary>Creates the habit when <c>Id</c> is 0; otherwise updates it. Merges areas of life and reminders.</summary>
     Task<ServiceResult<HabitSavedResponse>> SaveAsync( long userId, EditUserHabitDto habitDto, string? originDeviceId );

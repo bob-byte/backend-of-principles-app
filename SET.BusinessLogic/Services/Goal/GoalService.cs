@@ -44,7 +44,7 @@ public class GoalService : IGoalService
             .ToListAsync();
     }
 
-    public async Task<ServiceResult> SetArchiveStatusAsync( GoalArchiveStatus goalArchiveStatus, string? originDeviceId )
+    public async Task<ServiceResult> SetArchiveStatusAsync( long userId, GoalArchiveStatus goalArchiveStatus, string? originDeviceId )
     {
         #region Check parameter
         if (goalArchiveStatus is null)
@@ -59,7 +59,7 @@ public class GoalService : IGoalService
         #endregion
 
         UserGoal? goal = await m_dbContext.UserGoals
-            .Where( g => g.Id == goalArchiveStatus.GoalId )
+            .Where( g => g.Id == goalArchiveStatus.GoalId && g.UserId == userId )
             .FirstOrDefaultAsync()
             .DefaultConfigureAwait();
 
@@ -78,7 +78,7 @@ public class GoalService : IGoalService
         return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult> DeleteAsync( long goalId )
+    public async Task<ServiceResult> DeleteAsync( long userId, long goalId )
     {
         #region Check parameter
         if (goalId == 0)
@@ -87,7 +87,9 @@ public class GoalService : IGoalService
         }
         #endregion
 
-        UserGoal? goal = await m_dbContext.UserGoals.FindAsync( goalId ).DefaultConfigureAwait();
+        UserGoal? goal = await m_dbContext.UserGoals
+            .FirstOrDefaultAsync( g => g.Id == goalId && g.UserId == userId )
+            .DefaultConfigureAwait();
         if (goal is null)
         {
             return ServiceError.BadRequest( "GoalIsNotFound" );
@@ -97,7 +99,7 @@ public class GoalService : IGoalService
 
         try
         {
-            await m_dbContext.UserHabits.Where( u => u.GoalId == goalId )
+            await m_dbContext.UserHabits.Where( u => u.GoalId == goalId && u.UserId == userId )
                 .ExecuteUpdateAsync(
                     setPropDelegate => setPropDelegate
                         .SetProperty( c => c.GoalId, c => null )
@@ -136,7 +138,9 @@ public class GoalService : IGoalService
 
         UserGoal? existingGoal = userGoal.Id == 0
             ? null
-            : await m_dbContext.UserGoals.FindAsync( userGoal.Id ).DefaultConfigureAwait();
+            : await m_dbContext.UserGoals
+                .FirstOrDefaultAsync( g => g.Id == userGoal.Id && g.UserId == user.Id )
+                .DefaultConfigureAwait();
 
         if (existingGoal is null && userGoal.Id != 0)
         {
@@ -165,7 +169,7 @@ public class GoalService : IGoalService
         else
         {
             List<UserHabitReminder> remindersToUpdate = await m_dbContext.UserHabitReminders.
-                Where( h => h.Title == existingGoal.Name && existingGoal.UserId == user.Id ).
+                Where( h => h.Title == existingGoal.Name && h.UserHabit.UserId == user.Id ).
                 ToListAsync().
                 DefaultConfigureAwait();
 

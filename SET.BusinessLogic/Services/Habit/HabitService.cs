@@ -63,10 +63,10 @@ public class HabitService : IHabitService
             .ToListAsync();
     }
 
-    public async Task<ServiceResult<EditUserHabitDto>> GetForEditAsync( long habitId )
+    public async Task<ServiceResult<EditUserHabitDto>> GetForEditAsync( long userId, long habitId )
     {
         UserHabit? habit = await m_dbContext.UserHabits.
-            Where( u => u.Id == habitId ).
+            Where( u => u.Id == habitId && u.UserId == userId ).
             Include( u => u.Frequency ).
             Include( u => u.Goal ).
             Include( u => u.Progresses ).
@@ -90,12 +90,22 @@ public class HabitService : IHabitService
         return resultData;
     }
 
-    public async Task SetArchiveStatusAsync( HabitArchiveStatus habitArchiveStatus, string? originDeviceId )
+    public async Task<ServiceResult> SetArchiveStatusAsync( long userId, HabitArchiveStatus habitArchiveStatus, string? originDeviceId )
     {
-        UserHabit habit = (await m_dbContext.UserHabits
-            .Where( u => u.Id == habitArchiveStatus.HabitId )
+        if (habitArchiveStatus is null)
+        {
+            return ServiceError.BadRequest( "HabitArchiveStatusIsNull" );
+        }
+
+        UserHabit? habit = await m_dbContext.UserHabits
+            .Where( u => u.Id == habitArchiveStatus.HabitId && u.UserId == userId )
             .FirstOrDefaultAsync()
-            .DefaultConfigureAwait())!;
+            .DefaultConfigureAwait();
+
+        if (habit is null)
+        {
+            return ServiceError.NotFound( $"HabitIsNotFoundWithId {habitArchiveStatus.HabitId}" );
+        }
 
         habit.IsArchived = habitArchiveStatus.IsArchived;
 
@@ -114,6 +124,7 @@ public class HabitService : IHabitService
 
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
         m_syncPushService.NotifyOtherDevices( habit.UserId, originDeviceId );
+        return ServiceResult.Success;
     }
 
     public async Task<ServiceResult<HabitSavedResponse>> SaveAsync( long userId, EditUserHabitDto habitDto, string? originDeviceId )
@@ -149,12 +160,19 @@ public class HabitService : IHabitService
             UserHabit? habit = habitDto.Id == 0
                 ? null
                 : userHabitList.Find( h => h.Id == habitDto.Id );
+            if (habit is null && habitDto.Id != 0)
+            {
+                return ServiceError.NotFound( $"HabitIsNotFoundWithId {habitDto.Id}" );
+            }
+
             bool isNewHabit = habit == null;
 
             if (habit is null)
             {
                 habit = m_mapper.Map<UserHabit>( habitDto );
                 habit.UserId = userId;
+                habit.FrequencyId = 0;
+                habit.Frequency.Id = 0;
                 habit.Goal = null;
                 habit.GoalId = habitDto.Goal?.Id > 0 ? habitDto.Goal.Id : null;
                 habit.ColorName = SanitizeHabitColorName( habitDto.ColorName );
@@ -169,8 +187,8 @@ public class HabitService : IHabitService
             else
             {
                 habit.Name = habitDto.Name;
-                habit.FrequencyId = habitDto.Frequency.Id;
-                habit.Frequency = m_mapper.Map<Frequency>( habitDto.Frequency );
+                habit.Frequency = m_mapper.Map<Frequency>( habitDto.Frequency )!;
+                habit.Frequency.Id = habit.FrequencyId;
                 habit.ColorName = SanitizeHabitColorName( habitDto.ColorName );
                 habit.Description = habitDto.Description;
                 habit.Question = habitDto.Question;

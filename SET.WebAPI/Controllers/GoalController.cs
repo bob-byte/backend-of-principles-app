@@ -32,15 +32,15 @@ public class GoalController : BaseController
     [HttpPost( template: "archivestatus" )]
     public Task<IActionResult> SetGoalArchiveStatus( [FromBody] GoalArchiveStatus goalArchiveStatus )
     {
-        return TryCatchAsync( async () =>
-            ToActionResult( await m_goalService.SetArchiveStatusAsync( goalArchiveStatus, RequestDeviceId ).DefaultConfigureAwait() ) );
+        return TryCatchAsync( async ( User user ) =>
+            ToActionResult( await m_goalService.SetArchiveStatusAsync( user.Id, goalArchiveStatus, RequestDeviceId ).DefaultConfigureAwait() ) );
     }
 
     [HttpDelete( "{goalId}" )]
     public Task<IActionResult> Delete( long goalId )
     {
-        return TryCatchAsync( async () =>
-            ToActionResult( await m_goalService.DeleteAsync( goalId ).DefaultConfigureAwait() ) );
+        return TryCatchAsync( async ( User user ) =>
+            ToActionResult( await m_goalService.DeleteAsync( user.Id, goalId ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost(template: "{goalId}")]

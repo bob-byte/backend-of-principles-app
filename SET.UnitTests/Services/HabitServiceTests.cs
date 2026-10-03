@@ -81,7 +81,7 @@ public class HabitServiceTests
     {
         (HabitService service, _, _) = CreateSut();
 
-        TestData.AssertError( await service.GetForEditAsync( 5 ), 400, "UserHabit is not found" );
+        TestData.AssertError( await service.GetForEditAsync( 1, 5 ), 400, "UserHabit is not found" );
     }
 
     [Fact]
@@ -94,7 +94,7 @@ public class HabitServiceTests
         await db.SaveChangesAsync();
         await TestData.AddHabitReminderAsync( db, habit.Id, "Ping", (DayOfWeek.Tuesday, 120) );
 
-        ServiceResult<EditUserHabitDto> result = await service.GetForEditAsync( habit.Id );
+        ServiceResult<EditUserHabitDto> result = await service.GetForEditAsync( 1, habit.Id );
 
         Assert.Equal( "Read", result.Value!.Name );
         Assert.Equal( "Health", Assert.Single( result.Value.AreasOfLife ).Name );
@@ -109,18 +109,85 @@ public class HabitServiceTests
         UserHabit habit = await TestData.AddHabitAsync( db, 1, "Read" );
         UserHabitReminder reminder = await TestData.AddHabitReminderAsync( db, habit.Id, "Ping" );
 
-        await service.SetArchiveStatusAsync( new HabitArchiveStatus { HabitId = habit.Id, IsArchived = true }, "dev" );
+        await service.SetArchiveStatusAsync( 1, new HabitArchiveStatus { HabitId = habit.Id, IsArchived = true }, "dev" );
 
         Assert.True( habit.IsArchived );
         Assert.False( reminder.IsEnabled );
         Assert.Equal( habit.UpdatedAt, habit.ArchivingTime );
 
-        await service.SetArchiveStatusAsync( new HabitArchiveStatus { HabitId = habit.Id, IsArchived = false }, "dev" );
+        await service.SetArchiveStatusAsync( 1, new HabitArchiveStatus { HabitId = habit.Id, IsArchived = false }, "dev" );
 
         Assert.False( habit.IsArchived );
         Assert.True( reminder.IsEnabled );
         Assert.Null( habit.ArchivingTime );
         Assert.Equal( 2, push.Requests.Count );
+    }
+
+    [Fact]
+    public async Task GetForEditAsync_hides_other_users_habit()
+    {
+        (HabitService service, AppDbContext db, _) = CreateSut();
+        UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );
+
+        TestData.AssertError( await service.GetForEditAsync( 1, foreign.Id ), 400, "UserHabit is not found" );
+    }
+
+    [Fact]
+    public async Task SetArchiveStatusAsync_rejects_null_missing_and_foreign_habits()
+    {
+        (HabitService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
+        UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );
+        UserHabitReminder reminder = await TestData.AddHabitReminderAsync( db, foreign.Id, "Ping" );
+
+        TestData.AssertError( await service.SetArchiveStatusAsync( 1, null!, null ), 400, "HabitArchiveStatusIsNull" );
+        TestData.AssertError(
+            await service.SetArchiveStatusAsync( 1, new HabitArchiveStatus { HabitId = 404, IsArchived = true }, null ),
+            404,
+            "HabitIsNotFoundWithId 404" );
+        TestData.AssertError(
+            await service.SetArchiveStatusAsync( 1, new HabitArchiveStatus { HabitId = foreign.Id, IsArchived = true }, null ),
+            404,
+            $"HabitIsNotFoundWithId {foreign.Id}" );
+
+        Assert.False( foreign.IsArchived );
+        Assert.True( reminder.IsEnabled );
+        Assert.Empty( push.Requests );
+    }
+
+    [Fact]
+    public async Task SaveAsync_rejects_id_that_is_not_the_users_habit()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        UserHabit foreign = await TestData.AddHabitAsync( TestDb.Create( dbName ), 2, "Foreign" );
+        (HabitService service, _, RecordingSyncPushService push) = CreateSut( dbName );
+
+        ServiceResult<HabitSavedResponse> result = await service.SaveAsync( 1, ExistingHabitDto( foreign, "Hijacked" ), null );
+
+        TestData.AssertError( result, 404, $"HabitIsNotFoundWithId {foreign.Id}" );
+        UserHabit stored = await TestDb.Create( dbName ).UserHabits.SingleAsync();
+        Assert.Equal( (2L, "Foreign"), (stored.UserId, stored.Name) );
+        Assert.Empty( push.Requests );
+    }
+
+    [Fact]
+    public async Task SaveAsync_update_keeps_its_own_frequency_row()
+    {
+        string dbName = Guid.NewGuid().ToString();
+        AppDbContext seed = TestDb.Create( dbName );
+        UserHabit mine = await TestData.AddHabitAsync( seed, 1, "Mine" );
+        UserHabit foreign = await TestData.AddHabitAsync( seed, 2, "Foreign" );
+        (HabitService service, _, _) = CreateSut( dbName );
+
+        EditUserHabitDto dto = ExistingHabitDto( mine );
+        dto.Frequency.Id = foreign.FrequencyId;
+        dto.Frequency.Type = FrequencyType.SeveralTimesPerPeriod;
+
+        ServiceResult<HabitSavedResponse> result = await service.SaveAsync( 1, dto, null );
+
+        Assert.Equal( mine.FrequencyId, result.Value!.FrequencyId );
+        AppDbContext check = TestDb.Create( dbName );
+        Assert.Equal( FrequencyType.SeveralTimesPerPeriod, (await check.Frequencies.FindAsync( mine.FrequencyId ))!.Type );
+        Assert.Equal( FrequencyType.EveryDay, (await check.Frequencies.FindAsync( foreign.FrequencyId ))!.Type );
     }
 
     [Fact]

@@ -32,18 +32,15 @@ public class HabitController : BaseController
     [HttpGet(template: "{habitId}")]
     public Task<IActionResult> Load( long habitId )
     {
-        return TryCatchAsync( async () =>
-            ToActionResult( await m_habitService.GetForEditAsync( habitId ).DefaultConfigureAwait() ) );
+        return TryCatchAsync( async ( User user ) =>
+            ToActionResult( await m_habitService.GetForEditAsync( user.Id, habitId ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost( template: "archivestatus" )]
     public Task<IActionResult> SetHabitArchiveStatus( [FromBody] HabitArchiveStatus habitArchiveStatus )
     {
-        return TryCatchAsync( async () =>
-        {
-            await m_habitService.SetArchiveStatusAsync( habitArchiveStatus, RequestDeviceId ).DefaultConfigureAwait();
-            return Ok();
-        } );
+        return TryCatchAsync( async ( User user ) =>
+            ToActionResult( await m_habitService.SetArchiveStatusAsync( user.Id, habitArchiveStatus, RequestDeviceId ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost( template: "{habitId}" )]
