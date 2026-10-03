@@ -40,13 +40,13 @@ public class GoalController : BaseController
     public Task<IActionResult> Delete( long goalId )
     {
         return TryCatchAsync( async ( User user ) =>
-            ToActionResult( await m_goalService.DeleteAsync( user.Id, goalId ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_goalService.DeleteAsync( user.Id, goalId, RequestDeviceId ).DefaultConfigureAwait() ) );
     }
 
     [HttpPost(template: "{goalId}")]
     public Task<IActionResult> Save( [FromBody] UserGoalDto userGoal)
     {
         return TryCatchAsync( async (User user) =>
-            ToActionResult( await m_goalService.SaveAsync( user, userGoal ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_goalService.SaveAsync( user, userGoal, RequestDeviceId ).DefaultConfigureAwait() ) );
     }
 }

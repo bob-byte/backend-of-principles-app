@@ -277,8 +277,13 @@ public class HabitService : IHabitService
 
         foreach (UserHabit userHabit in userHabitList)
         {
-            int updatedPriority = habits.Find( h => h.Id == userHabit.Id )!.Priority;
-            userHabit.Priority = updatedPriority;
+            UserHabitWithPriority? match = habits.Find( h => h.Id == userHabit.Id );
+            if (match is null)
+            {
+                continue;
+            }
+
+            userHabit.Priority = match.Priority;
         }
 
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();

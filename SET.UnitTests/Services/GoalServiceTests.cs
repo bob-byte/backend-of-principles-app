@@ -17,7 +17,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task GetActiveAsync_excludes_archived_and_other_users_goals()
+    public async Task GetActiveAsync_ArchivedAndForeignGoals_ExcludesThem()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         DateTime updated = new( 2026, 5, 1, 0, 0, 0, DateTimeKind.Utc );
@@ -33,11 +33,16 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task GetArchivedAsync_returns_newest_first_with_archive_time_fallback()
+    public async Task GetArchivedAsync_MultipleArchived_ReturnsNewestFirst()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         DateTime archived = new( 2026, 4, 1, 0, 0, 0, DateTimeKind.Utc );
-        UserGoal first = await TestData.AddGoalAsync( db, 1, "First", g => { g.IsArchived = true; g.ArchivingTime = archived; } );
+        UserGoal first = await TestData.AddGoalAsync( db, 1, "First", g =>
+        {
+            g.IsArchived = true;
+            g.ArchivingTime = archived;
+            g.Notes = "Keep these notes";
+        } );
         UserGoal second = await TestData.AddGoalAsync( db, 1, "Second", g => g.IsArchived = true );
         await TestData.AddGoalAsync( db, 1, "Active" );
 
@@ -45,10 +50,12 @@ public class GoalServiceTests
 
         Assert.Equal( new[] { second.Id, first.Id }, goals.Select( g => g.Id ) );
         Assert.Equal( archived, goals[1].LastModified );
+        Assert.Equal( "Keep these notes", goals[1].Notes );
+        Assert.Null( goals[0].Notes );
     }
 
     [Fact]
-    public async Task SetArchiveStatusAsync_validates_input()
+    public async Task SetArchiveStatusAsync_InvalidInput_ReturnsBadRequest()
     {
         (GoalService service, _, RecordingSyncPushService push) = CreateSut();
 
@@ -59,7 +66,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task SetArchiveStatusAsync_archives_and_unarchives_with_archiving_time()
+    public async Task SetArchiveStatusAsync_ToggleArchive_UpdatesArchivingTimeAndNotifies()
     {
         (GoalService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         UserGoal goal = await TestData.AddGoalAsync( db, 1, "Goal" );
@@ -78,7 +85,7 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task SetArchiveStatusAsync_ignores_other_users_goal()
+    public async Task SetArchiveStatusAsync_OtherUsersGoal_ReturnsNotFound()
     {
         (GoalService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         UserGoal foreign = await TestData.AddGoalAsync( db, 2, "Foreign" );
@@ -92,40 +99,40 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_ignores_other_users_goal()
+    public async Task DeleteAsync_OtherUsersGoal_ReturnsNotFound()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         UserGoal foreign = await TestData.AddGoalAsync( db, 2, "Foreign" );
 
-        TestData.AssertError( await service.DeleteAsync( 1, foreign.Id ), 400, "GoalIsNotFound" );
+        TestData.AssertError( await service.DeleteAsync( 1, foreign.Id, null ), 400, "GoalIsNotFound" );
         Assert.Single( db.UserGoals );
         Assert.Empty( db.SyncDeletions );
     }
 
     [Fact]
-    public async Task SaveAsync_cannot_update_other_users_goal()
+    public async Task SaveAsync_OtherUsersGoal_ReturnsBadRequest()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
         UserGoal foreign = await TestData.AddGoalAsync( db, 2, "Foreign" );
 
-        ServiceResult<DtoWithId> result = await service.SaveAsync( user, new UserGoalDto { Id = foreign.Id, Name = "Hijacked" } );
+        ServiceResult<DtoWithId> result = await service.SaveAsync( user, new UserGoalDto { Id = foreign.Id, Name = "Hijacked" }, null );
 
         TestData.AssertError( result, 400, $"GoalIsNotFoundWithId {foreign.Id}" );
         Assert.Equal( "Foreign", foreign.Name );
     }
 
     [Fact]
-    public async Task DeleteAsync_rejects_zero_and_unknown_ids()
+    public async Task DeleteAsync_ZeroOrUnknownId_ReturnsBadRequest()
     {
         (GoalService service, _, _) = CreateSut();
 
-        TestData.AssertError( await service.DeleteAsync( 1, 0 ), 400, "GoalIdIsZero" );
-        TestData.AssertError( await service.DeleteAsync( 1, 404 ), 400, "GoalIsNotFound" );
+        TestData.AssertError( await service.DeleteAsync( 1, 0, null ), 400, "GoalIdIsZero" );
+        TestData.AssertError( await service.DeleteAsync( 1, 404, null ), 400, "GoalIsNotFound" );
     }
 
     [Fact]
-    public async Task SaveAsync_creates_goal_with_trimmed_notes()
+    public async Task SaveAsync_NewGoalWithNotes_CreatesTrimmedNotes()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -135,7 +142,7 @@ public class GoalServiceTests
             Name = "Run a marathon",
             Notes = "  Spring race  ",
             IsArchived = true,
-        } );
+        }, "dev" );
 
         UserGoal stored = await db.UserGoals.SingleAsync();
         Assert.Equal( stored.Id, result.Value!.Id );
@@ -145,30 +152,30 @@ public class GoalServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_blank_notes_are_stored_as_null()
+    public async Task SaveAsync_BlankNotes_StoresNull()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
 
-        await service.SaveAsync( user, new UserGoalDto { Name = "Goal", Notes = "   " } );
+        await service.SaveAsync( user, new UserGoalDto { Name = "Goal", Notes = "   " }, null );
 
         Assert.Null( (await db.UserGoals.SingleAsync()).Notes );
     }
 
     [Fact]
-    public async Task SaveAsync_rejects_null_and_unknown_ids()
+    public async Task SaveAsync_NullOrUnknownId_ReturnsBadRequest()
     {
         (GoalService service, AppDbContext db, _) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
 
-        TestData.AssertError( await service.SaveAsync( user, null! ), 400, "UserGoalDtoIsNull" );
-        TestData.AssertError( await service.SaveAsync( user, new UserGoalDto { Id = 77, Name = "x" } ), 400, "GoalIsNotFoundWithId 77" );
+        TestData.AssertError( await service.SaveAsync( user, null!, null ), 400, "UserGoalDtoIsNull" );
+        TestData.AssertError( await service.SaveAsync( user, new UserGoalDto { Id = 77, Name = "x" }, null ), 400, "GoalIsNotFoundWithId 77" );
     }
 
     [Fact]
-    public async Task SaveAsync_update_renames_reminders_titled_with_old_goal_name()
+    public async Task SaveAsync_RenamedGoal_UpdatesMatchingReminderTitles()
     {
-        (GoalService service, AppDbContext db, _) = CreateSut();
+        (GoalService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
         UserGoal goal = await TestData.AddGoalAsync( db, 1, "Old goal" );
         UserHabit habit = await TestData.AddHabitAsync( db, 1, "Habit" );
@@ -182,7 +189,7 @@ public class GoalServiceTests
             Id = goal.Id,
             Name = "New goal",
             IsCompleted = true,
-        } );
+        }, "dev" );
 
         Assert.Equal( goal.Id, result.Value!.Id );
         Assert.Equal( "New goal", goal.Name );
@@ -191,5 +198,6 @@ public class GoalServiceTests
         Assert.Equal( "New goal", matching.Title );
         Assert.Equal( "Something else", other.Title );
         Assert.Equal( "Old goal", foreignSameTitle.Title );
+        Assert.Equal( "dev", Assert.Single( push.Requests ).OriginDeviceId );
     }
 }

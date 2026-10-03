@@ -37,6 +37,7 @@ public class GoalService : IGoalService
             {
                 Id = g.Id,
                 Name = g.Name,
+                Notes = g.Notes,
                 IsCompleted = g.IsCompleted,
                 LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt
             } )
@@ -78,7 +79,7 @@ public class GoalService : IGoalService
         return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult> DeleteAsync( long userId, long goalId )
+    public async Task<ServiceResult> DeleteAsync( long userId, long goalId, string? originDeviceId )
     {
         #region Check parameter
         if (goalId == 0)
@@ -117,6 +118,7 @@ public class GoalService : IGoalService
 
             await m_dbContext.UserGoals.Where( p => p.Id == goalId ).ExecuteDeleteAsync().DefaultConfigureAwait();
             await tran.CommitAsync().DefaultConfigureAwait();
+            m_syncPushService.NotifyOtherDevices( userId, originDeviceId );
         }
         catch
         {
@@ -127,7 +129,7 @@ public class GoalService : IGoalService
         return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult<DtoWithId>> SaveAsync( User user, UserGoalDto userGoal )
+    public async Task<ServiceResult<DtoWithId>> SaveAsync( User user, UserGoalDto userGoal, string? originDeviceId )
     {
         #region Check parameter
         if (userGoal is null)
@@ -196,6 +198,7 @@ public class GoalService : IGoalService
             response.Id = existingGoal.Id;
         }
 
+        m_syncPushService.NotifyOtherDevices( user.Id, originDeviceId );
         return response;
     }
 }
