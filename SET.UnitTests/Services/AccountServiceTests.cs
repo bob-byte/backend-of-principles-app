@@ -1,5 +1,6 @@
 using BusinessLogic;
 using BusinessLogic.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using SET.DataAccess;
@@ -24,9 +25,6 @@ public class AccountServiceTests
         {
             ["EncryptionSettings:FirstKey"] = FirstKey,
             ["EncryptionSettings:SecondKey"] = SecondKey,
-            ["AI_API_KEY"] = "secret-ai-key",
-            ["EncryptionSettingsForAiApi:FirstKey"] = FirstKey,
-            ["EncryptionSettingsForAiApi:SecondKey"] = SecondKey,
         } )
         .Build();
 
@@ -34,8 +32,25 @@ public class AccountServiceTests
 
     private static string Encrypt( string plain ) => TextEncryptHelper.EncryptText( plain, FirstKey, SecondKey );
 
+    private async Task<int> SeedVerificationCodeAsync( string email, string purpose )
+    {
+        int code = 123456;
+        m_db.EmailVerificationCodes.Add( new EmailVerificationCode
+        {
+            Email = email.Trim().ToLowerInvariant(),
+            Purpose = purpose,
+            CodeHash = Convert.ToHexString(
+                System.Security.Cryptography.SHA256.HashData(
+                    System.Text.Encoding.UTF8.GetBytes( code.ToString( "D6" ) ) ) ),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes( 15 ),
+        } );
+        await m_db.SaveChangesAsync();
+        return code;
+    }
+
     [Fact]
-    public async Task FindUserAsync_returns_user_or_null()
+    public async Task FindUserAsync_ExistingAndMissingIds_ReturnsUserOrNull()
     {
         await TestData.AddUserAsync( m_db, 3 );
 
@@ -44,7 +59,7 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task GoogleAuthAsync_validates_tokens_then_delegates()
+    public async Task GoogleAuthAsync_MissingTokens_ReturnsBadRequestThenDelegates()
     {
         AccountService service = CreateSut();
         TestData.AssertError( await service.GoogleAuthAsync( null! ), 400, "RequestBodyIsNull" );
@@ -60,17 +75,21 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_validates_required_fields()
+    public async Task RegisterAsync_MissingRequiredFields_ReturnsBadRequest()
     {
         AccountService service = CreateSut();
 
         TestData.AssertError( await service.RegisterAsync( null! ), 400, "RegisterInfoIsNull" );
         TestData.AssertError( await service.RegisterAsync( new UserRegister { Password = "x" } ), 400, "EmailOfRegisterInfoIsNull" );
         TestData.AssertError( await service.RegisterAsync( new UserRegister { Email = "a@b.c" } ), 400, "PasswordShouldBeFilled" );
+        TestData.AssertError(
+            await service.RegisterAsync( new UserRegister { Email = "a@b.c", Password = Encrypt( "password1" ) } ),
+            400,
+            "VerificationCodeIsRequired" );
     }
 
     [Fact]
-    public async Task RegisterAsync_rejects_existing_email_case_insensitively()
+    public async Task RegisterAsync_ExistingEmail_ReturnsBadRequest()
     {
         await TestData.AddUserAsync( m_db, 1, "Taken@Example.com" );
 
@@ -78,6 +97,7 @@ public class AccountServiceTests
         {
             Email = "taken@example.com",
             Password = Encrypt( "password1" ),
+            Code = 123456,
         } );
 
         TestData.AssertError( result, 400, "UserWithIdenticalEmailAlreadyExists" );
@@ -86,32 +106,54 @@ public class AccountServiceTests
     [Theory]
     [InlineData( "short" )]
     [InlineData( "this-password-is-way-too-long" )]
-    public async Task RegisterAsync_rejects_password_length( string password )
+    public async Task RegisterAsync_InvalidPasswordLength_ReturnsBadRequest( string password )
     {
+        await SeedVerificationCodeAsync( "new@example.com", EmailVerificationPurposes.Signup );
+
         ServiceResult result = await CreateSut().RegisterAsync( new UserRegister
         {
             Email = "new@example.com",
             Password = Encrypt( password ),
+            Code = 123456,
         } );
 
         TestData.AssertError( result, 400, "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
     }
 
     [Fact]
-    public async Task RegisterAsync_rejects_undecryptable_password()
+    public async Task RegisterAsync_UndecryptablePassword_ReturnsBadRequest()
     {
+        await SeedVerificationCodeAsync( "new@example.com", EmailVerificationPurposes.Signup );
+
         ServiceResult result = await CreateSut().RegisterAsync( new UserRegister
         {
             Email = "new@example.com",
             Password = "not base64!",
+            Code = 123456,
         } );
 
         TestData.AssertError( result, 400, "InvalidPassword" );
     }
 
     [Fact]
-    public async Task RegisterAsync_passes_decrypted_password_and_default_name()
+    public async Task RegisterAsync_WrongVerificationCode_ReturnsBadRequest()
     {
+        await SeedVerificationCodeAsync( "new@example.com", EmailVerificationPurposes.Signup );
+
+        ServiceResult result = await CreateSut().RegisterAsync( new UserRegister
+        {
+            Email = "new@example.com",
+            Password = Encrypt( "password1" ),
+            Code = 111111,
+        } );
+
+        TestData.AssertError( result, 400, "InvalidVerificationCode" );
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ValidRequest_DecryptsPasswordAndConsumesCode()
+    {
+        int code = await SeedVerificationCodeAsync( "new@example.com", EmailVerificationPurposes.Signup );
         UserRegister? registered = null;
         m_auth.Setup( a => a.RegisterAsync( It.IsAny<UserRegister>() ) )
             .Callback<UserRegister>( r => registered = r )
@@ -122,15 +164,17 @@ public class AccountServiceTests
             Email = "new@example.com",
             Password = Encrypt( "password1" ),
             Name = null!,
+            Code = code,
         } );
 
         Assert.True( result.IsSuccess );
         Assert.Equal( "password1", registered!.Password );
         Assert.Equal( string.Empty, registered.Name );
+        Assert.Empty( m_db.EmailVerificationCodes );
     }
 
     [Fact]
-    public async Task LoginAsync_validates_required_fields()
+    public async Task LoginAsync_MissingRequiredFields_ReturnsBadRequest()
     {
         AccountService service = CreateSut();
 
@@ -141,7 +185,7 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_returns_token_for_valid_credentials()
+    public async Task LoginAsync_ValidCredentials_ReturnsToken()
     {
         User user = new() { Id = 9 };
         m_auth.Setup( a => a.LoginAsync( It.Is<UserLogin>( l => l.Password == "password1" ) ) )
@@ -158,7 +202,7 @@ public class AccountServiceTests
     [InlineData( "EmailIsIncorrect", "InvalidEmailOrPassword" )]
     [InlineData( "PasswordIsIncorrect", "InvalidEmailOrPassword" )]
     [InlineData( "UserIsBlocked", "UserIsBlocked" )]
-    public async Task LoginAsync_masks_credential_errors( string authError, string expected )
+    public async Task LoginAsync_CredentialErrors_ReturnsMaskedMessage( string authError, string expected )
     {
         m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( ((User?)null, authError) );
 
@@ -169,16 +213,17 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task SendPasswordResetCodeAsync_requires_registered_email_and_sends_code()
+    public async Task SendPasswordResetCodeAsync_RegisteredEmail_StoresAndEmailsCode()
     {
         await TestData.AddUserAsync( m_db, 1, "Me@Example.com" );
         AccountService service = CreateSut();
 
         TestData.AssertError( await service.SendPasswordResetCodeAsync( "nobody@example.com", "en" ), 400, "EmailIsIncorrect" );
 
-        ServiceResult<GenerateCodeResponse> result = await service.SendPasswordResetCodeAsync( "me@example.com", "en" );
+        ServiceResult result = await service.SendPasswordResetCodeAsync( "me@example.com", "en" );
 
-        Assert.InRange( result.Value!.Code, 100000, 999998 );
+        Assert.True( result.IsSuccess );
+        Assert.Single( m_db.EmailVerificationCodes.Where( c => c.Purpose == EmailVerificationPurposes.PasswordReset ) );
         m_email.Verify( e => e.SendAsync(
             "me@example.com",
             It.IsAny<string>(),
@@ -188,7 +233,7 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task SendSignupCodeAsync_rejects_blank_and_registered_emails()
+    public async Task SendSignupCodeAsync_BlankOrRegisteredEmail_ReturnsBadRequest()
     {
         await TestData.AddUserAsync( m_db, 1, "me@example.com" );
         AccountService service = CreateSut();
@@ -199,11 +244,12 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public async Task SendSignupCodeAsync_emails_code_to_new_address()
+    public async Task SendSignupCodeAsync_NewEmail_StoresAndEmailsCode()
     {
-        ServiceResult<GenerateCodeResponse> result = await CreateSut().SendSignupCodeAsync( "new@example.com", "uk" );
+        ServiceResult result = await CreateSut().SendSignupCodeAsync( "new@example.com", "uk" );
 
-        Assert.InRange( result.Value!.Code, 100000, 999998 );
+        Assert.True( result.IsSuccess );
+        Assert.Single( m_db.EmailVerificationCodes );
         m_email.Verify( e => e.SendAsync(
             "new@example.com",
             It.IsAny<string>(),
@@ -213,31 +259,7 @@ public class AccountServiceTests
     }
 
     [Fact]
-    public void GetEncryptedAiApiKey_encrypts_configured_key()
-    {
-        EncryptedValueResponse response = CreateSut().GetEncryptedAiApiKey();
-
-        Assert.Equal( "secret-ai-key", PasswordHelper.DecryptNewPassword( response.Value, FirstKey, SecondKey ) );
-    }
-
-    [Fact]
-    public void GetEncryptedAiApiKey_throws_when_key_is_missing()
-    {
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection( new Dictionary<string, string?>
-            {
-                ["EncryptionSettingsForAiApi:FirstKey"] = FirstKey,
-                ["EncryptionSettingsForAiApi:SecondKey"] = SecondKey,
-            } )
-            .Build();
-        AccountService service = new( m_db, m_auth.Object, m_jwt.Object, m_email.Object, configuration );
-
-        InvalidOperationException ex = Assert.Throws<InvalidOperationException>( () => service.GetEncryptedAiApiKey() );
-        Assert.Equal( "API key not found in configuration.", ex.Message );
-    }
-
-    [Fact]
-    public async Task ChangePasswordAsync_validates_request()
+    public async Task ChangePasswordAsync_InvalidRequest_ReturnsBadRequest()
     {
         await TestData.AddUserAsync( m_db, 1, "me@example.com" );
         AccountService service = CreateSut();
@@ -246,37 +268,71 @@ public class AccountServiceTests
         TestData.AssertError( await service.ChangePasswordAsync( new UserNewPassword { NewPassword = "x" } ), 400, "EmailIsNullOrWhiteSpace" );
         TestData.AssertError( await service.ChangePasswordAsync( new UserNewPassword { Email = "me@example.com" } ), 400, "PasswordIsNullOrWhiteSpace" );
         TestData.AssertError(
-            await service.ChangePasswordAsync( new UserNewPassword { Email = "other@example.com", NewPassword = Encrypt( "password1" ) } ),
+            await service.ChangePasswordAsync( new UserNewPassword
+            {
+                Email = "me@example.com",
+                NewPassword = Encrypt( "password1" ),
+            } ),
+            400,
+            "VerificationCodeIsRequired" );
+        TestData.AssertError(
+            await service.ChangePasswordAsync( new UserNewPassword
+            {
+                Email = "other@example.com",
+                NewPassword = Encrypt( "password1" ),
+                Code = 123456,
+            } ),
             400,
             "EmailIsIncorrect" );
         TestData.AssertError(
-            await service.ChangePasswordAsync( new UserNewPassword { Email = "me@example.com", NewPassword = Encrypt( "short" ) } ),
+            await service.ChangePasswordAsync( new UserNewPassword
+            {
+                Email = "me@example.com",
+                NewPassword = Encrypt( "short" ),
+                Code = 123456,
+            } ),
             400,
             "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
         TestData.AssertError(
-            await service.ChangePasswordAsync( new UserNewPassword { Email = "me@example.com", NewPassword = "garbage" } ),
+            await service.ChangePasswordAsync( new UserNewPassword
+            {
+                Email = "me@example.com",
+                NewPassword = "garbage",
+                Code = 123456,
+            } ),
             400,
             "IncorrectPassword" );
     }
 
     [Fact]
-    public async Task ChangePasswordAsync_stores_new_hash()
+    public async Task ChangePasswordAsync_ValidCode_StoresNewPasswordHash()
     {
         User user = await TestData.AddUserAsync( m_db, 1, "me@example.com" );
+        int code = await SeedVerificationCodeAsync( "me@example.com", EmailVerificationPurposes.PasswordReset );
+
+        ServiceResult wrong = await CreateSut().ChangePasswordAsync( new UserNewPassword
+        {
+            Email = "ME@example.com",
+            NewPassword = Encrypt( "password1" ),
+            Code = 111111,
+        } );
+        TestData.AssertError( wrong, 400, "InvalidVerificationCode" );
 
         ServiceResult result = await CreateSut().ChangePasswordAsync( new UserNewPassword
         {
             Email = "ME@example.com",
             NewPassword = Encrypt( "password1" ),
+            Code = code,
         } );
 
         Assert.True( result.IsSuccess );
         Assert.NotNull( user.Password );
         Assert.Equal( 64 + 128, user.Password!.Length );
+        Assert.Empty( m_db.EmailVerificationCodes );
     }
 
     [Fact]
-    public async Task Missing_password_encryption_keys_fail_loudly()
+    public async Task LoginAsync_MissingEncryptionKeys_ThrowsInvalidProgramException()
     {
         AccountService service = new( m_db, m_auth.Object, m_jwt.Object, m_email.Object, new ConfigurationBuilder().Build() );
 

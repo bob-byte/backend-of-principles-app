@@ -8,4 +8,7 @@ public class UserRegister
     public Gender Gender { get; set; }
     public string? MainSlogan { get; set; }
     public string? Mission { get; set; }
+
+    /// <summary>6-digit code from <c>GET api/account/signupcode</c> (required for production register).</summary>
+    public int? Code { get; set; }
 }

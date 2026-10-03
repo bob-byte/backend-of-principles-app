@@ -1,12 +1,6 @@
 ﻿namespace BusinessLogic.Models;
 
 public record LoginResponse(string Token);
-public record GenerateCodeResponse( int Code );
-
-public class EncryptedValueResponse
-{
-    public string Value { get; set; }
-}
 
 public class ProgressSavedResponse
 {
@@ -30,6 +24,7 @@ public class ArchivedGoalResponse
 {
     public long Id { get; set; }
     public string Name { get; set; }
+    public string? Notes { get; set; }
     public bool IsCompleted { get; set; }
     public DateTime LastModified { get; set; }
 }

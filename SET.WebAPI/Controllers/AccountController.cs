@@ -62,16 +62,15 @@ public class AccountController : BaseController
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
     [HttpDelete]
-    public Task<IActionResult> Delete()
+    public Task<IActionResult> Delete( [FromQuery] int? code = null )
     {
         return TryCatchAsync( async ( user ) =>
-        {
-            await m_accountService.DeleteAsync( user ).DefaultConfigureAwait();
-            return Ok();
-        } );
+            ToActionResult( await m_accountService.DeleteAsync( user, code ).DefaultConfigureAwait() ) );
     }
 
-    //It generates random code and sends it to email specified in the "request" parameter
+    /// <summary>
+    /// Emails a forget-password / account-deletion verification code. The code is not returned in the body.
+    /// </summary>
     [HttpGet( "code" )]
     public Task<IActionResult> GenerateCode(
         [FromQuery] string emailWhereSendCode,
@@ -84,8 +83,7 @@ public class AccountController : BaseController
     }
 
     /// <summary>
-    /// Sends a signup verification code to an email that is not yet registered.
-    /// Used so new users prove they own the address before <c>POST authentication</c>.
+    /// Emails a signup verification code. The code is not returned in the body.
     /// </summary>
     [HttpGet( "signupcode" )]
     public Task<IActionResult> GenerateSignupCode(
@@ -96,13 +94,6 @@ public class AccountController : BaseController
             ToActionResult( await m_accountService
                 .SendSignupCodeAsync( emailWhereSendCode, language )
                 .DefaultConfigureAwait() ) );
-    }
-
-    [HttpGet( "apikey" )]
-    [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]
-    public IActionResult GetOpenAiKey()
-    {
-        return TryCatch( () => Ok( m_accountService.GetEncryptedAiApiKey() ) );
     }
 
     [HttpPut( "password" )]

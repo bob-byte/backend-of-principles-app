@@ -8,6 +8,8 @@ using SET.Shared.Models.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace BusinessLogic;
 
@@ -15,6 +17,7 @@ public class AccountService : IAccountService
 {
     private const int MIN_PASSWORD_LENGTH = 8;
     private const int MAX_PASSWORD_LENGTH = 20;
+    private static readonly TimeSpan VerificationCodeTtl = TimeSpan.FromMinutes( 15 );
 
     private readonly AppDbContext m_dbContext;
     private readonly IAuthService m_authService;
@@ -81,6 +84,11 @@ public class AccountService : IAccountService
             return ServiceError.BadRequest( "PasswordShouldBeFilled" );
         }
 
+        if (registerInfo.Code is null)
+        {
+            return ServiceError.BadRequest( "VerificationCodeIsRequired" );
+        }
+
         registerInfo.Name ??= string.Empty;
 
         if (await IsEmailRegisteredAsync( registerInfo.Email ).DefaultConfigureAwait())
@@ -104,6 +112,15 @@ public class AccountService : IAccountService
         catch
         {
             return ServiceError.BadRequest( "InvalidPassword" );
+        }
+
+        ServiceResult codeResult = await ConsumeVerificationCodeAsync(
+            registerInfo.Email,
+            EmailVerificationPurposes.Signup,
+            registerInfo.Code.Value ).DefaultConfigureAwait();
+        if (!codeResult.IsSuccess)
+        {
+            return codeResult;
         }
 
         await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
@@ -235,8 +252,20 @@ public class AccountService : IAccountService
         return new LoginResponse( Token: m_jwtTokenService.GetToken( user ) );
     }
 
-    public async Task DeleteAsync( User user )
+    public async Task<ServiceResult> DeleteAsync( User user, int? verificationCode )
     {
+        if (verificationCode is not null)
+        {
+            ServiceResult codeResult = await ConsumeVerificationCodeAsync(
+                user.Email,
+                EmailVerificationPurposes.PasswordReset,
+                verificationCode.Value ).DefaultConfigureAwait();
+            if (!codeResult.IsSuccess)
+            {
+                return codeResult;
+            }
+        }
+
         await using IDbContextTransaction tran = await m_dbContext.Database.BeginTransactionAsync().DefaultConfigureAwait();
 
         try
@@ -255,6 +284,10 @@ public class AccountService : IAccountService
             await m_dbContext.ClientLogs.Where( u => u.UserId == user.Id )
                 .ExecuteUpdateAsync( setPropDelegate => setPropDelegate.SetProperty( c => c.UserId, c => null ) )
                 .DefaultConfigureAwait();
+            await m_dbContext.EmailVerificationCodes
+                .Where( c => c.Email == NormalizeEmail( user.Email ) )
+                .ExecuteDeleteAsync()
+                .DefaultConfigureAwait();
             await m_dbContext.Users.Where( u => u.Id == user.Id ).ExecuteDeleteAsync().DefaultConfigureAwait();
 
             await tran.CommitAsync().DefaultConfigureAwait();
@@ -264,11 +297,18 @@ public class AccountService : IAccountService
             await tran.RollbackAsync().DefaultConfigureAwait();
             throw;
         }
+
+        return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult<GenerateCodeResponse>> SendPasswordResetCodeAsync( string emailWhereSendCode, string? language )
+    public async Task<ServiceResult> SendPasswordResetCodeAsync( string emailWhereSendCode, string? language )
     {
         #region Check parameter
+        if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
+        {
+            return ServiceError.BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
+        }
+
         User? user = await m_dbContext.
             Users.
             FirstOrDefaultAsync( u => u.Email.ToLower() == emailWhereSendCode.ToLower() ).
@@ -278,24 +318,21 @@ public class AccountService : IAccountService
         {
             return ServiceError.BadRequest( "EmailIsIncorrect" );
         }
-
-        if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
-        {
-            return ServiceError.BadRequest( "EmailWhereSendCodeIsNullOrWhiteSpace" );
-        }
         #endregion
 
         int code = GenerateRandomCode();
+        await StoreVerificationCodeAsync( emailWhereSendCode, EmailVerificationPurposes.PasswordReset, code )
+            .DefaultConfigureAwait();
         await SendVerificationEmailAsync(
             emailWhereSendCode,
             VerificationEmailContent.Purpose.PasswordReset,
             code,
             language ).DefaultConfigureAwait();
 
-        return new GenerateCodeResponse( code );
+        return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult<GenerateCodeResponse>> SendSignupCodeAsync( string emailWhereSendCode, string? language )
+    public async Task<ServiceResult> SendSignupCodeAsync( string emailWhereSendCode, string? language )
     {
         #region Check parameter
         if (string.IsNullOrWhiteSpace( emailWhereSendCode ))
@@ -310,32 +347,15 @@ public class AccountService : IAccountService
         #endregion
 
         int code = GenerateRandomCode();
+        await StoreVerificationCodeAsync( emailWhereSendCode, EmailVerificationPurposes.Signup, code )
+            .DefaultConfigureAwait();
         await SendVerificationEmailAsync(
             emailWhereSendCode,
             VerificationEmailContent.Purpose.Signup,
             code,
             language ).DefaultConfigureAwait();
 
-        return new GenerateCodeResponse( code );
-    }
-
-    public EncryptedValueResponse GetEncryptedAiApiKey()
-    {
-        string? apiKey = m_configuration["AI_API_KEY"];
-        if (string.IsNullOrWhiteSpace( apiKey ))
-        {
-            throw new InvalidOperationException( "API key not found in configuration." );
-        }
-
-        string? firstKey = m_configuration["FIRST_KEY_OF_AI_API_ENCRYPTION"] ??
-                           m_configuration["EncryptionSettingsForAiApi:FirstKey"];
-
-        string? secondKey = m_configuration["SECOND_KEY_OF_AI_API_ENCRYPTION"] ??
-                            m_configuration["EncryptionSettingsForAiApi:SecondKey"];
-
-        string encryptedApiKey = TextEncryptHelper.EncryptText( apiKey, firstKey, secondKey );
-
-        return new EncryptedValueResponse { Value = encryptedApiKey };
+        return ServiceResult.Success;
     }
 
     public async Task<ServiceResult> ChangePasswordAsync( UserNewPassword request )
@@ -355,6 +375,11 @@ public class AccountService : IAccountService
         {
             return ServiceError.BadRequest( "PasswordIsNullOrWhiteSpace" );
         }
+
+        if (request.Code is null)
+        {
+            return ServiceError.BadRequest( "VerificationCodeIsRequired" );
+        }
         #endregion
 
         User? user = await m_dbContext.
@@ -368,22 +393,30 @@ public class AccountService : IAccountService
         }
 
         (string firstKey, string secondKey) = GetPasswordEncryptionKeys();
-
+        string decryptedPassword;
         try
         {
-            string decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
+            decryptedPassword = PasswordHelper.DecryptNewPassword( request.NewPassword, firstKey, secondKey );
             if (!IsAllowedPasswordLength( decryptedPassword ))
             {
                 return ServiceError.BadRequest( "PasswordLengthIsLessThanMinOrMoreThanMaxCharacters" );
             }
-
-            user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
         }
         catch
         {
             return ServiceError.BadRequest( "IncorrectPassword" );
         }
 
+        ServiceResult codeResult = await ConsumeVerificationCodeAsync(
+            request.Email,
+            EmailVerificationPurposes.PasswordReset,
+            request.Code.Value ).DefaultConfigureAwait();
+        if (!codeResult.IsSuccess)
+        {
+            return codeResult;
+        }
+
+        user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
         return ServiceResult.Success;
     }
@@ -432,10 +465,85 @@ public class AccountService : IAccountService
             htmlBody: message.HtmlBody );
     }
 
-    private static int GenerateRandomCode()
+    private async Task StoreVerificationCodeAsync( string email, string purpose, int code )
     {
-        Random random = new();
-        int result = random.Next( minValue: 100000, maxValue: 999999 );
-        return result;
+        string normalized = NormalizeEmail( email );
+        string hash = HashVerificationCode( code );
+        DateTime now = DateTime.UtcNow;
+
+        EmailVerificationCode? existing = await m_dbContext.EmailVerificationCodes
+            .FirstOrDefaultAsync( c => c.Email == normalized && c.Purpose == purpose )
+            .DefaultConfigureAwait();
+
+        if (existing is null)
+        {
+            m_dbContext.EmailVerificationCodes.Add( new EmailVerificationCode
+            {
+                Email = normalized,
+                Purpose = purpose,
+                CodeHash = hash,
+                CreatedAt = now,
+                ExpiresAt = now.Add( VerificationCodeTtl ),
+            } );
+        }
+        else
+        {
+            existing.CodeHash = hash;
+            existing.CreatedAt = now;
+            existing.ExpiresAt = now.Add( VerificationCodeTtl );
+        }
+
+        await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
     }
+
+    private async Task<ServiceResult> ConsumeVerificationCodeAsync( string email, string purpose, int code )
+    {
+        if (code is < 100000 or > 999999)
+        {
+            return ServiceError.BadRequest( "InvalidVerificationCode" );
+        }
+
+        string normalized = NormalizeEmail( email );
+        EmailVerificationCode? stored = await m_dbContext.EmailVerificationCodes
+            .FirstOrDefaultAsync( c => c.Email == normalized && c.Purpose == purpose )
+            .DefaultConfigureAwait();
+
+        if (stored is null)
+        {
+            return ServiceError.BadRequest( "InvalidVerificationCode" );
+        }
+
+        if (stored.ExpiresAt < DateTime.UtcNow)
+        {
+            m_dbContext.EmailVerificationCodes.Remove( stored );
+            await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
+            return ServiceError.BadRequest( "VerificationCodeExpired" );
+        }
+
+        if (!FixedTimeEquals( stored.CodeHash, HashVerificationCode( code ) ))
+        {
+            return ServiceError.BadRequest( "InvalidVerificationCode" );
+        }
+
+        m_dbContext.EmailVerificationCodes.Remove( stored );
+        await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
+        return ServiceResult.Success;
+    }
+
+    private static string NormalizeEmail( string email ) => email.Trim().ToLowerInvariant();
+
+    private static string HashVerificationCode( int code )
+    {
+        byte[] bytes = SHA256.HashData( Encoding.UTF8.GetBytes( code.ToString( "D6" ) ) );
+        return Convert.ToHexString( bytes );
+    }
+
+    private static bool FixedTimeEquals( string left, string right )
+    {
+        byte[] a = Encoding.UTF8.GetBytes( left );
+        byte[] b = Encoding.UTF8.GetBytes( right );
+        return a.Length == b.Length && CryptographicOperations.FixedTimeEquals( a, b );
+    }
+
+    private static int GenerateRandomCode() => RandomNumberGenerator.GetInt32( 100000, 1000000 );
 }

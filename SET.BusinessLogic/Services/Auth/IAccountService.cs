@@ -20,22 +20,24 @@ public interface IAccountService
     /// <summary>Plain-text password login for local testing.</summary>
     Task<ServiceResult<LoginResponse>> SimpleLoginAsync( UserLogin userLogin );
 
-    /// <summary>Plain-text password sign-up for local testing.</summary>
+    /// <summary>Plain-text password sign-up for local testing (skips email verification).</summary>
     Task<ServiceResult<LoginResponse>> SimpleRegisterAsync( UserRegister registerInfo );
 #endif
 
     /// <summary>Validates the Apple identity token and signs in, creating the user when needed.</summary>
     Task<ServiceResult<LoginResponse>> AppleAuthAsync( AppleAuthRequest authRequest );
 
-    Task DeleteAsync( User user );
+    /// <param name="verificationCode">
+    /// Optional 6-digit code from <c>GET api/account/code</c>. When provided (website delete),
+    /// it must match a stored password-reset code; Flutter delete may omit it.
+    /// </param>
+    Task<ServiceResult> DeleteAsync( User user, int? verificationCode );
 
-    /// <summary>Emails a forget-password code; the email must belong to an existing user.</summary>
-    Task<ServiceResult<GenerateCodeResponse>> SendPasswordResetCodeAsync( string emailWhereSendCode, string? language );
+    /// <summary>Emails a forget-password code; the email must belong to an existing user. Does not return the code.</summary>
+    Task<ServiceResult> SendPasswordResetCodeAsync( string emailWhereSendCode, string? language );
 
-    /// <summary>Emails a sign-up code; the email must not be registered yet.</summary>
-    Task<ServiceResult<GenerateCodeResponse>> SendSignupCodeAsync( string emailWhereSendCode, string? language );
-
-    EncryptedValueResponse GetEncryptedAiApiKey();
+    /// <summary>Emails a sign-up code; the email must not be registered yet. Does not return the code.</summary>
+    Task<ServiceResult> SendSignupCodeAsync( string emailWhereSendCode, string? language );
 
     Task<ServiceResult> ChangePasswordAsync( UserNewPassword request );
 }
