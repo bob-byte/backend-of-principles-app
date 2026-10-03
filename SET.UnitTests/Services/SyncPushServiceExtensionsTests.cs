@@ -6,7 +6,7 @@ namespace SET.UnitTests.Services;
 public class SyncPushServiceExtensionsTests
 {
     [Fact]
-    public void NotifyOtherDevices_enqueues_empty_deleted_lists_by_default()
+    public void NotifyOtherDevices_DefaultArgs_EnqueuesEmptyDeletedLists()
     {
         RecordingSyncPushService push = new();
 
@@ -20,7 +20,7 @@ public class SyncPushServiceExtensionsTests
     }
 
     [Fact]
-    public void NotifyOtherDevices_passes_deleted_ids()
+    public void NotifyOtherDevices_DeletedIds_PassesThrough()
     {
         RecordingSyncPushService push = new();
 

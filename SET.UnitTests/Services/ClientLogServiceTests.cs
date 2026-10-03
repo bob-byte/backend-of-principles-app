@@ -25,7 +25,7 @@ public class ClientLogServiceTests
     };
 
     [Fact]
-    public async Task WriteAsync_rejects_unknown_user()
+    public async Task WriteAsync_UnknownUser_ReturnsBadRequest()
     {
         (ClientLogService service, _) = CreateSut();
 
@@ -35,7 +35,7 @@ public class ClientLogServiceTests
     [Theory]
     [InlineData( null )]
     [InlineData( 0L )]
-    public async Task WriteAsync_accepts_anonymous_logs( long? userId )
+    public async Task WriteAsync_AnonymousUser_Succeeds( long? userId )
     {
         (ClientLogService service, _) = CreateSut();
 
@@ -46,7 +46,7 @@ public class ClientLogServiceTests
     [InlineData( "Information" )]
     [InlineData( "warning" )]
     [InlineData( "not-a-level" )]
-    public async Task WriteAsync_accepts_known_user_with_any_level( string logType )
+    public async Task WriteAsync_KnownUserAnyLevel_Succeeds( string logType )
     {
         (ClientLogService service, AppDbContext db) = CreateSut();
         await TestData.AddUserAsync( db, 1 );

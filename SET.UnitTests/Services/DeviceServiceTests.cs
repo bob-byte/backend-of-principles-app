@@ -30,7 +30,7 @@ public class DeviceServiceTests
     }
 
     [Fact]
-    public async Task RegisterPushTokenAsync_rejects_null_request()
+    public async Task RegisterPushTokenAsync_NullRequest_ReturnsBadRequest()
     {
         (DeviceService service, _) = CreateSut();
 
@@ -42,7 +42,7 @@ public class DeviceServiceTests
     [InlineData( "   ", "token", "DeviceIdIsInvalid" )]
     [InlineData( "dev", "", "TokenIsInvalid" )]
     [InlineData( "dev", "  ", "TokenIsInvalid" )]
-    public async Task RegisterPushTokenAsync_rejects_blank_fields( string deviceId, string token, string error )
+    public async Task RegisterPushTokenAsync_BlankFields_ReturnsBadRequest( string deviceId, string token, string error )
     {
         (DeviceService service, AppDbContext db) = CreateSut();
 
@@ -53,7 +53,7 @@ public class DeviceServiceTests
     }
 
     [Fact]
-    public async Task RegisterPushTokenAsync_rejects_oversized_fields()
+    public async Task RegisterPushTokenAsync_OversizedFields_ReturnsBadRequest()
     {
         (DeviceService service, _) = CreateSut();
 
@@ -68,7 +68,7 @@ public class DeviceServiceTests
     }
 
     [Fact]
-    public async Task RegisterPushTokenAsync_creates_device_with_trimmed_lowercase_platform()
+    public async Task RegisterPushTokenAsync_ValidRequest_CreatesTrimmedDevice()
     {
         (DeviceService service, AppDbContext db) = CreateSut();
 
@@ -88,7 +88,7 @@ public class DeviceServiceTests
     }
 
     [Fact]
-    public async Task RegisterPushTokenAsync_reassigns_existing_device_and_drops_stale_token_owners()
+    public async Task RegisterPushTokenAsync_ExistingDevice_ReassignsAndDropsStaleOwners()
     {
         (DeviceService service, AppDbContext db) = CreateSut();
         await AddDeviceAsync( db, 1, "dev-1", "old-token" );
@@ -109,7 +109,7 @@ public class DeviceServiceTests
     }
 
     [Fact]
-    public async Task UnregisterPushTokenAsync_removes_only_the_users_device()
+    public async Task UnregisterPushTokenAsync_OwnedDevice_RemovesOnlyThatDevice()
     {
         (DeviceService service, AppDbContext db) = CreateSut();
         await AddDeviceAsync( db, 1, "dev-1", "a" );

@@ -8,7 +8,7 @@ namespace SET.UnitTests.Mapping;
 public class TaskDtoMapperTests
 {
     [Fact]
-    public void ApplySubtasks_null_keeps_existing_rows()
+    public void ApplySubtasks_NullList_KeepsExistingRows()
     {
         TaskEntity entity = new() { Subtasks = new List<TaskSubtask> { new() { ClientId = "a", Title = "Keep" } } };
 
@@ -18,7 +18,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void ApplySubtasks_empty_list_clears_rows()
+    public void ApplySubtasks_EmptyList_ClearsRows()
     {
         TaskEntity entity = new() { Subtasks = new List<TaskSubtask> { new() { ClientId = "a", Title = "Drop" } } };
 
@@ -28,7 +28,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void ApplySubtasks_skips_blank_titles_trims_truncates_and_orders()
+    public void ApplySubtasks_MixedTitles_SkipsBlankTrimsTruncatesOrders()
     {
         TaskEntity entity = new();
         string longTitle = new( 'x', 300 );
@@ -55,7 +55,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void ApplyDto_copies_fields_and_serializes_schedule()
+    public void ApplyDto_ValidDto_CopiesFieldsAndSerializesSchedule()
     {
         TaskEntity entity = new();
         TaskItemDto dto = new()
@@ -91,7 +91,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void Repeat_none_and_empty_reminders_are_stored_as_null()
+    public void ApplyDto_NoneRepeatOrEmptyReminders_StoresNull()
     {
         Assert.Null( TaskDtoMapper.SerializeRepeat( new TaskRepeatDto { Preset = "None" } ) );
         Assert.Null( TaskDtoMapper.SerializeRepeat( null ) );
@@ -100,7 +100,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void Invalid_json_parses_to_defaults()
+    public void Parse_InvalidJson_ParsesToDefaults()
     {
         Assert.Empty( TaskDtoMapper.ParseReminders( "not json" ) );
         Assert.Empty( TaskDtoMapper.ParseReminders( null ) );
@@ -108,7 +108,7 @@ public class TaskDtoMapperTests
     }
 
     [Fact]
-    public void ToDto_orders_subtasks_and_falls_back_to_created_at()
+    public void ToDto_Subtasks_OrdersAndFallsBackToCreatedAt()
     {
         DateTime created = new( 2026, 1, 2, 0, 0, 0, DateTimeKind.Utc );
         TaskEntity entity = new()

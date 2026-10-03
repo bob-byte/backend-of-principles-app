@@ -5,7 +5,7 @@ namespace SET.UnitTests.Services;
 public class AiServiceHelperPromptTests
 {
     [Fact]
-    public void BuildHelperSystemPrompt_IncludesPrinciplesDomainFraming()
+    public void BuildHelperSystemPrompt_Default_IncludesPrinciplesDomainFraming()
     {
         string prompt = AiService.BuildHelperSystemPrompt( null );
 
@@ -17,7 +17,7 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
-    public void BuildHelperSystemPrompt_RequiresNativeNaturalTone()
+    public void BuildHelperSystemPrompt_Default_RequiresNativeNaturalTone()
     {
         string prompt = AiService.BuildHelperSystemPrompt( null );
 
@@ -28,7 +28,7 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
-    public void BuildHelperSystemPrompt_IncludesActionsBlockProtocol()
+    public void BuildHelperSystemPrompt_Default_IncludesActionsBlockProtocol()
     {
         string prompt = AiService.BuildHelperSystemPrompt( null );
 
@@ -38,7 +38,7 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
-    public void BuildHelperSystemPrompt_AppendsOpenTasks()
+    public void BuildHelperSystemPrompt_OpenTasks_AppendsThem()
     {
         ChatUserContext context = new()
         {
@@ -53,7 +53,7 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
-    public void BuildHelperSystemPrompt_CapsHabits()
+    public void BuildHelperSystemPrompt_ManyHabits_CapsHabits()
     {
         string[] habits = Enumerable.Range( 1, AiService.MaxHelperHabits + 5 )
             .Select( i => $"Habit {i}" )
@@ -67,7 +67,7 @@ public class AiServiceHelperPromptTests
     }
 
     [Fact]
-    public void BuildHelperSystemPrompt_CapsOpenTasks()
+    public void BuildHelperSystemPrompt_ManyOpenTasks_CapsOpenTasks()
     {
         string[] tasks = Enumerable.Range( 1, AiService.MaxHelperOpenTasks + 5 )
             .Select( i => $"Task {i}" )

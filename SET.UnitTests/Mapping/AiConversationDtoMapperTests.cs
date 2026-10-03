@@ -7,7 +7,7 @@ namespace SET.UnitTests.Mapping;
 public class AiConversationDtoMapperTests
 {
     [Fact]
-    public void ApplyMessages_null_keeps_existing_messages()
+    public void ApplyMessages_NullList_KeepsExistingMessages()
     {
         AiConversation entity = new() { Messages = new List<AiMessage> { new() { Role = "user", Content = "hi" } } };
 
@@ -17,7 +17,7 @@ public class AiConversationDtoMapperTests
     }
 
     [Fact]
-    public void ApplyMessages_keeps_only_user_and_assistant_roles()
+    public void ApplyMessages_MixedRoles_KeepsOnlyUserAndAssistant()
     {
         AiConversation entity = new();
 
@@ -34,7 +34,7 @@ public class AiConversationDtoMapperTests
     }
 
     [Fact]
-    public void ApplyMessages_generates_and_truncates_client_ids_and_keeps_explicit_sort_order()
+    public void ApplyMessages_ClientIds_GeneratesTruncatesKeepsSortOrder()
     {
         AiConversation entity = new();
 
@@ -52,7 +52,7 @@ public class AiConversationDtoMapperTests
     }
 
     [Fact]
-    public void ApplyDto_trims_title_and_uses_client_timestamps_as_utc()
+    public void ApplyDto_TitleAndTimestamps_TrimsAndUsesUtc()
     {
         AiConversation entity = new();
         DateTime created = new( 2026, 2, 1, 10, 0, 0, DateTimeKind.Unspecified );
@@ -72,7 +72,7 @@ public class AiConversationDtoMapperTests
     }
 
     [Fact]
-    public void ToDto_orders_messages_and_can_omit_them()
+    public void ToDto_Messages_OrdersAndCanOmitThem()
     {
         AiConversation entity = new()
         {

@@ -9,7 +9,7 @@ public class TextEncryptHelperTests
     private const string SecondKey = "FEDCBA9876543210";
 
     [Fact]
-    public void EncryptText_round_trips_via_PasswordHelper_DecryptNewPassword()
+    public void EncryptText_RoundTrip_DecryptsViaPasswordHelper()
     {
         const string plain = "new-password-value";
 
@@ -22,7 +22,7 @@ public class TextEncryptHelperTests
     }
 
     [Fact]
-    public void EncryptText_produces_different_ciphertext_than_plaintext()
+    public void EncryptText_Plaintext_ProducesDifferentCiphertext()
     {
         string cipher = TextEncryptHelper.EncryptText("hello", FirstKey, SecondKey);
 

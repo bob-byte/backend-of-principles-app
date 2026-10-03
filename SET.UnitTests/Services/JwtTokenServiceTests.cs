@@ -11,7 +11,7 @@ public class JwtTokenServiceTests
     private const string Secret = "unit-test-jwt-secret-key-32chars!!";
 
     [Fact]
-    public void GetToken_returns_readable_jwt_with_user_id_and_email()
+    public void GetToken_ValidUser_ReturnsReadableJwtWithClaims()
     {
         var service = new JwtTokenService(() => Secret);
         var user = new User { Id = 142, Email = "ada@example.com", Name = "Ada" };
@@ -28,7 +28,7 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
-    public void GetUserIdFromJwt_throws_for_empty_token()
+    public void GetUserIdFromJwt_EmptyToken_Throws()
     {
         var service = new JwtTokenService(() => Secret);
 
@@ -36,7 +36,7 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
-    public void Constructor_throws_when_secret_factory_returns_null()
+    public void Constructor_NullSecretFactory_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => new JwtTokenService(() => null!));
     }

@@ -10,7 +10,7 @@ public class BusinessLogicMapperTests
     private readonly IMapper m_mapper = BusinessLogicMapper.Create();
 
     [Fact]
-    public void Habit_reminder_offsets_round_trip_through_json()
+    public void Map_HabitReminderOffsets_RoundTripThroughJson()
     {
         UserHabitReminderDto dto = new()
         {
@@ -30,7 +30,7 @@ public class BusinessLogicMapperTests
     }
 
     [Fact]
-    public void Habit_reminder_null_texts_become_empty_and_no_offsets_store_null()
+    public void Map_HabitReminderNullTexts_BecomeEmptyAndNullOffsets()
     {
         UserHabitReminder entity = m_mapper.Map<UserHabitReminder>( new UserHabitReminderDto
         {
@@ -44,7 +44,7 @@ public class BusinessLogicMapperTests
     }
 
     [Fact]
-    public void User_maps_to_profile()
+    public void Map_User_MapsToProfile()
     {
         BusinessLogic.Models.Profile profile = m_mapper.Map<BusinessLogic.Models.Profile>( new User
         {
@@ -62,7 +62,7 @@ public class BusinessLogicMapperTests
     }
 
     [Fact]
-    public void Missing_habits_report_reminder_maps_to_null()
+    public void Map_MissingHabitsReportReminder_MapsToNull()
     {
         Assert.Null( m_mapper.Map<UserReminderDto>( (UserReminder?)null ) );
     }

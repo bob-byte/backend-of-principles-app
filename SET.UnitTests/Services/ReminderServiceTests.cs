@@ -19,7 +19,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task GetNotificationTrackingAsync_creates_default_tracking_when_missing()
+    public async Task GetNotificationTrackingAsync_WhenMissing_CreatesDefaultTracking()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         db.Users.Add(new User
@@ -41,7 +41,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task GetNotificationTrackingAsync_returns_existing_row()
+    public async Task GetNotificationTrackingAsync_WhenExists_ReturnsExistingRow()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         db.Users.Add(new User
@@ -67,7 +67,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task GetHabitsReportReminderAsync_returns_empty_dto_when_missing()
+    public async Task GetHabitsReportReminderAsync_WhenMissing_ReturnsEmptyDto()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         await TestData.AddUserAsync(db, 7);
@@ -80,7 +80,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task GetHabitsReportReminderAsync_returns_notification_one()
+    public async Task GetHabitsReportReminderAsync_WhenExists_ReturnsNotificationOne()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         await TestData.AddUserAsync(db, 7);
@@ -94,7 +94,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task GetAllRemindersAsync_returns_only_users_general_and_habit_reminders_with_days()
+    public async Task GetAllRemindersAsync_MixedUsers_ReturnsOnlyOwnedReminders()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         await TestData.AddUserAsync(db, 7);
@@ -115,7 +115,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task SaveHabitsReportReminderAsync_rejects_null()
+    public async Task SaveHabitsReportReminderAsync_NullRequest_ReturnsBadRequest()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync(db, 7);
@@ -126,7 +126,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task SaveHabitsReportReminderAsync_forces_notification_one_and_returns_ids()
+    public async Task SaveHabitsReportReminderAsync_NewReminder_ForcesNotificationOne()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync(db, 7);
@@ -148,7 +148,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task SaveHabitsReportReminderAsync_updates_existing_row_in_place()
+    public async Task SaveHabitsReportReminderAsync_ExistingReminder_UpdatesInPlace()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync(db, 7);
@@ -169,7 +169,7 @@ public class ReminderServiceTests
     }
 
     [Fact]
-    public async Task SaveHabitsReportReminderAsync_ignores_client_id_of_other_users_reminder()
+    public async Task SaveHabitsReportReminderAsync_ForeignReminderId_IgnoresAndCreatesOwn()
     {
         (ReminderService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync(db, 7);

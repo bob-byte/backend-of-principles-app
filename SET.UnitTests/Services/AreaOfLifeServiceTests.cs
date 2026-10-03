@@ -8,7 +8,7 @@ namespace SET.UnitTests.Services;
 public class AreaOfLifeServiceTests
 {
     [Fact]
-    public async Task GetAllAsync_returns_only_the_users_areas()
+    public async Task GetAllAsync_MixedUsers_ReturnsOnlyOwnedAreas()
     {
         AppDbContext db = TestDb.Create();
         await TestData.AddAreaOfLifeAsync( db, 1, "Health" );

@@ -5,7 +5,7 @@ namespace SET.UnitTests.Services;
 public class AiServiceSuggestProfileTextTests
 {
     [Fact]
-    public void ParseProfileTextSuggestionsJson_MapsSuggestionsArray()
+    public void ParseProfileTextSuggestionsJson_SuggestionsArray_MapsSuggestions()
     {
         const string json =
             """
@@ -27,7 +27,7 @@ public class AiServiceSuggestProfileTextTests
     }
 
     [Fact]
-    public void BuildSuggestProfileTextUserPrompt_IncludesHintAndGoals()
+    public void BuildSuggestProfileTextUserPrompt_Context_IncludesHintAndGoals()
     {
         SuggestProfileTextContext context = new()
         {

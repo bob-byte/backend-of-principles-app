@@ -19,7 +19,7 @@ public class TaskServiceTests
     [Theory]
     [InlineData( null, "NameIsNullOrWhiteSpace" )]
     [InlineData( "   ", "NameIsNullOrWhiteSpace" )]
-    public async Task CreateAsync_rejects_blank_name( string? name, string token )
+    public async Task CreateAsync_BlankName_ReturnsBadRequest( string? name, string token )
     {
         (TaskService service, _, RecordingSyncPushService push) = CreateSut();
 
@@ -30,7 +30,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_rejects_null_and_too_long_names()
+    public async Task CreateAsync_NullOrTooLongName_ReturnsBadRequest()
     {
         (TaskService service, _, _) = CreateSut();
 
@@ -42,7 +42,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_persists_task_with_subtasks_and_notifies_other_devices()
+    public async Task CreateAsync_ValidTask_PersistsAndNotifies()
     {
         (TaskService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
 
@@ -69,7 +69,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task GetByDateAsync_requires_date_and_returns_only_users_tasks_for_that_day_by_time()
+    public async Task GetByDateAsync_ValidDate_ReturnsOwnedTasksByTime()
     {
         (TaskService service, AppDbContext db, _) = CreateSut();
         DateOnly day = new( 2026, 10, 3 );
@@ -85,7 +85,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task GetAllAsync_returns_only_users_tasks()
+    public async Task GetAllAsync_MixedUsers_ReturnsOnlyOwnedTasks()
     {
         (TaskService service, AppDbContext db, _) = CreateSut();
         await TestData.AddTaskAsync( db, 1, "Mine" );
@@ -97,7 +97,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task GetInboxAsync_returns_open_undated_or_upcoming_tasks()
+    public async Task GetInboxAsync_OpenTasks_ReturnsUndatedOrUpcoming()
     {
         (TaskService service, AppDbContext db, _) = CreateSut();
         DateOnly today = DateOnly.FromDateTime( DateTime.Today );
@@ -112,7 +112,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_validates_and_scopes_to_user()
+    public async Task UpdateStatusAsync_InvalidOrForeign_ReturnsError()
     {
         (TaskService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         SET.Shared.Models.Task task = await TestData.AddTaskAsync( db, 2, "Theirs" );
@@ -127,7 +127,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateStatusAsync_completes_task_and_bumps_updated_at()
+    public async Task UpdateStatusAsync_OwnedTask_CompletesAndBumpsUpdatedAt()
     {
         (TaskService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         SET.Shared.Models.Task task = await TestData.AddTaskAsync( db, 1, "Mine" );
@@ -142,7 +142,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_validates_then_applies_dto()
+    public async Task UpdateAsync_ValidRequest_AppliesDto()
     {
         (TaskService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         SET.Shared.Models.Task task = await TestData.AddTaskAsync( db, 1, "Old" );
@@ -160,7 +160,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_removes_task_writes_tombstone_and_pushes_deleted_id()
+    public async Task DeleteAsync_OwnedTask_RemovesWritesTombstoneAndPushes()
     {
         (TaskService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();
         SET.Shared.Models.Task task = await TestData.AddTaskAsync( db, 1, "Mine" );
@@ -176,7 +176,7 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_rejects_invalid_and_foreign_ids()
+    public async Task DeleteAsync_InvalidOrForeignId_ReturnsError()
     {
         (TaskService service, AppDbContext db, _) = CreateSut();
         SET.Shared.Models.Task task = await TestData.AddTaskAsync( db, 2, "Theirs" );

@@ -5,7 +5,7 @@ namespace SET.UnitTests.Services;
 public sealed class VerificationEmailContentTests
 {
     [Fact]
-    public void Build_signup_includes_purpose_and_formatted_code()
+    public void Build_Signup_IncludesPurposeAndFormattedCode()
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build( VerificationEmailContent.Purpose.Signup, 123456 );
@@ -23,7 +23,7 @@ public sealed class VerificationEmailContentTests
     }
 
     [Fact]
-    public void Build_password_reset_includes_purpose_and_formatted_code()
+    public void Build_PasswordReset_IncludesPurposeAndFormattedCode()
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build( VerificationEmailContent.Purpose.PasswordReset, 654321 );
@@ -37,7 +37,7 @@ public sealed class VerificationEmailContentTests
     }
 
     [Fact]
-    public void Build_pads_short_codes_to_six_digits()
+    public void Build_ShortCode_PadsToSixDigits()
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build( VerificationEmailContent.Purpose.Signup, 42 );
@@ -50,7 +50,7 @@ public sealed class VerificationEmailContentTests
     [InlineData( "uk" )]
     [InlineData( "uk-UA" )]
     [InlineData( "UK_ua" )]
-    public void Build_signup_uses_ukrainian_copy_when_language_is_uk( string language )
+    public void Build_SignupUkrainian_UsesUkrainianCopy( string language )
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build(
@@ -67,7 +67,7 @@ public sealed class VerificationEmailContentTests
     }
 
     [Fact]
-    public void Build_password_reset_uses_ukrainian_copy_when_language_is_uk()
+    public void Build_PasswordResetUkrainian_UsesUkrainianCopy()
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build(
@@ -85,7 +85,7 @@ public sealed class VerificationEmailContentTests
     [InlineData( "" )]
     [InlineData( "en" )]
     [InlineData( "fr" )]
-    public void Build_defaults_to_english_for_unknown_or_missing_language( string? language )
+    public void Build_UnknownOrMissingLanguage_DefaultsToEnglish( string? language )
     {
         VerificationEmailContent.Message message =
             VerificationEmailContent.Build(

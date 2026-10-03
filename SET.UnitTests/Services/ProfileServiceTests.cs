@@ -14,7 +14,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task GetProfile_maps_user_and_falls_back_to_created_at()
+    public async Task GetProfile_UserWithoutUpdatedAt_FallsBackToCreatedAt()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 4, "me@example.com", u =>
@@ -43,7 +43,7 @@ public class ProfileServiceTests
     [InlineData( null )]
     [InlineData( "" )]
     [InlineData( "  " )]
-    public async Task SaveNameAsync_rejects_blank_names( string? name )
+    public async Task SaveNameAsync_BlankName_ReturnsBadRequest( string? name )
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -53,7 +53,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveNameAsync_saves_and_bumps_updated_at()
+    public async Task SaveNameAsync_ValidName_SavesAndBumpsUpdatedAt()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -66,7 +66,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveGenderAsync_rejects_undefined_values()
+    public async Task SaveGenderAsync_UndefinedValue_ReturnsBadRequest()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -78,7 +78,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveMainSloganAsync_and_SaveHasSeenRoadGuideAsync_persist()
+    public async Task SaveMainSloganAndHasSeenRoadGuide_ValidValues_Persist()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -93,7 +93,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveMissionAsync_renames_reminders_that_used_old_mission()
+    public async Task SaveMissionAsync_OldMissionOnReminders_RenamesThem()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1, configure: u => u.Mission = "Old mission" );
@@ -114,7 +114,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveMissionAsync_only_renames_matching_report_fields()
+    public async Task SaveMissionAsync_MatchingReportFields_RenamesOnlyMatches()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1, configure: u => u.Mission = "Old mission" );
@@ -126,7 +126,7 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task SaveMissionAsync_without_previous_mission_only_sets_it()
+    public async Task SaveMissionAsync_NoPreviousMission_OnlySetsMission()
     {
         (ProfileService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );

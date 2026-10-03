@@ -25,7 +25,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetBootstrapAsync_returns_only_the_users_data()
+    public async Task GetBootstrapAsync_MixedUsers_ReturnsOnlyOwnedData()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1, configure: u => u.Mission = "Mission" );
@@ -59,7 +59,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_requires_full_bootstrap_without_cursor()
+    public async Task GetChangesAsync_NoCursor_RequiresFullBootstrap()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -69,7 +69,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_requires_full_bootstrap_for_stale_cursor()
+    public async Task GetChangesAsync_StaleCursor_RequiresFullBootstrap()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -81,7 +81,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_returns_only_rows_changed_after_cursor()
+    public async Task GetChangesAsync_RecentCursor_ReturnsChangedRowsOnly()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1, configure: u => u.UpdatedAt = Old );
@@ -105,7 +105,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_includes_profile_when_it_changed()
+    public async Task GetChangesAsync_ProfileChanged_IncludesProfile()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1, configure: u => u.UpdatedAt = Recent );
@@ -116,7 +116,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_groups_recent_distinct_tombstones_by_type()
+    public async Task GetChangesAsync_RecentTombstones_GroupsDistinctIdsByType()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );
@@ -138,7 +138,7 @@ public class SyncServiceTests
     }
 
     [Fact]
-    public async Task GetChangesAsync_always_sends_current_reminders()
+    public async Task GetChangesAsync_AnyCursor_AlwaysSendsCurrentReminders()
     {
         (SyncService service, AppDbContext db) = CreateSut();
         User user = await TestData.AddUserAsync( db, 1 );

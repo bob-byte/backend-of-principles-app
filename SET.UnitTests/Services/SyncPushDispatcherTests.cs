@@ -77,7 +77,7 @@ public class SyncPushDispatcherTests
         new( 7, origin, tasks ?? Array.Empty<long>(), habits ?? Array.Empty<long>() );
 
     [Fact]
-    public async Task FlushAsync_skips_the_origin_device_and_other_users()
+    public async Task FlushAsync_OriginAndOtherUsers_SkipsThem()
     {
         (SyncPushDispatcher dispatcher, RecordingSender sender, IServiceProvider services) = CreateSut();
         await SeedDevicesAsync(
@@ -96,7 +96,7 @@ public class SyncPushDispatcherTests
     }
 
     [Fact]
-    public async Task FlushAsync_wakes_every_device_when_several_made_changes()
+    public async Task FlushAsync_SeveralOrigins_WakesEveryDevice()
     {
         (SyncPushDispatcher dispatcher, RecordingSender sender, IServiceProvider services) = CreateSut();
         await SeedDevicesAsync( services, (7, "mac", "token-mac"), (7, "phone", "token-phone") );
@@ -109,7 +109,7 @@ public class SyncPushDispatcherTests
     }
 
     [Fact]
-    public async Task FlushAsync_removes_devices_with_invalid_tokens()
+    public async Task FlushAsync_InvalidTokens_RemovesDevices()
     {
         (SyncPushDispatcher dispatcher, RecordingSender sender, IServiceProvider services) = CreateSut();
         await SeedDevicesAsync( services, (7, "old", "token-old"), (7, "phone", "token-phone") );
@@ -123,7 +123,7 @@ public class SyncPushDispatcherTests
     }
 
     [Fact]
-    public async Task FlushAsync_is_a_noop_when_fcm_is_not_configured()
+    public async Task FlushAsync_FcmNotConfigured_IsNoOp()
     {
         (SyncPushDispatcher dispatcher, RecordingSender sender, IServiceProvider services) = CreateSut();
         await SeedDevicesAsync( services, (7, "phone", "token-phone") );
@@ -135,7 +135,7 @@ public class SyncPushDispatcherTests
     }
 
     [Fact]
-    public async Task Burst_of_changes_is_sent_as_one_push_with_all_deleted_ids()
+    public async Task Enqueue_BurstOfChanges_SendsOnePushWithAllDeletedIds()
     {
         (SyncPushDispatcher dispatcher, RecordingSender sender, IServiceProvider services) =
             CreateSut( TimeSpan.FromMilliseconds( 150 ) );
@@ -167,7 +167,7 @@ public class SyncPushDispatcherTests
     }
 
     [Fact]
-    public void ToData_caps_the_number_of_ids()
+    public void ToData_ManyIds_CapsNumberOfIds()
     {
         PendingSyncPush push = Pending( Request( null, tasks: Enumerable.Range( 1, 500 ).Select( i => (long)i ).ToArray() ) );
 
@@ -183,13 +183,13 @@ public class SyncPushDispatcherTests
     [InlineData( HttpStatusCode.BadRequest, "{\"error\":{\"message\":\"The registration token is not a valid FCM registration token\"}}", true )]
     [InlineData( HttpStatusCode.BadRequest, "{\"error\":{\"message\":\"Invalid JSON payload\"}}", false )]
     [InlineData( HttpStatusCode.ServiceUnavailable, "{}", false )]
-    public void IsInvalidToken_only_flags_dead_tokens( HttpStatusCode status, string body, bool expected )
+    public void IsInvalidToken_VariousErrors_OnlyFlagsDeadTokens( HttpStatusCode status, string body, bool expected )
     {
         Assert.Equal( expected, FcmPushSender.IsInvalidToken( status, body ) );
     }
 
     [Fact]
-    public void BuildMessage_is_a_silent_background_push()
+    public void BuildMessage_Default_IsSilentBackgroundPush()
     {
         object message = FcmPushSender.BuildMessage(
             "token-phone",

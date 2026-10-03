@@ -5,7 +5,7 @@ namespace SET.UnitTests.Services;
 public class AiServiceRecommendGoalsTests
 {
     [Fact]
-    public void ParseRecommendedGoalsJson_MapsGoalsArray()
+    public void ParseRecommendedGoalsJson_GoalsArray_MapsGoals()
     {
         const string json =
             """
@@ -26,7 +26,7 @@ public class AiServiceRecommendGoalsTests
     }
 
     [Fact]
-    public void BuildRecommendGoalsUserPrompt_IncludesAreaAndExistingGoals()
+    public void BuildRecommendGoalsUserPrompt_Context_IncludesAreaAndExistingGoals()
     {
         RecommendGoalsContext context = new()
         {

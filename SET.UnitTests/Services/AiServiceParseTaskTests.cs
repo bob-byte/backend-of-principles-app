@@ -5,7 +5,7 @@ namespace SET.UnitTests.Services;
 public class AiServiceParseTaskTests
 {
     [Fact]
-    public void ParseTaskDraftJson_MapsTimeRemindersAndSubtasks()
+    public void ParseTaskDraftJson_FullDraft_MapsTimeRemindersAndSubtasks()
     {
         const string json =
             """
@@ -34,7 +34,7 @@ public class AiServiceParseTaskTests
     }
 
     [Fact]
-    public void ParseTaskDraftJson_DateOnlyDefaultsToAllDay()
+    public void ParseTaskDraftJson_DateOnly_DefaultsToAllDay()
     {
         const string json =
             """

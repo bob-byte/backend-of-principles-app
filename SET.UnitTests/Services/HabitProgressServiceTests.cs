@@ -18,7 +18,7 @@ public class HabitProgressServiceTests
     }
 
     [Fact]
-    public async Task UpdateProgressAsync_rejects_null_progress()
+    public async Task UpdateProgressAsync_NullProgress_ReturnsBadRequest()
     {
         (HabitProgressService service, _) = CreateSut();
 
@@ -26,7 +26,7 @@ public class HabitProgressServiceTests
     }
 
     [Fact]
-    public async Task UpdateProgressAsync_rejects_default_date()
+    public async Task UpdateProgressAsync_DefaultDate_ReturnsBadRequest()
     {
         (HabitProgressService service, _) = CreateSut();
 
@@ -37,7 +37,7 @@ public class HabitProgressServiceTests
     }
 
     [Fact]
-    public async Task UpdateProgressAsync_rejects_missing_habit_id()
+    public async Task UpdateProgressAsync_MissingHabitId_ReturnsBadRequest()
     {
         (HabitProgressService service, _) = CreateSut();
 
@@ -48,7 +48,7 @@ public class HabitProgressServiceTests
     }
 
     [Fact]
-    public async Task UpdateProgressAsync_rejects_other_users_habit()
+    public async Task UpdateProgressAsync_OtherUsersHabit_ReturnsBadRequest()
     {
         (HabitProgressService service, AppDbContext db) = CreateSut();
         UserHabit foreign = await TestData.AddHabitAsync( db, 2, "Foreign" );

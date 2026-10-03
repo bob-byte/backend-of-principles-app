@@ -51,7 +51,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
 
     [Theory]
     [MemberData( nameof( ServiceTypes ) )]
-    public void AddBusinessLogic_resolves_service_in_a_request_scope( Type serviceType )
+    public void AddBusinessLogic_RequestScope_ResolvesService( Type serviceType )
     {
         using ServiceProvider provider = BuildProvider();
         using IServiceScope scope = provider.CreateScope();

@@ -5,7 +5,7 @@ namespace SET.UnitTests.Helpers;
 public class PasswordHelperTests
 {
     [Fact]
-    public void CreatePasswordHash_returns_192_byte_hash_and_salt()
+    public void CreatePasswordHash_ValidPassword_Returns192ByteHashAndSalt()
     {
         byte[] stored = PasswordHelper.CreatePasswordHash("Secret123!");
 
@@ -14,7 +14,7 @@ public class PasswordHelperTests
     }
 
     [Fact]
-    public void VerifyPasswordHash_returns_false_for_wrong_password()
+    public void VerifyPasswordHash_WrongPassword_ReturnsFalse()
     {
         byte[] stored = PasswordHelper.CreatePasswordHash("Secret123!");
 
@@ -22,26 +22,26 @@ public class PasswordHelperTests
     }
 
     [Fact]
-    public void CreatePasswordHash_throws_for_null()
+    public void CreatePasswordHash_NullPassword_Throws()
     {
         Assert.Throws<ArgumentNullException>(() => PasswordHelper.CreatePasswordHash(null!));
     }
 
     [Fact]
-    public void CreatePasswordHash_throws_for_whitespace()
+    public void CreatePasswordHash_WhitespacePassword_Throws()
     {
         Assert.Throws<ArgumentException>(() => PasswordHelper.CreatePasswordHash("   "));
     }
 
     [Fact]
-    public void VerifyPasswordHash_throws_for_invalid_length()
+    public void VerifyPasswordHash_InvalidLength_Throws()
     {
         Assert.Throws<ArgumentException>(() =>
             PasswordHelper.VerifyPasswordHash("Secret123!", new byte[10]));
     }
 
     [Fact]
-    public void VerifyPasswordHash_throws_for_null_password()
+    public void VerifyPasswordHash_NullPassword_Throws()
     {
         byte[] stored = PasswordHelper.CreatePasswordHash("Secret123!");
         Assert.Throws<ArgumentNullException>(() =>

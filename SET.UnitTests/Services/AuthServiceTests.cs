@@ -32,7 +32,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_creates_user_with_password_and_default_areas()
+    public async Task RegisterAsync_ValidRegister_CreatesUserWithPasswordAndDefaultAreas()
     {
         (AuthService auth, AppDbContext db) = CreateSut();
 
@@ -56,7 +56,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_returns_user_when_password_matches()
+    public async Task LoginAsync_MatchingPassword_ReturnsUser()
     {
         (AuthService auth, AppDbContext db) = CreateSut();
         await auth.RegisterAsync(new UserRegister
@@ -79,7 +79,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_returns_PasswordIsIncorrect_for_wrong_password()
+    public async Task LoginAsync_WrongPassword_ReturnsPasswordIsIncorrect()
     {
         (AuthService auth, _) = CreateSut();
         await auth.RegisterAsync(new UserRegister
@@ -101,7 +101,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_returns_EmailIsIncorrect_when_user_missing()
+    public async Task LoginAsync_MissingUser_ReturnsEmailIsIncorrect()
     {
         (AuthService auth, _) = CreateSut();
 
@@ -116,7 +116,7 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task LoginAsync_returns_YouDontHavePassword_when_password_null()
+    public async Task LoginAsync_NullPasswordHash_ReturnsYouDontHavePassword()
     {
         (AuthService auth, AppDbContext db) = CreateSut();
         db.Users.Add(new User

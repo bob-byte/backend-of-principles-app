@@ -50,7 +50,7 @@ public class AiConversationServiceTests
     };
 
     [Fact]
-    public async Task GetAllAsync_returns_users_conversations_newest_first()
+    public async Task GetAllAsync_MixedUsers_ReturnsOwnedNewestFirst()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         await AddConversationAsync( db, 1, "old", new DateTime( 2026, 1, 1, 0, 0, 0, DateTimeKind.Utc ) );
@@ -64,7 +64,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task GetByIdAsync_validates_and_scopes_to_user()
+    public async Task GetByIdAsync_InvalidOrForeign_ReturnsError()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         AiConversation foreign = await AddConversationAsync( db, 2, "foreign" );
@@ -76,7 +76,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task GetByClientIdAsync_trims_and_scopes_to_user()
+    public async Task GetByClientIdAsync_TrimmedClientId_ScopesToUser()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         await AddConversationAsync( db, 1, "abc" );
@@ -88,7 +88,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_validates_request()
+    public async Task CreateAsync_InvalidRequest_ReturnsBadRequest()
     {
         (AiConversationService service, _) = CreateSut();
 
@@ -97,7 +97,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_creates_new_conversation_with_messages()
+    public async Task CreateAsync_NewClientId_CreatesWithMessages()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
 
@@ -112,7 +112,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_existing_client_id_updates_instead_of_duplicating()
+    public async Task CreateAsync_ExistingClientId_UpdatesInsteadOfDuplicating()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         await AddConversationAsync( db, 1, "c-1" );
@@ -125,7 +125,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_truncates_long_client_ids()
+    public async Task CreateAsync_LongClientId_Truncates()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
 
@@ -135,7 +135,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task UpdateAsync_validates_and_applies_changes()
+    public async Task UpdateAsync_ValidRequest_AppliesChanges()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         AiConversation mine = await AddConversationAsync( db, 1, "mine" );
@@ -152,7 +152,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task UpsertByClientIdAsync_validates_inserts_then_updates()
+    public async Task UpsertByClientIdAsync_InsertThenUpdate_Succeeds()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
 
@@ -167,7 +167,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_validates_and_writes_tombstone()
+    public async Task DeleteAsync_OwnedConversation_WritesTombstone()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         AiConversation mine = await AddConversationAsync( db, 1, "mine" );
@@ -182,7 +182,7 @@ public class AiConversationServiceTests
     }
 
     [Fact]
-    public async Task DeleteByClientIdAsync_validates_and_writes_tombstone()
+    public async Task DeleteByClientIdAsync_OwnedClientId_WritesTombstone()
     {
         (AiConversationService service, AppDbContext db) = CreateSut();
         AiConversation mine = await AddConversationAsync( db, 1, "mine" );
