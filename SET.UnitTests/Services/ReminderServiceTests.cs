@@ -146,4 +146,47 @@ public class ReminderServiceTests
         Assert.Equal(stored.Id, result.Value!.Id);
         Assert.Equal(1, result.Value.UserNotificationRequestId);
     }
+
+    [Fact]
+    public async Task SaveHabitsReportReminderAsync_updates_existing_row_in_place()
+    {
+        (ReminderService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync(db, 7);
+        UserReminder existing = await TestData.AddUserReminderAsync(db, 7, 1, title: "Old");
+
+        ServiceResult<SavedReminderResponse> result = await service.SaveHabitsReportReminderAsync(user, new UserReminderDto
+        {
+            Title = "New",
+            Description = "Desc",
+            Time = new TimeOnly(20, 0),
+            IsEnabled = false,
+        });
+
+        UserReminder stored = await db.UserReminders.SingleAsync();
+        Assert.Equal(existing.Id, stored.Id);
+        Assert.Equal(existing.Id, result.Value!.Id);
+        Assert.Equal(("New", new TimeOnly(20, 0), false), (stored.Title, stored.Time, stored.IsEnabled));
+    }
+
+    [Fact]
+    public async Task SaveHabitsReportReminderAsync_ignores_client_id_of_other_users_reminder()
+    {
+        (ReminderService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync(db, 7);
+        await TestData.AddUserAsync(db, 8);
+        UserReminder foreign = await TestData.AddUserReminderAsync(db, 8, 1, title: "Theirs");
+
+        ServiceResult<SavedReminderResponse> result = await service.SaveHabitsReportReminderAsync(user, new UserReminderDto
+        {
+            Id = foreign.Id,
+            Title = "Mine",
+            Description = "Desc",
+            Time = new TimeOnly(21, 0),
+            IsEnabled = true,
+        });
+
+        Assert.NotEqual(foreign.Id, result.Value!.Id);
+        Assert.Equal(("Theirs", 8L), (foreign.Title, foreign.UserId));
+        Assert.Equal("Mine", (await db.UserReminders.SingleAsync(r => r.UserId == 7)).Title);
+    }
 }

@@ -75,17 +75,29 @@ public class ReminderService : IReminderService
         }
         #endregion
 
-        user.HabitsReportReminder = m_mapper.Map<UserReminder>( userReminder );
-        user.HabitsReportReminder!.UserNotificationRequestId = HabitsReportNotificationRequestId;
+        UserReminder? reminder = await m_dbContext.UserReminders
+            .FirstOrDefaultAsync( r => r.UserId == user.Id )
+            .DefaultConfigureAwait();
+        bool isNew = reminder is null;
+        reminder ??= new UserReminder();
 
-        await m_dbContext.Users.AddOrUpdateAsync( user ).DefaultConfigureAwait();
+        long reminderId = reminder.Id;
+        m_mapper.Map( userReminder, reminder );
+        reminder.Id = reminderId;
+        reminder.UserId = user.Id;
+        reminder.UserNotificationRequestId = HabitsReportNotificationRequestId;
+
+        if (isNew)
+        {
+            await m_dbContext.UserReminders.AddAsync( reminder ).DefaultConfigureAwait();
+        }
 
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
 
         return new SavedReminderResponse
         {
-            Id = user.HabitsReportReminder!.Id,
-            UserNotificationRequestId = user.HabitsReportReminder!.UserNotificationRequestId
+            Id = reminder.Id,
+            UserNotificationRequestId = reminder.UserNotificationRequestId
         };
     }
 }
