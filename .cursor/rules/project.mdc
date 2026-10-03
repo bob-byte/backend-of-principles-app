@@ -10,6 +10,7 @@ ASP.NET Core WebAPI for the Principles habit/goal app. Flutter client lives in t
 ## Git
 
 - Host is **GitHub only** (`origin`). Do not fetch, push, or set defaults on Bitbucket or other remotes.
+- **Never commit** (or amend, stash-and-drop, or push) unless the user explicitly asks in the current request. Leave finished work uncommitted and say it is ready to commit.
 
 ## Domain
 
