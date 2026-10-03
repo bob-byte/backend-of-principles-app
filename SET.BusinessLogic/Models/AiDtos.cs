@@ -49,12 +49,12 @@ public class AiTaskDraftDto
 public class AiRecommendHabitsRequest
 {
     public string Culture { get; set; }
-    public string Goal { get; set; }
-    public List<string> Goals { get; set; }
-    public List<string> CurrentHabits { get; set; }
-    public List<string> AreasOfLife { get; set; }
-    public string Mission { get; set; }
-    public string MainSlogan { get; set; }
+    public string? Goal { get; set; }
+    public List<string>? Goals { get; set; }
+    public List<string>? CurrentHabits { get; set; }
+    public List<string>? AreasOfLife { get; set; }
+    public string? Mission { get; set; }
+    public string? MainSlogan { get; set; }
     public int? Gender { get; set; }
 }
 
@@ -85,11 +85,11 @@ public class AiSuggestProfileTextRequest
     /// <summary>"slogan" or "mission".</summary>
     public string Kind { get; set; }
     public string Culture { get; set; }
-    public string Hint { get; set; }
-    public string Draft { get; set; }
-    public string Mission { get; set; }
-    public string MainSlogan { get; set; }
-    public List<string> Goals { get; set; }
+    public string? Hint { get; set; }
+    public string? Draft { get; set; }
+    public string? Mission { get; set; }
+    public string? MainSlogan { get; set; }
+    public List<string>? Goals { get; set; }
     public int? Gender { get; set; }
 }
 
@@ -108,10 +108,10 @@ public class AiRecommendGoalsRequest
 {
     public string Culture { get; set; }
     public string AreaOfLife { get; set; }
-    public List<string> ExistingGoals { get; set; }
-    public string Draft { get; set; }
-    public string Mission { get; set; }
-    public string MainSlogan { get; set; }
+    public List<string>? ExistingGoals { get; set; }
+    public string? Draft { get; set; }
+    public string? Mission { get; set; }
+    public string? MainSlogan { get; set; }
     public int? Gender { get; set; }
 }
 
