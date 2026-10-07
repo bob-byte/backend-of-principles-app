@@ -78,6 +78,41 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
+    public async Task PrepareChatAsync_AttachmentWithoutText_Accepts()
+    {
+        User user = await AddUserAsync();
+        byte[] png = { 0x89, 0x50, 0x4E, 0x47 };
+
+        ServiceResult<AiChatSession> result = await CreateSut().PrepareChatAsync( user, new AiChatRequest
+        {
+            Messages = new List<AiChatMessageDto>
+            {
+                new()
+                {
+                    Role = "user",
+                    Content = " ",
+                    Attachments = new List<AiChatAttachmentDto>
+                    {
+                        new()
+                        {
+                            FileName = "photo.png",
+                            MimeType = "image/png",
+                            Data = Convert.ToBase64String( png ),
+                        },
+                    },
+                },
+            },
+        } );
+
+        Assert.Null( result.Error );
+        AiChatMessage message = Assert.Single( result.Value!.Messages );
+        Assert.Equal( "user", message.Role );
+        Assert.Single( message.Attachments );
+        Assert.Equal( "photo.png", message.Attachments[0].FileName );
+        Assert.Equal( png, message.Attachments[0].Data );
+    }
+
+    [Fact]
     public async Task PrepareChatAsync_LargeLists_BuildsCappedUserContext()
     {
         User user = await AddUserAsync( Gender.Other );

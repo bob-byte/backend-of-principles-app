@@ -419,14 +419,21 @@ public class AiAssistantService : IAiAssistantService
         {
             foreach (AiChatMessageDto dto in request.Messages)
             {
-                if (dto is null || string.IsNullOrWhiteSpace( dto.Content ))
+                if (dto is null)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<AiChatAttachment> attachments = ParseAttachments( dto.Attachments );
+                if (string.IsNullOrWhiteSpace( dto.Content ) && attachments.Count == 0)
                 {
                     continue;
                 }
 
                 messages.Add( new AiChatMessage(
                     dto.Role ?? "user",
-                    dto.Content ) );
+                    dto.Content ?? string.Empty,
+                    attachments ) );
             }
         }
 
@@ -437,5 +444,43 @@ public class AiAssistantService : IAiAssistantService
         }
 
         return messages;
+    }
+
+    private static IReadOnlyList<AiChatAttachment> ParseAttachments(
+        IReadOnlyList<AiChatAttachmentDto>? dtos )
+    {
+        if (dtos is null || dtos.Count == 0)
+        {
+            return Array.Empty<AiChatAttachment>();
+        }
+
+        List<AiChatAttachment> attachments = new();
+        foreach (AiChatAttachmentDto dto in dtos)
+        {
+            if (dto is null)
+            {
+                continue;
+            }
+
+            byte[] data = Array.Empty<byte>();
+            if (!string.IsNullOrWhiteSpace( dto.Data ))
+            {
+                try
+                {
+                    data = Convert.FromBase64String( dto.Data.Trim() );
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
+            }
+
+            attachments.Add( new AiChatAttachment(
+                dto.FileName?.Trim() ?? string.Empty,
+                dto.MimeType?.Trim() ?? string.Empty,
+                data ) );
+        }
+
+        return attachments;
     }
 }

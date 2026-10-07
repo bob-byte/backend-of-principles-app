@@ -22,6 +22,9 @@ public class AiService : IAiService
     private const string DefaultModel = "gpt-5-mini";
     private const int MaxChatMessages = 30;
     private const int MaxMessageChars = 8000;
+    private const int MaxAttachmentsPerMessage = 4;
+    private const int MaxAttachmentBytes = 4 * 1024 * 1024;
+    private const int MaxAttachmentTextChars = 16000;
     private const int ChatMaxCompletionTokens = 4096;
     private const int ParseMaxCompletionTokens = 2048;
     private const int RecommendMaxCompletionTokens = 2048;
@@ -58,6 +61,7 @@ public class AiService : IAiService
         "not word-for-word translations from English or Ukrainian coach-speak. " +
         "Never invent names for the user's habits, goals, or tasks; only use names listed in this system message " +
         "(or say you do not see any if none are listed). " +
+        "The user may attach images or files. Use those attachments when answering; do not say you cannot see them. " +
         "When you recommend a concrete goal, habit, task, mission, or main slogan the user could add in the app, " +
         "write your normal reply first, then append exactly one machine block the app can parse " +
         "(do not mention the block to the user): " +
@@ -795,7 +799,13 @@ public class AiService : IAiService
 
         foreach (AiChatMessage message in messages)
         {
-            if (message is null || string.IsNullOrWhiteSpace( message.Content ))
+            if (message is null)
+            {
+                continue;
+            }
+
+            IReadOnlyList<AiChatAttachment> attachments = SanitizeAttachments( message.Attachments );
+            if (string.IsNullOrWhiteSpace( message.Content ) && attachments.Count == 0)
             {
                 continue;
             }
@@ -806,13 +816,13 @@ public class AiService : IAiService
                 continue;
             }
 
-            string content = message.Content.Trim();
+            string content = (message.Content ?? string.Empty).Trim();
             if (content.Length > MaxMessageChars)
             {
                 content = content[..MaxMessageChars];
             }
 
-            target.Add( new AiChatMessage( role, content ) );
+            target.Add( new AiChatMessage( role, content, attachments ) );
         }
     }
 
@@ -1024,10 +1034,150 @@ public class AiService : IAiService
                 "tool" => ChatRole.Tool,
                 _ => ChatRole.User
             };
-            result.Add( new ChatMessage( role, message.Content ) );
+
+            IReadOnlyList<AiChatAttachment> attachments = message.Attachments
+                ?? Array.Empty<AiChatAttachment>();
+            if (attachments.Count == 0)
+            {
+                result.Add( new ChatMessage( role, message.Content ) );
+                continue;
+            }
+
+            List<AIContent> parts = new();
+            StringBuilder text = new();
+            if (!string.IsNullOrWhiteSpace( message.Content ))
+            {
+                text.Append( message.Content.Trim() );
+            }
+
+            foreach (AiChatAttachment attachment in attachments)
+            {
+                if (attachment?.Data is null || attachment.Data.Length == 0)
+                {
+                    if (!string.IsNullOrWhiteSpace( attachment?.FileName ))
+                    {
+                        if (text.Length > 0)
+                        {
+                            text.AppendLine();
+                        }
+
+                        text.Append( "[Attached: " )
+                            .Append( attachment!.FileName )
+                            .Append( ']' );
+                    }
+
+                    continue;
+                }
+
+                string mime = (attachment.MimeType ?? string.Empty).Trim().ToLowerInvariant();
+                if (mime.StartsWith( "text/", StringComparison.Ordinal ) ||
+                    mime is "application/json" or "application/xml" or "application/rtf")
+                {
+                    string fileText = Encoding.UTF8.GetString( attachment.Data );
+                    if (fileText.Length > MaxAttachmentTextChars)
+                    {
+                        fileText = fileText[..MaxAttachmentTextChars];
+                    }
+
+                    if (text.Length > 0)
+                    {
+                        text.AppendLine();
+                    }
+
+                    text.Append( "--- File: " )
+                        .Append( string.IsNullOrWhiteSpace( attachment.FileName )
+                            ? "attachment"
+                            : attachment.FileName )
+                        .AppendLine( " ---" )
+                        .Append( fileText );
+                    continue;
+                }
+
+                parts.Add( new DataContent( attachment.Data, string.IsNullOrWhiteSpace( mime )
+                    ? "application/octet-stream"
+                    : mime ) );
+            }
+
+            if (text.Length > 0)
+            {
+                parts.Insert( 0, new TextContent( text.ToString() ) );
+            }
+
+            if (parts.Count == 0)
+            {
+                continue;
+            }
+
+            result.Add( new ChatMessage( role, parts ) );
         }
 
         return result;
+    }
+
+    internal static IReadOnlyList<AiChatAttachment> SanitizeAttachments(
+        IReadOnlyList<AiChatAttachment>? attachments )
+    {
+        if (attachments is null || attachments.Count == 0)
+        {
+            return Array.Empty<AiChatAttachment>();
+        }
+
+        List<AiChatAttachment> sanitized = new();
+        foreach (AiChatAttachment attachment in attachments)
+        {
+            if (sanitized.Count >= MaxAttachmentsPerMessage)
+            {
+                break;
+            }
+
+            if (attachment?.Data is null ||
+                attachment.Data.Length == 0 ||
+                attachment.Data.Length > MaxAttachmentBytes)
+            {
+                if (attachment is not null &&
+                    !string.IsNullOrWhiteSpace( attachment.FileName ) &&
+                    (attachment.Data is null || attachment.Data.Length == 0))
+                {
+                    sanitized.Add( new AiChatAttachment(
+                        attachment.FileName.Trim(),
+                        (attachment.MimeType ?? string.Empty).Trim(),
+                        Array.Empty<byte>() ) );
+                }
+
+                continue;
+            }
+
+            string mime = (attachment.MimeType ?? string.Empty).Trim().ToLowerInvariant();
+            if (!IsAllowedMime( mime ))
+            {
+                continue;
+            }
+
+            string fileName = string.IsNullOrWhiteSpace( attachment.FileName )
+                ? "attachment"
+                : attachment.FileName.Trim();
+            sanitized.Add( new AiChatAttachment( fileName, mime, attachment.Data ) );
+        }
+
+        return sanitized;
+    }
+
+    private static bool IsAllowedMime( string mime )
+    {
+        return mime is
+            "image/jpeg" or
+            "image/png" or
+            "image/gif" or
+            "image/webp" or
+            "application/pdf" or
+            "text/plain" or
+            "text/markdown" or
+            "text/csv" or
+            "text/html" or
+            "text/xml" or
+            "application/json" or
+            "application/xml" or
+            "application/rtf";
     }
 
     private async Task<string> CompleteAsync(

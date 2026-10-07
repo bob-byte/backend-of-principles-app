@@ -41,14 +41,33 @@ public interface IAiService
 
 public sealed class AiChatMessage
 {
-    public AiChatMessage( string role, string content )
+    public AiChatMessage(
+        string role,
+        string content,
+        IReadOnlyList<AiChatAttachment>? attachments = null )
     {
         Role = role;
         Content = content;
+        Attachments = attachments ?? Array.Empty<AiChatAttachment>();
     }
 
     public string Role { get; }
     public string Content { get; }
+    public IReadOnlyList<AiChatAttachment> Attachments { get; }
+}
+
+public sealed class AiChatAttachment
+{
+    public AiChatAttachment( string fileName, string mimeType, byte[] data )
+    {
+        FileName = fileName;
+        MimeType = mimeType;
+        Data = data;
+    }
+
+    public string FileName { get; }
+    public string MimeType { get; }
+    public byte[] Data { get; }
 }
 
 public sealed class AiTaskDraftResult

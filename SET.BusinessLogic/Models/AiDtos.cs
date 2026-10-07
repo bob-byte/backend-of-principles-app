@@ -15,6 +15,14 @@ public class AiChatMessageDto
 {
     public string Role { get; set; }
     public string Content { get; set; }
+    public List<AiChatAttachmentDto>? Attachments { get; set; }
+}
+
+public class AiChatAttachmentDto
+{
+    public string? FileName { get; set; }
+    public string? MimeType { get; set; }
+    public string? Data { get; set; }
 }
 
 public class AiChatResponse
