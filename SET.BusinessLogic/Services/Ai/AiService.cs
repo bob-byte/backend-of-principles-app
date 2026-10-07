@@ -57,6 +57,9 @@ public class AiService : IAiService
         "Avoid calques and stock slogans such as \"this is not about theory, this is about actions\", " +
         "\"clear steps\", \"own your journey\", or similar template praise. " +
         "Do not open with hollow pep-talk summaries of what the user already said; answer the question directly. " +
+        "Keep the visible reply short: usually 4 to 7 sentences, or a list of at most 3 items. " +
+        "Be concrete: when this system message lists the user's goals, habits, or tasks, use those names, " +
+        "and give one specific next action (what to do, how often, and when) instead of general advice, frameworks, or pep talk. " +
         "For Ukrainian: use natural modern Ukrainian phrasing a native would actually say or write in chat, " +
         "not word-for-word translations from English or Ukrainian coach-speak. " +
         "Never invent names for the user's habits, goals, or tasks; only use names listed in this system message " +

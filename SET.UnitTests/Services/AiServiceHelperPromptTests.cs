@@ -25,6 +25,8 @@ public class AiServiceHelperPromptTests
         Assert.Contains( "translated English life-coach", prompt, StringComparison.Ordinal );
         Assert.Contains( "natural modern Ukrainian", prompt, StringComparison.Ordinal );
         Assert.Contains( "answer the question directly", prompt, StringComparison.Ordinal );
+        Assert.Contains( "usually 4 to 7 sentences", prompt, StringComparison.Ordinal );
+        Assert.Contains( "one specific next action", prompt, StringComparison.Ordinal );
     }
 
     [Fact]
