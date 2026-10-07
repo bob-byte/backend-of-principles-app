@@ -57,6 +57,22 @@ public class ProfileService : IProfileService
         return SaveUserAsync( user );
     }
 
+    public async Task SaveLastAppOpenAsync( User user, DateTime lastAppOpen )
+    {
+        DateTime incoming = DateTime.SpecifyKind( lastAppOpen.Date, DateTimeKind.Utc );
+        DateTime? existing = user.LastAppOpen.HasValue
+            ? DateTime.SpecifyKind( user.LastAppOpen.Value.Date, DateTimeKind.Utc )
+            : null;
+
+        if (existing.HasValue && incoming <= existing.Value)
+        {
+            return;
+        }
+
+        user.LastAppOpen = incoming;
+        await SaveUserAsync( user ).DefaultConfigureAwait();
+    }
+
     public async Task SaveMissionAsync( User user, string mission )
     {
         string? oldMission = (string?)user.Mission?.Clone();

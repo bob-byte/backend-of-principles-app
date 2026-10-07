@@ -56,6 +56,16 @@ public class ProfileController : BaseController
         } );
     }
 
+    [HttpPut( template: "lastappopen" )]
+    public Task<IActionResult> SaveLastAppOpenAsync( [FromBody] DateTime lastAppOpen )
+    {
+        return TryCatchAsync( async ( User user ) =>
+        {
+            await m_profileService.SaveLastAppOpenAsync( user, lastAppOpen ).DefaultConfigureAwait();
+            return Ok();
+        } );
+    }
+
     [HttpPut( template: "mission" )]
     public Task<IActionResult> SaveMissionAsync( [FromBody] string mission )
     {

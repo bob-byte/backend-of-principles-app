@@ -94,6 +94,7 @@ public class SyncService : ISyncService
                 Mission = user.Mission,
                 Email = user.Email,
                 Gender = user.Gender,
+                LastAppOpen = user.LastAppOpen,
                 LastModified = user.UpdatedAt ?? user.CreatedAt
             },
             Goals = goals,
@@ -139,6 +140,7 @@ public class SyncService : ISyncService
                 Mission = user.Mission,
                 Email = user.Email,
                 Gender = user.Gender,
+                LastAppOpen = user.LastAppOpen,
                 LastModified = userStamp,
             };
         }

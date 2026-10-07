@@ -23,6 +23,12 @@ public class User
     /// </summary>
     public bool HasSeenRoadGuide { get; set; }
 
+    /// <summary>
+    /// Latest calendar day the user opened the app on any device (UTC date-only).
+    /// Used so habit streak miss detection is not reset by an idle peer device.
+    /// </summary>
+    public DateTime? LastAppOpen { get; set; }
+
     public UserReminder? HabitsReportReminder { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

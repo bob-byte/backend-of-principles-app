@@ -138,4 +138,54 @@ public class ProfileServiceTests
         Assert.Equal( "Mission", user.Mission );
         Assert.Equal( "Title", reminder.Title );
     }
+
+    [Fact]
+    public async Task SaveLastAppOpenAsync_NullExisting_PersistsUtcDateOnly()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        await service.SaveLastAppOpenAsync( user, new DateTime( 2026, 10, 5, 15, 30, 0, DateTimeKind.Local ) );
+
+        User stored = (await db.Users.FindAsync( 1L ))!;
+        Assert.Equal( new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc ), stored.LastAppOpen );
+        Assert.NotNull( stored.UpdatedAt );
+        Assert.Equal( stored.LastAppOpen, service.GetProfile( user ).LastAppOpen );
+    }
+
+    [Fact]
+    public async Task SaveLastAppOpenAsync_OlderOrSameDay_DoesNotUpdate()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1, configure: u =>
+        {
+            u.LastAppOpen = new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc );
+            u.UpdatedAt = new DateTime( 2026, 10, 5, 12, 0, 0, DateTimeKind.Utc );
+        } );
+        DateTime? previousUpdatedAt = user.UpdatedAt;
+
+        await service.SaveLastAppOpenAsync( user, new DateTime( 2026, 10, 4, 0, 0, 0, DateTimeKind.Utc ) );
+        await service.SaveLastAppOpenAsync( user, new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc ) );
+
+        User stored = (await db.Users.FindAsync( 1L ))!;
+        Assert.Equal( new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc ), stored.LastAppOpen );
+        Assert.Equal( previousUpdatedAt, stored.UpdatedAt );
+    }
+
+    [Fact]
+    public async Task SaveLastAppOpenAsync_NewerDay_ReplacesAndBumpsUpdatedAt()
+    {
+        (ProfileService service, AppDbContext db) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1, configure: u =>
+        {
+            u.LastAppOpen = new DateTime( 2026, 10, 4, 0, 0, 0, DateTimeKind.Utc );
+            u.UpdatedAt = new DateTime( 2026, 10, 4, 12, 0, 0, DateTimeKind.Utc );
+        } );
+
+        await service.SaveLastAppOpenAsync( user, new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc ) );
+
+        User stored = (await db.Users.FindAsync( 1L ))!;
+        Assert.Equal( new DateTime( 2026, 10, 5, 0, 0, 0, DateTimeKind.Utc ), stored.LastAppOpen );
+        Assert.True( stored.UpdatedAt > new DateTime( 2026, 10, 4, 12, 0, 0, DateTimeKind.Utc ) );
+    }
 }

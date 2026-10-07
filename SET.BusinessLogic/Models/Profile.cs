@@ -16,5 +16,8 @@ public class Profile
 
     public bool HasSeenRoadGuide { get; set; }
 
+    /// <summary>UTC date-only of the latest app open across the user's devices.</summary>
+    public DateTime? LastAppOpen { get; set; }
+
     public DateTime LastModified { get; set; }
 }

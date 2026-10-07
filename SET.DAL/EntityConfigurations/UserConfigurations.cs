@@ -37,6 +37,10 @@ internal class UserConfigurations : IEntityTypeConfiguration<User>
             IsRequired().
             HasDefaultValue( false );
 
+        builder.Property( u => u.LastAppOpen ).
+            HasColumnType( "timestamp with time zone" ).
+            IsRequired( false );
+
         builder.HasMany( u => u.AreasOfLife ).
             WithOne( u => u.User ).
             IsRequired().

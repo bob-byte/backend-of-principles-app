@@ -8,6 +8,7 @@ public class SyncBootstrapUserDto
     public string Mission { get; set; }
     public string Email { get; set; }
     public Gender Gender { get; set; }
+    public DateTime? LastAppOpen { get; set; }
     public DateTime LastModified { get; set; }
 }
 
