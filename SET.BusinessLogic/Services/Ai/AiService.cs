@@ -1172,6 +1172,8 @@ public class AiService : IAiService
             "image/png" or
             "image/gif" or
             "image/webp" or
+            "image/heic" or
+            "image/heif" or
             "application/pdf" or
             "text/plain" or
             "text/markdown" or
@@ -1180,7 +1182,8 @@ public class AiService : IAiService
             "text/xml" or
             "application/json" or
             "application/xml" or
-            "application/rtf";
+            "application/rtf" or
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
     }
 
     private async Task<string> CompleteAsync(
