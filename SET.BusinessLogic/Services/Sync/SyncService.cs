@@ -26,6 +26,7 @@ public class SyncService : ISyncService
 
         List<UserGoal> goalEntities = await m_dbContext.UserGoals
             .AsNoTracking()
+            .Include( g => g.Subgoals )
             .Where( g => g.UserId == user.Id )
             .ToListAsync()
             .DefaultConfigureAwait();
@@ -140,6 +141,7 @@ public class SyncService : ISyncService
 
         List<UserGoal> changedGoals = await m_dbContext.UserGoals
             .AsNoTracking()
+            .Include( g => g.Subgoals )
             .Where( g => g.UserId == user.Id
                          && ( ( g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt ) > sinceUtc ) )
             .ToListAsync()

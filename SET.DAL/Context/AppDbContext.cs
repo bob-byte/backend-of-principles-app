@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
     public DbSet<Frequency> Frequencies { get; set; }
     public DbSet<ClientLog> ClientLogs { get; set; }
     public DbSet<UserGoal> UserGoals { get; set; }
+    public DbSet<GoalSubgoal> GoalSubgoals { get; set; }
     public DbSet<UserReminder> UserReminders { get; set; }
     public DbSet<WeekDay> WeekDays { get; set; }
     public DbSet<UserHabitReminder> UserHabitReminders { get; set; }
@@ -47,6 +48,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new ProgressOfHabitConfigurations() );
         modelBuilder.ApplyConfiguration( new ClientLogConfigurations() );
         modelBuilder.ApplyConfiguration( new UserGoalConfigurations() );
+        modelBuilder.ApplyConfiguration( new GoalSubgoalsConfiguration() );
         modelBuilder.ApplyConfiguration( new UserReminderConfigurations() );
         modelBuilder.ApplyConfiguration( new WeekDayConfigurations() );
         modelBuilder.ApplyConfiguration( new UserHabitReminderConfigurations() );

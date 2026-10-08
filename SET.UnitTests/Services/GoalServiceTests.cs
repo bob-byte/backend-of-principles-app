@@ -285,4 +285,52 @@ public class GoalServiceTests
         Assert.Equal( "Old goal", foreignSameTitle.Title );
         Assert.Equal( "dev", Assert.Single( push.Requests ).OriginDeviceId );
     }
+
+    [Fact]
+    public async Task SaveAsync_Subgoals_ReplacesBlankAndDuplicateRows()
+    {
+        (GoalService service, AppDbContext db, _) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        ServiceResult<DtoWithId> created = await service.SaveAsync( user, new UserGoalDto
+        {
+            Name = "Read",
+            Subgoals = new List<GoalSubgoalDto>
+            {
+                new() { Id = "a", Name = "  Chapter 1  ", IsCompleted = true, SortOrder = 2 },
+                new() { Id = "a", Name = "Duplicate" },
+                new() { Id = "b", Name = "   " },
+                new() { Id = "c", Name = "Chapter 2", SortOrder = 0 },
+            },
+        }, null );
+
+        UserGoal stored = await db.UserGoals.Include( g => g.Subgoals ).SingleAsync();
+        Assert.Equal( stored.Id, created.Value!.Id );
+        Assert.Equal( 2, stored.Subgoals.Count );
+        Assert.Equal( new[] { "Chapter 1", "Chapter 2" }, stored.Subgoals.OrderBy( s => s.SortOrder ).Select( s => s.Name ) );
+        Assert.True( stored.Subgoals.Single( s => s.ClientId == "a" ).IsCompleted );
+
+        List<UserGoalDto> active = await service.GetActiveAsync( 1 );
+        Assert.Equal( new[] { "Chapter 1", "Chapter 2" }, Assert.Single( active ).Subgoals!.Select( s => s.Name ) );
+
+        await service.SaveAsync( user, new UserGoalDto
+        {
+            Id = stored.Id,
+            Name = "Read more",
+        }, null );
+
+        await db.Entry( stored ).Collection( g => g.Subgoals ).LoadAsync();
+        Assert.Equal( "Read more", stored.Name );
+        Assert.Equal( 2, stored.Subgoals.Count );
+
+        await service.SaveAsync( user, new UserGoalDto
+        {
+            Id = stored.Id,
+            Name = "Read more",
+            Subgoals = new List<GoalSubgoalDto>(),
+        }, null );
+
+        await db.Entry( stored ).Collection( g => g.Subgoals ).LoadAsync();
+        Assert.Empty( stored.Subgoals );
+    }
 }

@@ -28,4 +28,6 @@ public class UserGoal
     public string? RemindersJson { get; set; }
 
     public ICollection<UserHabit>? UserHabits { get; set; }
+
+    public ICollection<GoalSubgoal> Subgoals { get; set; } = new List<GoalSubgoal>();
 }

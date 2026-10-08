@@ -17,6 +17,7 @@ public class GoalService : IGoalService
     {
         List<UserGoal> goals = await m_dbContext.UserGoals.
             AsNoTracking().
+            Include( g => g.Subgoals ).
             Where( g => g.UserId == userId && !g.IsArchived ).
             ToListAsync().
             DefaultConfigureAwait();
@@ -136,6 +137,7 @@ public class GoalService : IGoalService
         UserGoal? existingGoal = userGoal.Id == 0
             ? null
             : await m_dbContext.UserGoals
+                .Include( g => g.Subgoals )
                 .FirstOrDefaultAsync( g => g.Id == userGoal.Id && g.UserId == user.Id )
                 .DefaultConfigureAwait();
 
