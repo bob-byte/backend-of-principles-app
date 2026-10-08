@@ -72,6 +72,7 @@ public class AiService : IAiService
         "\"goalName\":\"optional habit parent goal\",\"title\":\"optional task title\",\"notes\":\"optional\"," +
         "\"text\":\"mission or slogan text\"}]<<<END>>> " +
         "Use type goal/habit/task/mission/slogan. Prefer name for goals/habits, title for tasks, text for mission/slogan. " +
+        "Goal names must be short but concrete (typically 2 to 6 words); put detail in reason or notes, not in the name. " +
         "Omit the block when you are not recommending something addable. At most 5 actions.";
 
     private static readonly JsonSerializerOptions s_jsonOptions = new()
@@ -334,19 +335,9 @@ public class AiService : IAiService
             throw new AiServiceException( "AreaOfLifeIsRequired", 400 );
         }
 
-        string system =
-            "You help the user define goals inside a habits-and-goals app. " +
-            "Reply with JSON only (no markdown). The JSON object must contain an array named \"Goals\" " +
-            "with exactly 4 objects. Each object has \"Name\" (a clear, motivating goal the user can pursue) " +
-            "and \"Reason\" (one short sentence explaining why it fits the selected area of life). " +
-            "Prefer identity-oriented or measurable goals. Avoid vague wishes. " +
-            "Do not recommend goals that duplicate the user's existing goals. " +
-            $"All Name and Reason values must be in the {culture} language, " +
-            "regardless of the language of the user's personal information.";
-
         List<AiChatMessage> messages = new()
         {
-            new AiChatMessage( "system", system ),
+            new AiChatMessage( "system", BuildRecommendGoalsSystemPrompt( culture ) ),
             new AiChatMessage( "user", BuildRecommendGoalsUserPrompt( context, culture ) )
         };
 
@@ -571,6 +562,19 @@ public class AiService : IAiService
 
         return builder.ToString();
     }
+
+    internal static string BuildRecommendGoalsSystemPrompt( string culture ) =>
+        "You help the user define goals inside a habits-and-goals app. " +
+        "Reply with JSON only (no markdown). The JSON object must contain an array named \"Goals\" " +
+        "with exactly 4 objects. Each object has \"Name\" (the goal title the user would save) " +
+        "and \"Reason\" (one short sentence explaining why it fits the selected area of life). " +
+        "Name must be short but concrete: typically 2 to 6 words, like a title, not a paragraph. " +
+        "Prefer punchy identity or measurable outcomes (e.g. \"Sleep 8 hours\", \"$4,000 in profit per month\", \"Buy a Tesla Model S\", \"Get a promotion\", " +
+        "\"Become more confident\"). Put explanatory detail only in Reason, not in Name. " +
+        "Avoid vague wishes, long motivational phrases, and stacked clauses. " +
+        "Do not recommend goals that duplicate the user's existing goals. " +
+        $"All Name and Reason values must be in the {culture} language, " +
+        "regardless of the language of the user's personal information.";
 
     internal static string BuildRecommendGoalsUserPrompt(
         RecommendGoalsContext context,

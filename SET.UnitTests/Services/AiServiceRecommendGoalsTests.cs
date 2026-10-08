@@ -26,6 +26,17 @@ public class AiServiceRecommendGoalsTests
     }
 
     [Fact]
+    public void BuildRecommendGoalsSystemPrompt_RequiresShortConcreteNames()
+    {
+        string prompt = AiService.BuildRecommendGoalsSystemPrompt( "English" );
+
+        Assert.Contains( "short but concrete", prompt, StringComparison.Ordinal );
+        Assert.Contains( "2 to 6 words", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Put explanatory detail only in Reason", prompt, StringComparison.Ordinal );
+        Assert.Contains( "English", prompt, StringComparison.Ordinal );
+    }
+
+    [Fact]
     public void BuildRecommendGoalsUserPrompt_Context_IncludesAreaAndExistingGoals()
     {
         RecommendGoalsContext context = new()

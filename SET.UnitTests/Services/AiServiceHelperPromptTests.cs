@@ -37,6 +37,7 @@ public class AiServiceHelperPromptTests
         Assert.Contains( "<<<ACTIONS>>>", prompt, StringComparison.Ordinal );
         Assert.Contains( "<<<END>>>", prompt, StringComparison.Ordinal );
         Assert.Contains( "type\":\"goal|habit|task|mission|slogan", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Goal names must be short but concrete", prompt, StringComparison.Ordinal );
     }
 
     [Fact]
