@@ -569,8 +569,13 @@ public class AiService : IAiService
         "with exactly 4 objects. Each object has \"Name\" (the goal title the user would save) " +
         "and \"Reason\" (one short sentence explaining why it fits the selected area of life). " +
         "Name must be short but concrete: typically 2 to 6 words, like a title, not a paragraph. " +
-        "Prefer punchy identity or measurable outcomes (e.g. \"Sleep 8 hours\", \"$4,000 in profit per month\", \"Buy a Tesla Model S\", \"Get a promotion\", " +
-        "\"Become more confident\"). Put explanatory detail only in Reason, not in Name. " +
+        "Prefer motivating, vivid outcomes the user would proudly chase — possessions, status, money, " +
+        "milestones, or experiences (e.g. \"Buy a Tesla\", \"Get a promotion\", \"Earn $5k/month\", " +
+        "\"Press 100 kg\", \"Travel to Japan\"). " +
+        "Avoid soft process or self-improvement phrasing such as \"develop skills\", \"build a network\", " +
+        "\"improve confidence\", \"complete a certificate\", \"keep a weekly plan\", or generic \"become better at X\". " +
+        "Identity goals are OK only as a clear destination (\"Become a team lead\"), not a vague trait. " +
+        "Put explanatory detail only in Reason, not in Name. " +
         "Avoid vague wishes, long motivational phrases, and stacked clauses. " +
         "Do not recommend goals that duplicate the user's existing goals. " +
         $"All Name and Reason values must be in the {culture} language, " +
@@ -583,7 +588,7 @@ public class AiService : IAiService
         StringBuilder builder = new();
         string area = ( context.AreaOfLife ?? string.Empty ).Trim();
         builder.Append(
-            $"Please recommend 4 goals for the \"{area}\" area of my life that I can select. " );
+            $"Please recommend 4 motivating, outcome-focused goals for the \"{area}\" area of my life that I can select. " );
         builder.Append(
             $"Your response must be only in the {culture} language, " +
             "regardless of the language of my personal information. " );

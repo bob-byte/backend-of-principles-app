@@ -32,6 +32,10 @@ public class AiServiceRecommendGoalsTests
 
         Assert.Contains( "short but concrete", prompt, StringComparison.Ordinal );
         Assert.Contains( "2 to 6 words", prompt, StringComparison.Ordinal );
+        Assert.Contains( "motivating, vivid outcomes", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Buy a Tesla", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Get a promotion", prompt, StringComparison.Ordinal );
+        Assert.Contains( "develop skills", prompt, StringComparison.Ordinal );
         Assert.Contains( "Put explanatory detail only in Reason", prompt, StringComparison.Ordinal );
         Assert.Contains( "English", prompt, StringComparison.Ordinal );
     }
@@ -52,6 +56,7 @@ public class AiServiceRecommendGoalsTests
         string prompt = AiService.BuildRecommendGoalsUserPrompt( context, "English" );
 
         Assert.Contains( "Health", prompt, StringComparison.Ordinal );
+        Assert.Contains( "motivating, outcome-focused", prompt, StringComparison.Ordinal );
         Assert.Contains( "Quit smoking", prompt );
         Assert.Contains( "Be fitter", prompt );
         Assert.Contains( "Live with strength", prompt );
