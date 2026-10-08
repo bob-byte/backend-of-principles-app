@@ -173,6 +173,91 @@ public class GoalServiceTests
     }
 
     [Fact]
+    public async Task SaveAsync_WithDeadlineAndReminders_PersistsThem()
+    {
+        (GoalService service, AppDbContext db, _) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        ServiceResult<DtoWithId> result = await service.SaveAsync( user, new UserGoalDto
+        {
+            Name = "Ship release",
+            Deadline = new DateOnly( 2026, 12, 31 ),
+            Reminders = new List<TaskReminderOffsetDto>
+            {
+                new() { OffsetMinutes = 0 },
+                new() { OffsetMinutes = 1440, NotificationRequestId = 42 },
+            },
+        }, null );
+
+        UserGoal stored = await db.UserGoals.SingleAsync();
+        Assert.Equal( stored.Id, result.Value!.Id );
+        Assert.Equal( new DateOnly( 2026, 12, 31 ), stored.Deadline );
+        Assert.Null( stored.DeadlineTime );
+        Assert.Contains( "1440", stored.RemindersJson );
+        Assert.Contains( "42", stored.RemindersJson );
+
+        List<UserGoalDto> active = await service.GetActiveAsync( 1 );
+        UserGoalDto dto = Assert.Single( active );
+        Assert.Equal( new DateOnly( 2026, 12, 31 ), dto.Deadline );
+        Assert.Equal( 2, dto.Reminders.Count );
+    }
+
+    [Fact]
+    public async Task SaveAsync_ClearDeadline_ClearsReminders()
+    {
+        (GoalService service, AppDbContext db, _) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+        UserGoal goal = await TestData.AddGoalAsync( db, 1, "Goal", g =>
+        {
+            g.Deadline = new DateOnly( 2026, 6, 1 );
+            g.RemindersJson = """[{"offsetMinutes":1440}]""";
+        } );
+
+        await service.SaveAsync( user, new UserGoalDto
+        {
+            Id = goal.Id,
+            Name = "Goal",
+            Deadline = null,
+            Reminders = new List<TaskReminderOffsetDto>
+            {
+                new() { OffsetMinutes = 1440 },
+            },
+        }, null );
+
+        Assert.Null( goal.Deadline );
+        Assert.Null( goal.DeadlineTime );
+        Assert.Null( goal.RemindersJson );
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithDeadlineTime_PersistsClock()
+    {
+        (GoalService service, AppDbContext db, _) = CreateSut();
+        User user = await TestData.AddUserAsync( db, 1 );
+
+        await service.SaveAsync( user, new UserGoalDto
+        {
+            Name = "Ship release",
+            Deadline = new DateOnly( 2026, 12, 31 ),
+            DeadlineTime = new TimeOnly( 15, 30 ),
+        }, null );
+
+        UserGoal stored = await db.UserGoals.SingleAsync();
+        Assert.Equal( new TimeOnly( 15, 30 ), stored.DeadlineTime );
+
+        await service.SaveAsync( user, new UserGoalDto
+        {
+            Id = stored.Id,
+            Name = "Ship release",
+            Deadline = new DateOnly( 2026, 12, 31 ),
+            DeadlineTime = null,
+        }, null );
+
+        Assert.Null( stored.DeadlineTime );
+        Assert.Equal( new DateOnly( 2026, 12, 31 ), stored.Deadline );
+    }
+
+    [Fact]
     public async Task SaveAsync_RenamedGoal_UpdatesMatchingReminderTitles()
     {
         (GoalService service, AppDbContext db, RecordingSyncPushService push) = CreateSut();

@@ -13,20 +13,15 @@ public class GoalService : IGoalService
         m_syncPushService = syncPushService;
     }
 
-    public Task<List<UserGoalDto>> GetActiveAsync( long userId )
+    public async Task<List<UserGoalDto>> GetActiveAsync( long userId )
     {
-        return m_dbContext.UserGoals.
+        List<UserGoal> goals = await m_dbContext.UserGoals.
+            AsNoTracking().
             Where( g => g.UserId == userId && !g.IsArchived ).
-            Select( g => new UserGoalDto
-            {
-                Id = g.Id,
-                Name = g.Name,
-                Notes = g.Notes,
-                IsCompleted = g.IsCompleted,
-                IsArchived = g.IsArchived,
-                LastModified = g.UpdatedAt ?? g.CreatedAt
-            } ).
-            ToListAsync();
+            ToListAsync().
+            DefaultConfigureAwait();
+
+        return goals.Select( GoalDtoMapper.ToDto ).ToList();
     }
 
     public Task<List<ArchivedGoalResponse>> GetArchivedAsync( long userId )
@@ -154,14 +149,11 @@ public class GoalService : IGoalService
         {
             var newGoal = new UserGoal
             {
-                Name = userGoal.Name,
-                Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim(),
                 UserId = user.Id,
                 CreatedAt = DateTime.UtcNow,
-                IsCompleted = userGoal.IsCompleted,
-                IsArchived = userGoal.IsArchived,
                 ArchivingTime = userGoal.IsArchived ? DateTime.UtcNow : null,
             };
+            GoalDtoMapper.ApplyDto( newGoal, userGoal );
 
             await m_dbContext.UserGoals.AddAsync( newGoal ).DefaultConfigureAwait();
             await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
@@ -185,10 +177,7 @@ public class GoalService : IGoalService
                 m_dbContext.UserHabitReminders.UpdateRange( remindersToUpdate );
             }
 
-            existingGoal.Name = userGoal.Name;
-            existingGoal.Notes = string.IsNullOrWhiteSpace( userGoal.Notes ) ? null : userGoal.Notes.Trim();
-            existingGoal.IsCompleted = userGoal.IsCompleted;
-            existingGoal.IsArchived = userGoal.IsArchived;
+            GoalDtoMapper.ApplyDto( existingGoal, userGoal );
             existingGoal.UpdatedAt = DateTime.UtcNow;
             existingGoal.ArchivingTime = existingGoal.IsArchived ? existingGoal.UpdatedAt : null;
 

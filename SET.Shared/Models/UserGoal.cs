@@ -17,5 +17,15 @@ public class UserGoal
     public bool IsCompleted { get; set; }
     public bool IsArchived { get; set; }
     public DateTime? ArchivingTime { get; set; }
+
+    /// <summary>Optional goal deadline (calendar day).</summary>
+    public DateOnly? Deadline { get; set; }
+
+    /// <summary>Optional local clock time. Null means reminders fire at 09:00.</summary>
+    public TimeOnly? DeadlineTime { get; set; }
+
+    /// <summary>JSON array of { offsetMinutes, notificationRequestId } before the deadline day.</summary>
+    public string? RemindersJson { get; set; }
+
     public ICollection<UserHabit>? UserHabits { get; set; }
 }

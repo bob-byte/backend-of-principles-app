@@ -24,19 +24,12 @@ public class SyncService : ISyncService
     {
         DateTime serverTime = DateTime.UtcNow;
 
-        List<UserGoalDto> goals = await m_dbContext.UserGoals
+        List<UserGoal> goalEntities = await m_dbContext.UserGoals
+            .AsNoTracking()
             .Where( g => g.UserId == user.Id )
-            .Select( g => new UserGoalDto
-            {
-                Id = g.Id,
-                Name = g.Name,
-                Notes = g.Notes,
-                IsCompleted = g.IsCompleted,
-                IsArchived = g.IsArchived,
-                LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt
-            } )
             .ToListAsync()
             .DefaultConfigureAwait();
+        List<UserGoalDto> goals = goalEntities.Select( GoalDtoMapper.ToDto ).ToList();
 
         List<UserHabit> activeHabits = await m_dbContext.UserHabits
             .Where( u => u.Status == StatusOfHabit.InProgress && u.UserId == user.Id && !u.IsArchived )
@@ -145,20 +138,13 @@ public class SyncService : ISyncService
             };
         }
 
-        List<UserGoalDto> goals = await m_dbContext.UserGoals
+        List<UserGoal> changedGoals = await m_dbContext.UserGoals
+            .AsNoTracking()
             .Where( g => g.UserId == user.Id
                          && ( ( g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt ) > sinceUtc ) )
-            .Select( g => new UserGoalDto
-            {
-                Id = g.Id,
-                Name = g.Name,
-                Notes = g.Notes,
-                IsCompleted = g.IsCompleted,
-                IsArchived = g.IsArchived,
-                LastModified = g.UpdatedAt ?? g.ArchivingTime ?? g.CreatedAt
-            } )
             .ToListAsync()
             .DefaultConfigureAwait();
+        List<UserGoalDto> goals = changedGoals.Select( GoalDtoMapper.ToDto ).ToList();
 
         List<UserHabit> changedActive = await m_dbContext.UserHabits
             .Where( u => u.Status == StatusOfHabit.InProgress

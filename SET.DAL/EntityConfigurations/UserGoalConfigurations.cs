@@ -47,6 +47,16 @@ internal class UserGoalConfigurations : IEntityTypeConfiguration<UserGoal>
         builder.Property( u => u.ArchivingTime ).
             IsRequired( false );
 
+        builder.Property( u => u.Deadline ).
+            IsRequired( false );
+
+        builder.Property( u => u.DeadlineTime ).
+            IsRequired( false );
+
+        builder.Property( u => u.RemindersJson ).
+            IsRequired( false ).
+            HasColumnType( "text" );
+
         builder.HasMany( u => u.UserHabits ).
             WithOne( u => u.Goal ).
             HasForeignKey( u => u.GoalId ).
