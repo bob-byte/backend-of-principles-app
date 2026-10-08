@@ -567,7 +567,9 @@ public class AiService : IAiService
         "You help the user define goals inside a habits-and-goals app. " +
         "Reply with JSON only (no markdown). The JSON object must contain an array named \"Goals\" " +
         "with exactly 4 objects. Each object has \"Name\" (the goal title the user would save) " +
-        "and \"Reason\" (one short sentence explaining why it fits the selected area of life). " +
+        "and \"Reason\" (one short sentence explaining why it fits). " +
+        "When an area of life is provided, Reason should explain why the goal fits that area; " +
+        "otherwise explain why it fits the user's mission, slogan, or overall life. " +
         "Name must be short but concrete: typically 2 to 6 words, like a title, not a paragraph. " +
         "Prefer motivating, vivid outcomes the user would proudly chase — possessions, status, money, " +
         "milestones, or experiences (e.g. \"Buy a Tesla\", \"Get a promotion\", \"Earn $5k/month\", " +
@@ -587,8 +589,18 @@ public class AiService : IAiService
     {
         StringBuilder builder = new();
         string area = ( context.AreaOfLife ?? string.Empty ).Trim();
-        builder.Append(
-            $"Please recommend 4 motivating, outcome-focused goals for the \"{area}\" area of my life that I can select. " );
+        if (!string.IsNullOrWhiteSpace( area ))
+        {
+            builder.Append(
+                $"Please recommend 4 motivating, outcome-focused goals for the \"{area}\" area of my life that I can select. " );
+        }
+        else
+        {
+            builder.Append(
+                "Please recommend 4 motivating, outcome-focused goals for my life that I can select. " +
+                "Cover a balanced mix of meaningful life areas unless my mission or slogan clearly points one way. " );
+        }
+
         builder.Append(
             $"Your response must be only in the {culture} language, " +
             "regardless of the language of my personal information. " );

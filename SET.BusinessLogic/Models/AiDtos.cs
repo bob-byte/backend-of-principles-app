@@ -117,7 +117,7 @@ public class AiProfileTextSuggestionDto
 public class AiRecommendGoalsRequest
 {
     public string Culture { get; set; }
-    public string AreaOfLife { get; set; }
+    public string? AreaOfLife { get; set; }
     public List<string>? ExistingGoals { get; set; }
     public string? Draft { get; set; }
     public string? Mission { get; set; }

@@ -62,4 +62,23 @@ public class AiServiceRecommendGoalsTests
         Assert.Contains( "Live with strength", prompt );
         Assert.Contains( "English", prompt );
     }
+
+    [Fact]
+    public void BuildRecommendGoalsUserPrompt_MissingArea_UsesGeneralLifePrompt()
+    {
+        RecommendGoalsContext context = new()
+        {
+            Culture = "en",
+            Mission = "Live with strength",
+            ExistingGoals = new[] { "Quit smoking" }
+        };
+
+        string prompt = AiService.BuildRecommendGoalsUserPrompt( context, "English" );
+
+        Assert.Contains( "goals for my life", prompt, StringComparison.Ordinal );
+        Assert.Contains( "balanced mix", prompt, StringComparison.Ordinal );
+        Assert.DoesNotContain( "area of my life", prompt, StringComparison.Ordinal );
+        Assert.Contains( "Quit smoking", prompt );
+        Assert.Contains( "Live with strength", prompt );
+    }
 }

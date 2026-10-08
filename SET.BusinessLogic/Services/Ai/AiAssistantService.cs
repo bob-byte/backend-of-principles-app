@@ -165,10 +165,6 @@ public class AiAssistantService : IAiAssistantService
         {
             RecommendGoalsContext context = await ToRecommendGoalsContextAsync( request, user )
                 .DefaultConfigureAwait();
-            if (string.IsNullOrWhiteSpace( context.AreaOfLife ))
-            {
-                return AiError( 400, "AreaOfLifeIsRequired" );
-            }
 
             IReadOnlyList<RecommendedGoalResult> goals = await m_aiService
                 .RecommendGoalsAsync( context, cancellationToken )

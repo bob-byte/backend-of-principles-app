@@ -311,15 +311,20 @@ public class AiAssistantServiceTests
     }
 
     [Fact]
-    public async Task RecommendGoalsAsync_MissingAreaOfLife_ReturnsBadRequest()
+    public async Task RecommendGoalsAsync_MissingAreaOfLife_StillRecommends()
     {
         User user = await AddUserAsync();
+        RecommendGoalsContext? context = null;
+        m_ai.Setup( a => a.RecommendGoalsAsync( It.IsAny<RecommendGoalsContext>(), It.IsAny<CancellationToken>() ) )
+            .Callback<RecommendGoalsContext, CancellationToken>( ( c, _ ) => context = c )
+            .ReturnsAsync( new[] { new RecommendedGoalResult { Name = "New", Reason = "Because" } } );
 
         ServiceResult<AiRecommendGoalsResponse> result =
             await CreateSut().RecommendGoalsAsync( user, new AiRecommendGoalsRequest { AreaOfLife = " " }, default );
 
-        Assert.Equal( 400, result.Error!.StatusCode );
-        Assert.Equal( "AreaOfLifeIsRequired", TestData.AiErrorMessage( result.Error ) );
+        Assert.Null( result.Error );
+        Assert.Equal( "New", Assert.Single( result.Value!.Goals ).Name );
+        Assert.Null( context!.AreaOfLife );
     }
 
     [Fact]
