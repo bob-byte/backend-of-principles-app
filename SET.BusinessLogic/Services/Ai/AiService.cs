@@ -1,9 +1,12 @@
+using ImageMagick;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
 using System.ClientModel;
 using System.ClientModel.Primitives;
+using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,6 +14,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Xml;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using ChatResponseFormat = Microsoft.Extensions.AI.ChatResponseFormat;
 using ChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -1180,7 +1184,41 @@ public class AiService : IAiService
             string fileName = string.IsNullOrWhiteSpace( attachment.FileName )
                 ? "attachment"
                 : attachment.FileName.Trim();
-            sanitized.Add( new AiChatAttachment( fileName, mime, attachment.Data ) );
+            byte[] data = attachment.Data;
+
+            // OpenAI vision rejects HEIC/HEIF; convert to JPEG before the model call.
+            if (IsHeicFamily( mime, fileName ))
+            {
+                byte[]? jpeg = TryConvertHeicToJpeg( data );
+                if (jpeg is null || jpeg.Length == 0 || jpeg.Length > MaxAttachmentBytes)
+                {
+                    continue;
+                }
+
+                data = jpeg;
+                mime = "image/jpeg";
+                fileName = WithJpegExtension( fileName );
+            }
+            // Chat models cannot read OOXML binaries; extract plain text for the prompt.
+            else if (IsDocx( mime, fileName ))
+            {
+                string? extracted = TryExtractDocxText( data );
+                if (string.IsNullOrWhiteSpace( extracted ))
+                {
+                    sanitized.Add( new AiChatAttachment( fileName, mime, Array.Empty<byte>() ) );
+                    continue;
+                }
+
+                if (extracted.Length > MaxAttachmentTextChars)
+                {
+                    extracted = extracted[..MaxAttachmentTextChars];
+                }
+
+                data = Encoding.UTF8.GetBytes( extracted );
+                mime = "text/plain";
+            }
+
+            sanitized.Add( new AiChatAttachment( fileName, mime, data ) );
         }
 
         return sanitized;
@@ -1205,6 +1243,126 @@ public class AiService : IAiService
             "application/xml" or
             "application/rtf" or
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    }
+
+    internal static bool IsHeicFamily( string mime, string fileName )
+    {
+        if (mime is "image/heic" or "image/heif")
+        {
+            return true;
+        }
+
+        string lower = (fileName ?? string.Empty).Trim().ToLowerInvariant();
+        return lower.EndsWith( ".heic", StringComparison.Ordinal ) ||
+               lower.EndsWith( ".heif", StringComparison.Ordinal );
+    }
+
+    internal static bool IsDocx( string mime, string fileName )
+    {
+        if (mime is "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        {
+            return true;
+        }
+
+        string lower = (fileName ?? string.Empty).Trim().ToLowerInvariant();
+        return lower.EndsWith( ".docx", StringComparison.Ordinal );
+    }
+
+    /// <summary>
+    /// Reads visible text from a .docx (OOXML zip) without a Word SDK.
+    /// </summary>
+    internal static string? TryExtractDocxText( byte[] data )
+    {
+        if (data is null || data.Length == 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            using MemoryStream stream = new( data );
+            using ZipArchive zip = new( stream, ZipArchiveMode.Read );
+            ZipArchiveEntry? entry = zip.GetEntry( "word/document.xml" );
+            if (entry is null)
+            {
+                return null;
+            }
+
+            using Stream xmlStream = entry.Open();
+            using XmlReader reader = XmlReader.Create(
+                xmlStream,
+                new XmlReaderSettings
+                {
+                    DtdProcessing = DtdProcessing.Prohibit,
+                    IgnoreComments = true,
+                    IgnoreProcessingInstructions = true,
+                    XmlResolver = null
+                } );
+
+            StringBuilder text = new();
+            while (reader.Read())
+            {
+                if (reader.NodeType == XmlNodeType.Element)
+                {
+                    switch (reader.LocalName)
+                    {
+                        case "t":
+                            text.Append( reader.ReadElementContentAsString() );
+                            break;
+                        case "tab":
+                            text.Append( '\t' );
+                            break;
+                        case "br":
+                        case "cr":
+                            text.AppendLine();
+                            break;
+                    }
+                }
+                else if (reader.NodeType == XmlNodeType.EndElement &&
+                         reader.LocalName == "p" &&
+                         text.Length > 0)
+                {
+                    text.AppendLine();
+                }
+            }
+
+            string result = text.ToString().Trim();
+            return string.IsNullOrWhiteSpace( result ) ? null : result;
+        }
+        catch (Exception ex)
+        {
+            Log.Warning( ex, "Failed to extract text from .docx attachment" );
+            return null;
+        }
+    }
+
+    internal static string WithJpegExtension( string fileName )
+    {
+        string trimmed = string.IsNullOrWhiteSpace( fileName ) ? "attachment" : fileName.Trim();
+        int dot = trimmed.LastIndexOf( '.' );
+        if (dot <= 0)
+        {
+            return trimmed + ".jpg";
+        }
+
+        return trimmed[..dot] + ".jpg";
+    }
+
+    internal static byte[]? TryConvertHeicToJpeg( byte[] data )
+    {
+        try
+        {
+            using MagickImage image = new( data );
+            image.AutoOrient();
+            image.Format = MagickFormat.Jpeg;
+            image.Quality = 85;
+            return image.ToByteArray( MagickFormat.Jpeg );
+        }
+        catch (Exception ex)
+        {
+            Log.Warning( ex, "Failed to convert HEIC/HEIF attachment to JPEG for OpenAI" );
+            return null;
+        }
     }
 
     private async Task<string> CompleteAsync(
