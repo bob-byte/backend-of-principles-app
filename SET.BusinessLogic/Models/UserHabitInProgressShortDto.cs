@@ -22,6 +22,7 @@ public class UserHabitInProgressShortDto
     public IEnumerable<UserHabitReminderDto> Reminders { get; set; }
     public string? Description { get; set; }
     public string ColorName { get; set; }
+    public DateTime CreatedAt { get; set; }
     public DateTime LastModified { get; set; }
     public DateOnly? EndDate { get; set; }
     public TimeOnly? EndTime { get; set; }

@@ -52,6 +52,7 @@ public class SyncService : ISyncService
                 Id = h.Id,
                 Name = h.Name,
                 IsArchived = true,
+                CreatedAt = h.CreatedAt,
                 LastModified = h.UpdatedAt ?? h.ArchivingTime ?? h.CreatedAt
             } )
             .ToListAsync()
@@ -173,6 +174,7 @@ public class SyncService : ISyncService
                 Id = h.Id,
                 Name = h.Name,
                 IsArchived = true,
+                CreatedAt = h.CreatedAt,
                 LastModified = h.UpdatedAt ?? h.ArchivingTime ?? h.CreatedAt
             } )
             .ToListAsync()

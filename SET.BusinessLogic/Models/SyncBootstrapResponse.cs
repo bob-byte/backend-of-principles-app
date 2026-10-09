@@ -17,6 +17,7 @@ public class SyncBootstrapArchivedHabitDto
     public long Id { get; set; }
     public string Name { get; set; }
     public bool IsArchived { get; set; } = true;
+    public DateTime CreatedAt { get; set; }
     public DateTime LastModified { get; set; }
 }
 
