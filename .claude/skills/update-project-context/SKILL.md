@@ -8,7 +8,7 @@ description: >-
 
 # Update project context (backend)
 
-This repo keeps its own `.cursor/rules/` and `.cursor/skills/`. Do not put backend conventions in the Flutter repo’s `.cursor/`.
+This repo keeps its own `.claude/rules/` and `.claude/skills/`. Do not put backend conventions in the Flutter repo’s `.claude/`.
 
 ## When to write
 
@@ -18,9 +18,9 @@ Update files when a decision should still be true in a future session. Skip ephe
 
 | Kind | Location |
 |------|----------|
-| Always-on product/architecture/stack | `.cursor/rules/*.mdc` with `alwaysApply: true` |
-| File-specific constraints | `.cursor/rules/*.mdc` with `globs` |
-| Multi-step workflow | `.cursor/skills/<name>/SKILL.md` |
+| Always-on product/architecture/stack | `.claude/rules/*.mdc` with `alwaysApply: true` |
+| File-specific constraints | `.claude/rules/*.mdc` with `globs` |
+| Multi-step workflow | `.claude/skills/<name>/SKILL.md` |
 
 Always-on: `communication.mdc`, `project.mdc`, `architecture.mdc`, `stack.mdc`. File-specific: `api-controllers.mdc`, `ef-data.mdc`.
 
