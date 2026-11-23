@@ -17,6 +17,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
     {
         typeof( IMapper ),
         typeof( IAuthService ),
+        typeof( IRefreshTokenService ),
         typeof( IAccountService ),
         typeof( IEmailSender ),
         typeof( IProfileService ),

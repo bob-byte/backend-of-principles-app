@@ -34,6 +34,9 @@ namespace SET.DataAccess.Migrations
             modelBuilder.HasSequence("sq__progresses_of_habits", "hbt")
                 .StartsAt(100L);
 
+            modelBuilder.HasSequence("sq__refresh_tokens", "app")
+                .StartsAt(100L);
+
             modelBuilder.HasSequence("sq__sync_deletions", "app")
                 .StartsAt(100L);
 
@@ -321,6 +324,48 @@ namespace SET.DataAccess.Migrations
                     b.HasIndex("HabitId");
 
                     b.ToTable("ProgressesOfHabits", "hbt");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.RefreshToken", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValueSql("nextval('app.sq__refresh_tokens')");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", "app");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.SyncDeletion", b =>
@@ -920,6 +965,17 @@ namespace SET.DataAccess.Migrations
                         .IsRequired();
 
                     b.Navigation("Habit");
+                });
+
+            modelBuilder.Entity("SET.Shared.Models.RefreshToken", b =>
+                {
+                    b.HasOne("SET.Shared.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SET.Shared.Models.SyncDeletion", b =>

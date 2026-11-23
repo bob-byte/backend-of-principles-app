@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<SyncDeletion> SyncDeletions { get; set; }
     public DbSet<UserDevice> UserDevices { get; set; }
     public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,6 +61,7 @@ public class AppDbContext : DbContext
         modelBuilder.ApplyConfiguration( new SyncDeletionConfigurations() );
         modelBuilder.ApplyConfiguration( new UserDeviceConfigurations() );
         modelBuilder.ApplyConfiguration( new EmailVerificationCodeConfigurations() );
+        modelBuilder.ApplyConfiguration( new RefreshTokenConfigurations() );
 
         modelBuilder.HasSequence<long>( "sq__user_areas_of_life", Schemas.AREA_OF_LIFE ).
         StartsAt( 100 ).
@@ -114,6 +116,10 @@ public class AppDbContext : DbContext
         IncrementsBy( 1 );
 
         modelBuilder.HasSequence<long>( "sq__email_verification_codes", Schemas.APP ).
+        StartsAt( 100 ).
+        IncrementsBy( 1 );
+
+        modelBuilder.HasSequence<long>( "sq__refresh_tokens", Schemas.APP ).
         StartsAt( 100 ).
         IncrementsBy( 1 );
     }

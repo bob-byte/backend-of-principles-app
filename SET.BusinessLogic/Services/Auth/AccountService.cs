@@ -22,6 +22,7 @@ public class AccountService : IAccountService
     private readonly AppDbContext m_dbContext;
     private readonly IAuthService m_authService;
     private readonly IJwtTokenService m_jwtTokenService;
+    private readonly IRefreshTokenService m_refreshTokenService;
     private readonly IEmailSender m_emailSender;
     private readonly IConfiguration m_configuration;
 
@@ -29,12 +30,14 @@ public class AccountService : IAccountService
         AppDbContext dbContext,
         IAuthService authService,
         IJwtTokenService jwtTokenService,
+        IRefreshTokenService refreshTokenService,
         IEmailSender emailSender,
         IConfiguration configuration )
     {
         m_dbContext = dbContext;
         m_authService = authService;
         m_jwtTokenService = jwtTokenService;
+        m_refreshTokenService = refreshTokenService;
         m_emailSender = emailSender;
         m_configuration = configuration;
     }
@@ -44,7 +47,9 @@ public class AccountService : IAccountService
         return await m_dbContext.Users.FindAsync( userId ).DefaultConfigureAwait();
     }
 
-    public async Task<ServiceResult<GoogleAuthResponse>> GoogleAuthAsync( GoogleLoginRequest request )
+    public async Task<ServiceResult<GoogleAuthResponse>> GoogleAuthAsync(
+        GoogleLoginRequest request,
+        string? deviceId = null )
     {
         #region check parameter
         if (request is null)
@@ -63,7 +68,12 @@ public class AccountService : IAccountService
         }
         #endregion
 
-        return await m_authService.GoogleAuthAsync( request.IdToken, request.AccessToken ).DefaultConfigureAwait();
+        GoogleAuthResponse auth = await m_authService
+            .GoogleAuthAsync( request.IdToken, request.AccessToken )
+            .DefaultConfigureAwait();
+        long userId = m_jwtTokenService.GetUserIdFromJwt( auth.Token );
+        string refresh = await m_refreshTokenService.IssueAsync( userId, deviceId ).DefaultConfigureAwait();
+        return new GoogleAuthResponse( auth.Token, refresh );
     }
 
     public async Task<ServiceResult> RegisterAsync( UserRegister registerInfo )
@@ -127,7 +137,9 @@ public class AccountService : IAccountService
         return ServiceResult.Success;
     }
 
-    public async Task<ServiceResult<LoginResponse>> LoginAsync( UserLogin userLogin )
+    public async Task<ServiceResult<LoginResponse>> LoginAsync(
+        UserLogin userLogin,
+        string? deviceId = null )
     {
         #region Check parameter
         if (userLogin is null)
@@ -159,7 +171,7 @@ public class AccountService : IAccountService
         (User? user, string? errorMsg) = await m_authService.LoginAsync( userLogin ).DefaultConfigureAwait();
         if (errorMsg is null)
         {
-            return new LoginResponse( Token: m_jwtTokenService.GetToken( user! ) );
+            return await CreateSessionAsync( user!, deviceId ).DefaultConfigureAwait();
         }
 
         if (errorMsg == "EmailIsIncorrect" || errorMsg == "PasswordIsIncorrect")
@@ -171,18 +183,22 @@ public class AccountService : IAccountService
     }
 
 #if DEBUG
-    public async Task<ServiceResult<LoginResponse>> SimpleLoginAsync( UserLogin userLogin )
+    public async Task<ServiceResult<LoginResponse>> SimpleLoginAsync(
+        UserLogin userLogin,
+        string? deviceId = null )
     {
         (User? user, string? errorMsg) = await m_authService.LoginAsync( userLogin ).DefaultConfigureAwait();
         if (errorMsg is null)
         {
-            return new LoginResponse( Token: m_jwtTokenService.GetToken( user! ) );
+            return await CreateSessionAsync( user!, deviceId ).DefaultConfigureAwait();
         }
 
         return ServiceError.BadRequest( errorMsg );
     }
 
-    public async Task<ServiceResult<LoginResponse>> SimpleRegisterAsync( UserRegister registerInfo )
+    public async Task<ServiceResult<LoginResponse>> SimpleRegisterAsync(
+        UserRegister registerInfo,
+        string? deviceId = null )
     {
         #region Check parameter
         if (registerInfo is null)
@@ -202,11 +218,37 @@ public class AccountService : IAccountService
         #endregion
 
         User user = await m_authService.RegisterAsync( registerInfo ).DefaultConfigureAwait();
-        return new LoginResponse( Token: m_jwtTokenService.GetToken( user ) );
+        return await CreateSessionAsync( user, deviceId ).DefaultConfigureAwait();
     }
 #endif
 
-    public async Task<ServiceResult<LoginResponse>> AppleAuthAsync( AppleAuthRequest authRequest )
+    public async Task<ServiceResult<LoginResponse>> RefreshTokenAsync(
+        RefreshTokenRequest request,
+        string? deviceId = null )
+    {
+        if (request is null)
+        {
+            return ServiceError.BadRequest( "RequestBodyIsNull" );
+        }
+
+        return await m_refreshTokenService
+            .RotateAsync( request.RefreshToken ?? string.Empty, deviceId )
+            .DefaultConfigureAwait();
+    }
+
+    public async Task<ServiceResult> LogoutAsync( RefreshTokenRequest? request )
+    {
+        if (!string.IsNullOrWhiteSpace( request?.RefreshToken ))
+        {
+            await m_refreshTokenService.RevokeAsync( request!.RefreshToken! ).DefaultConfigureAwait();
+        }
+
+        return ServiceResult.Success;
+    }
+
+    public async Task<ServiceResult<LoginResponse>> AppleAuthAsync(
+        AppleAuthRequest authRequest,
+        string? deviceId = null )
     {
         if (authRequest == null || string.IsNullOrEmpty( authRequest.IdToken ))
         {
@@ -249,7 +291,7 @@ public class AccountService : IAccountService
             user = await m_authService.RegisterAsync( userRegister ).DefaultConfigureAwait();
         }
 
-        return new LoginResponse( Token: m_jwtTokenService.GetToken( user ) );
+        return await CreateSessionAsync( user, deviceId ).DefaultConfigureAwait();
     }
 
     public async Task<ServiceResult> DeleteAsync( User user, int? verificationCode )
@@ -417,8 +459,17 @@ public class AccountService : IAccountService
         }
 
         user.Password = PasswordHelper.CreatePasswordHash( decryptedPassword );
+        // Shares this DbContext, so the new password and the revocations save together.
+        await m_refreshTokenService.RevokeAllForUserAsync( user.Id ).DefaultConfigureAwait();
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
         return ServiceResult.Success;
+    }
+
+    private async Task<LoginResponse> CreateSessionAsync( User user, string? deviceId )
+    {
+        string access = m_jwtTokenService.GetToken( user );
+        string refresh = await m_refreshTokenService.IssueAsync( user.Id, deviceId ).DefaultConfigureAwait();
+        return new LoginResponse( access, refresh );
     }
 
     private Task<bool> IsEmailRegisteredAsync( string email )

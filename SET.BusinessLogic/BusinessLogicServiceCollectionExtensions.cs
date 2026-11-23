@@ -11,6 +11,7 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddBusinessLogicMapper();
 
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<IEmailSender, EmailSender>();
         services.AddScoped<IProfileService, ProfileService>();

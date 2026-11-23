@@ -20,7 +20,9 @@ public class AccountController : BaseController
     public Task<IActionResult> GoogleAuthorization( [FromBody] GoogleLoginRequest request )
     {
         return TryCatchAsync( async () =>
-            ToActionResult( await m_accountService.GoogleAuthAsync( request ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_accountService
+                .GoogleAuthAsync( request, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
     }
 
     [HttpPost( "authentication" )]
@@ -34,7 +36,9 @@ public class AccountController : BaseController
     public Task<IActionResult> Login( [FromBody] UserLogin userlogin )
     {
         return TryCatchAsync( async () =>
-            ToActionResult( await m_accountService.LoginAsync( userlogin ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_accountService
+                .LoginAsync( userlogin, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
     }
 
 #if DEBUG
@@ -42,14 +46,18 @@ public class AccountController : BaseController
     public Task<IActionResult> SimpleLogin( [FromBody] UserLogin userlogin )
     {
         return TryCatchAsync( async () =>
-            ToActionResult( await m_accountService.SimpleLoginAsync( userlogin ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_accountService
+                .SimpleLoginAsync( userlogin, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
     }
 
     [HttpPost( "simpleauthentication" )]
     public Task<IActionResult> SimpleRegister( [FromBody] UserRegister registerInfo )
     {
         return TryCatchAsync( async () =>
-            ToActionResult( await m_accountService.SimpleRegisterAsync( registerInfo ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_accountService
+                .SimpleRegisterAsync( registerInfo, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
     }
 #endif
 
@@ -57,7 +65,27 @@ public class AccountController : BaseController
     public Task<IActionResult> AppleAuth( [FromBody] AppleAuthRequest authRequest )
     {
         return TryCatchAsync( async () =>
-            ToActionResult( await m_accountService.AppleAuthAsync( authRequest ).DefaultConfigureAwait() ) );
+            ToActionResult( await m_accountService
+                .AppleAuthAsync( authRequest, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
+    }
+
+    /// <summary>Exchanges a refresh token for a new access + refresh pair.</summary>
+    [HttpPost( "refreshtoken" )]
+    public Task<IActionResult> RefreshToken( [FromBody] RefreshTokenRequest request )
+    {
+        return TryCatchAsync( async () =>
+            ToActionResult( await m_accountService
+                .RefreshTokenAsync( request, RequestDeviceId )
+                .DefaultConfigureAwait() ) );
+    }
+
+    /// <summary>Revokes the refresh token so the device session ends server-side.</summary>
+    [HttpPost( "logout" )]
+    public Task<IActionResult> Logout( [FromBody] RefreshTokenRequest? request )
+    {
+        return TryCatchAsync( async () =>
+            ToActionResult( await m_accountService.LogoutAsync( request ).DefaultConfigureAwait() ) );
     }
 
     [Authorize( AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme )]

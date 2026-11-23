@@ -10,22 +10,36 @@ public interface IAccountService
 {
     Task<User?> FindUserAsync( long userId );
 
-    Task<ServiceResult<GoogleAuthResponse>> GoogleAuthAsync( GoogleLoginRequest request );
+    Task<ServiceResult<GoogleAuthResponse>> GoogleAuthAsync(
+        GoogleLoginRequest request,
+        string? deviceId = null );
 
     Task<ServiceResult> RegisterAsync( UserRegister registerInfo );
 
-    Task<ServiceResult<LoginResponse>> LoginAsync( UserLogin userLogin );
+    Task<ServiceResult<LoginResponse>> LoginAsync( UserLogin userLogin, string? deviceId = null );
 
 #if DEBUG
     /// <summary>Plain-text password login for local testing.</summary>
-    Task<ServiceResult<LoginResponse>> SimpleLoginAsync( UserLogin userLogin );
+    Task<ServiceResult<LoginResponse>> SimpleLoginAsync( UserLogin userLogin, string? deviceId = null );
 
     /// <summary>Plain-text password sign-up for local testing (skips email verification).</summary>
-    Task<ServiceResult<LoginResponse>> SimpleRegisterAsync( UserRegister registerInfo );
+    Task<ServiceResult<LoginResponse>> SimpleRegisterAsync(
+        UserRegister registerInfo,
+        string? deviceId = null );
 #endif
 
     /// <summary>Validates the Apple identity token and signs in, creating the user when needed.</summary>
-    Task<ServiceResult<LoginResponse>> AppleAuthAsync( AppleAuthRequest authRequest );
+    Task<ServiceResult<LoginResponse>> AppleAuthAsync(
+        AppleAuthRequest authRequest,
+        string? deviceId = null );
+
+    /// <summary>Exchanges a refresh token for a new access + refresh pair (rotation).</summary>
+    Task<ServiceResult<LoginResponse>> RefreshTokenAsync(
+        RefreshTokenRequest request,
+        string? deviceId = null );
+
+    /// <summary>Revokes the given refresh token (best-effort logout).</summary>
+    Task<ServiceResult> LogoutAsync( RefreshTokenRequest? request );
 
     /// <param name="verificationCode">
     /// Optional 6-digit code from <c>GET api/account/code</c>. When provided (website delete),

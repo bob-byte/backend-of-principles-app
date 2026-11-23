@@ -19,6 +19,7 @@ public class AccountServiceTests
     private readonly AppDbContext m_db = TestDb.Create();
     private readonly Mock<IAuthService> m_auth = new( MockBehavior.Strict );
     private readonly Mock<IJwtTokenService> m_jwt = new();
+    private readonly Mock<IRefreshTokenService> m_refresh = new();
     private readonly Mock<IEmailSender> m_email = new();
     private readonly IConfiguration m_configuration = new ConfigurationBuilder()
         .AddInMemoryCollection( new Dictionary<string, string?>
@@ -28,7 +29,16 @@ public class AccountServiceTests
         } )
         .Build();
 
-    private AccountService CreateSut() => new( m_db, m_auth.Object, m_jwt.Object, m_email.Object, m_configuration );
+    private AccountService CreateSut()
+    {
+        m_refresh.Setup( r => r.IssueAsync( It.IsAny<long>(), It.IsAny<string?>() ) )
+            .ReturnsAsync( "refresh-token" );
+        m_refresh.Setup( r => r.RevokeAllForUserAsync( It.IsAny<long>() ) )
+            .Returns( Task.CompletedTask );
+        m_refresh.Setup( r => r.RevokeAsync( It.IsAny<string>() ) )
+            .Returns( Task.CompletedTask );
+        return new( m_db, m_auth.Object, m_jwt.Object, m_refresh.Object, m_email.Object, m_configuration );
+    }
 
     private static string Encrypt( string plain ) => TextEncryptHelper.EncryptText( plain, FirstKey, SecondKey );
 
@@ -67,11 +77,13 @@ public class AccountServiceTests
         TestData.AssertError( await service.GoogleAuthAsync( new GoogleLoginRequest { AccessToken = "a" } ), 400, "IdTokenIsNull" );
 
         m_auth.Setup( a => a.GoogleAuthAsync( "id", "a" ) ).ReturnsAsync( new GoogleAuthResponse( "jwt" ) );
+        m_jwt.Setup( j => j.GetUserIdFromJwt( "jwt" ) ).Returns( 42 );
 
         ServiceResult<GoogleAuthResponse> result =
             await service.GoogleAuthAsync( new GoogleLoginRequest { IdToken = "id", AccessToken = "a" } );
 
         Assert.Equal( "jwt", result.Value!.Token );
+        Assert.Equal( "refresh-token", result.Value.RefreshToken );
     }
 
     [Fact]
@@ -196,6 +208,7 @@ public class AccountServiceTests
             await CreateSut().LoginAsync( new UserLogin { Email = "a@b.c", Password = Encrypt( "password1" ) } );
 
         Assert.Equal( "jwt-9", result.Value!.Token );
+        Assert.Equal( "refresh-token", result.Value.RefreshToken );
     }
 
     [Theory]
@@ -334,7 +347,13 @@ public class AccountServiceTests
     [Fact]
     public async Task LoginAsync_MissingEncryptionKeys_ThrowsInvalidProgramException()
     {
-        AccountService service = new( m_db, m_auth.Object, m_jwt.Object, m_email.Object, new ConfigurationBuilder().Build() );
+        AccountService service = new(
+            m_db,
+            m_auth.Object,
+            m_jwt.Object,
+            m_refresh.Object,
+            m_email.Object,
+            new ConfigurationBuilder().Build() );
 
         await Assert.ThrowsAsync<InvalidProgramException>( () =>
             service.LoginAsync( new UserLogin { Email = "a@b.c", Password = "x" } ) );
