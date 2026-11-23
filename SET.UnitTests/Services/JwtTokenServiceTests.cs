@@ -25,6 +25,8 @@ public class JwtTokenServiceTests
         string? email = jwt.Claims.FirstOrDefault(c =>
             c.Type == ClaimTypes.Email || c.Type == "email")?.Value;
         Assert.Equal("ada@example.com", email);
+        Assert.True(jwt.ValidTo > DateTime.UtcNow.AddMinutes(50));
+        Assert.True(jwt.ValidTo < DateTime.UtcNow.AddHours(2));
     }
 
     [Fact]

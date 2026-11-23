@@ -29,7 +29,8 @@ public class JwtTokenService : IJwtTokenService
                 new(ClaimTypes.Email, user.Email ?? string.Empty),
                 new(ClaimTypes.Role, "FreeAccount")
             } ),
-            Expires = DateTime.Today.AddDays(7),
+            // Short-lived access token; clients renew via refresh tokens.
+            Expires = DateTime.UtcNow.AddHours( 1 ),
             SigningCredentials = new SigningCredentials( new SymmetricSecurityKey( key ), SecurityAlgorithms.HmacSha256Signature )
         };
 

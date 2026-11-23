@@ -26,8 +26,10 @@ public static class JwtAuthenticationExtension
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey( Encoding.ASCII.GetBytes( secret ) ),
-                RequireExpirationTime = false,
-                ValidateLifetime = false,
+                // Access JWTs expire in ~1h; Flutter renews with refresh tokens.
+                RequireExpirationTime = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes( 1 ),
                 ValidateIssuer = false,
                 ValidateAudience = false,
             };
