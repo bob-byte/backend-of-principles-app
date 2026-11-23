@@ -21,6 +21,7 @@ public class AccountServiceTests
     private readonly Mock<IJwtTokenService> m_jwt = new();
     private readonly Mock<IRefreshTokenService> m_refresh = new();
     private readonly Mock<IEmailSender> m_email = new();
+    private readonly InMemoryRateLimiter m_rateLimiter = new( TimeProvider.System );
     private readonly IConfiguration m_configuration = new ConfigurationBuilder()
         .AddInMemoryCollection( new Dictionary<string, string?>
         {
@@ -37,7 +38,7 @@ public class AccountServiceTests
             .Returns( Task.CompletedTask );
         m_refresh.Setup( r => r.RevokeAsync( It.IsAny<string>() ) )
             .Returns( Task.CompletedTask );
-        return new( m_db, m_auth.Object, m_jwt.Object, m_refresh.Object, m_email.Object, m_configuration );
+        return new( m_db, m_auth.Object, m_jwt.Object, m_refresh.Object, m_email.Object, m_configuration, m_rateLimiter );
     }
 
     private static string Encrypt( string plain ) => TextEncryptHelper.EncryptText( plain, FirstKey, SecondKey );
@@ -353,9 +354,115 @@ public class AccountServiceTests
             m_jwt.Object,
             m_refresh.Object,
             m_email.Object,
-            new ConfigurationBuilder().Build() );
+            new ConfigurationBuilder().Build(),
+            m_rateLimiter );
 
         await Assert.ThrowsAsync<InvalidProgramException>( () =>
             service.LoginAsync( new UserLogin { Email = "a@b.c", Password = "x" } ) );
+    }
+
+    [Fact]
+    public async Task LoginAsync_TooManyFailures_ReturnsTooManyRequestsEvenForValidPassword()
+    {
+        m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( ((User?)null, "PasswordIsIncorrect") );
+        for (int i = 0; i < RateLimitPolicies.Login.Limit; i++)
+        {
+            TestData.AssertError( await LoginAsync( "me@example.com" ), 400, "InvalidEmailOrPassword" );
+        }
+
+        m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( (new User { Id = 1 }, (string?)null) );
+
+        TestData.AssertError( await LoginAsync( " ME@example.com" ), 429, "TooManyLoginAttempts" );
+        Assert.True( (await LoginAsync( "other@example.com" )).IsSuccess );
+    }
+
+    [Fact]
+    public async Task LoginAsync_Success_ClearsFailedAttempts()
+    {
+        for (int round = 0; round < 2; round++)
+        {
+            m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( ((User?)null, "PasswordIsIncorrect") );
+            for (int i = 0; i < RateLimitPolicies.Login.Limit - 1; i++)
+            {
+                TestData.AssertError( await LoginAsync( "me@example.com" ), 400, "InvalidEmailOrPassword" );
+            }
+
+            m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( (new User { Id = 1 }, (string?)null) );
+            Assert.True( (await LoginAsync( "me@example.com" )).IsSuccess );
+        }
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_TooManyWrongCodes_RejectsCorrectCodeUntilNewCodeIsSent()
+    {
+        await TestData.AddUserAsync( m_db, 1, "me@example.com" );
+        int code = await SeedVerificationCodeAsync( "me@example.com", EmailVerificationPurposes.PasswordReset );
+        for (int i = 0; i < RateLimitPolicies.VerificationCodeGuess.Limit; i++)
+        {
+            TestData.AssertError( await ChangePasswordAsync( 111111 ), 400, "InvalidVerificationCode" );
+        }
+
+        TestData.AssertError( await ChangePasswordAsync( code ), 400, "InvalidVerificationCode" );
+
+        Assert.True( (await CreateSut().SendPasswordResetCodeAsync( "me@example.com", "en" )).IsSuccess );
+        EmailVerificationCode stored = await m_db.EmailVerificationCodes.SingleAsync();
+        stored.CodeHash = Convert.ToHexString(
+            System.Security.Cryptography.SHA256.HashData( System.Text.Encoding.UTF8.GetBytes( "654321" ) ) );
+        await m_db.SaveChangesAsync();
+
+        Assert.True( (await ChangePasswordAsync( 654321 )).IsSuccess );
+    }
+
+    [Fact]
+    public async Task SendCodeAsync_TooManyEmails_ReturnsTooManyRequestsAndSendsNothing()
+    {
+        await TestData.AddUserAsync( m_db, 1, "me@example.com" );
+        int limit = RateLimitPolicies.VerificationEmail.Limit;
+        for (int i = 0; i < limit; i++)
+        {
+            Assert.True( (await CreateSut().SendPasswordResetCodeAsync( "me@example.com", "en" )).IsSuccess );
+            Assert.True( (await CreateSut().SendSignupCodeAsync( "new@example.com", "en" )).IsSuccess );
+        }
+
+        TestData.AssertError(
+            await CreateSut().SendPasswordResetCodeAsync( "ME@example.com", "en" ), 429, "TooManyVerificationEmails" );
+        TestData.AssertError(
+            await CreateSut().SendSignupCodeAsync( "NEW@example.com", "en" ), 429, "TooManyVerificationEmails" );
+        m_email.Verify(
+            e => e.SendAsync( It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>() ),
+            Times.Exactly( limit * 2 ) );
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_Success_ClearsFailedLoginAttempts()
+    {
+        await TestData.AddUserAsync( m_db, 1, "me@example.com" );
+        int code = await SeedVerificationCodeAsync( "me@example.com", EmailVerificationPurposes.PasswordReset );
+        m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( ((User?)null, "PasswordIsIncorrect") );
+        for (int i = 0; i < RateLimitPolicies.Login.Limit; i++)
+        {
+            TestData.AssertError( await LoginAsync( "me@example.com" ), 400, "InvalidEmailOrPassword" );
+        }
+
+        TestData.AssertError( await LoginAsync( "me@example.com" ), 429, "TooManyLoginAttempts" );
+        Assert.True( (await ChangePasswordAsync( code )).IsSuccess );
+
+        m_auth.Setup( a => a.LoginAsync( It.IsAny<UserLogin>() ) ).ReturnsAsync( (new User { Id = 1 }, (string?)null) );
+        Assert.True( (await LoginAsync( "me@example.com" )).IsSuccess );
+    }
+
+    private Task<ServiceResult<LoginResponse>> LoginAsync( string email )
+    {
+        return CreateSut().LoginAsync( new UserLogin { Email = email, Password = Encrypt( "password1" ) } );
+    }
+
+    private Task<ServiceResult> ChangePasswordAsync( int code )
+    {
+        return CreateSut().ChangePasswordAsync( new UserNewPassword
+        {
+            Email = "me@example.com",
+            NewPassword = Encrypt( "password1" ),
+            Code = code,
+        } );
     }
 }

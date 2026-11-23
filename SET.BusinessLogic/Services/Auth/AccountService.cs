@@ -25,6 +25,7 @@ public class AccountService : IAccountService
     private readonly IRefreshTokenService m_refreshTokenService;
     private readonly IEmailSender m_emailSender;
     private readonly IConfiguration m_configuration;
+    private readonly IRateLimiter m_rateLimiter;
 
     public AccountService(
         AppDbContext dbContext,
@@ -32,7 +33,8 @@ public class AccountService : IAccountService
         IJwtTokenService jwtTokenService,
         IRefreshTokenService refreshTokenService,
         IEmailSender emailSender,
-        IConfiguration configuration )
+        IConfiguration configuration,
+        IRateLimiter rateLimiter )
     {
         m_dbContext = dbContext;
         m_authService = authService;
@@ -40,6 +42,7 @@ public class AccountService : IAccountService
         m_refreshTokenService = refreshTokenService;
         m_emailSender = emailSender;
         m_configuration = configuration;
+        m_rateLimiter = rateLimiter;
     }
 
     public async Task<User?> FindUserAsync( long userId )
@@ -158,6 +161,13 @@ public class AccountService : IAccountService
 
         (string firstKey, string secondKey) = GetPasswordEncryptionKeys();
 
+        // Counted before the check, so parallel attempts cannot slip past the limit.
+        string loginSubject = NormalizeEmail( userLogin.Email );
+        if (!await m_rateLimiter.TryAcquireAsync( RateLimitPolicies.Login, loginSubject ).DefaultConfigureAwait())
+        {
+            return ServiceError.TooManyRequests( "TooManyLoginAttempts" );
+        }
+
         try
         {
             userLogin.Password = PasswordHelper.DecryptNewPassword( userLogin.Password, firstKey, secondKey );
@@ -171,6 +181,7 @@ public class AccountService : IAccountService
         (User? user, string? errorMsg) = await m_authService.LoginAsync( userLogin ).DefaultConfigureAwait();
         if (errorMsg is null)
         {
+            await m_rateLimiter.ResetAsync( RateLimitPolicies.Login, loginSubject ).DefaultConfigureAwait();
             return await CreateSessionAsync( user!, deviceId ).DefaultConfigureAwait();
         }
 
@@ -362,6 +373,11 @@ public class AccountService : IAccountService
         }
         #endregion
 
+        if (!await CanSendVerificationEmailAsync( emailWhereSendCode ).DefaultConfigureAwait())
+        {
+            return ServiceError.TooManyRequests( "TooManyVerificationEmails" );
+        }
+
         int code = GenerateRandomCode();
         await StoreVerificationCodeAsync( emailWhereSendCode, EmailVerificationPurposes.PasswordReset, code )
             .DefaultConfigureAwait();
@@ -387,6 +403,11 @@ public class AccountService : IAccountService
             return ServiceError.BadRequest( "UserWithIdenticalEmailAlreadyExists" );
         }
         #endregion
+
+        if (!await CanSendVerificationEmailAsync( emailWhereSendCode ).DefaultConfigureAwait())
+        {
+            return ServiceError.TooManyRequests( "TooManyVerificationEmails" );
+        }
 
         int code = GenerateRandomCode();
         await StoreVerificationCodeAsync( emailWhereSendCode, EmailVerificationPurposes.Signup, code )
@@ -462,6 +483,10 @@ public class AccountService : IAccountService
         // Shares this DbContext, so the new password and the revocations save together.
         await m_refreshTokenService.RevokeAllForUserAsync( user.Id ).DefaultConfigureAwait();
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
+        // Otherwise failed logins that led to the reset would keep the new password locked out.
+        await m_rateLimiter
+            .ResetAsync( RateLimitPolicies.Login, NormalizeEmail( request.Email ) )
+            .DefaultConfigureAwait();
         return ServiceResult.Success;
     }
 
@@ -545,6 +570,9 @@ public class AccountService : IAccountService
         }
 
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
+        await m_rateLimiter
+            .ResetAsync( RateLimitPolicies.VerificationCodeGuess, GuessSubject( normalized, purpose ) )
+            .DefaultConfigureAwait();
     }
 
     private async Task<ServiceResult> ConsumeVerificationCodeAsync( string email, string purpose, int code )
@@ -571,6 +599,16 @@ public class AccountService : IAccountService
             return ServiceError.BadRequest( "VerificationCodeExpired" );
         }
 
+        // Counted before the comparison, so parallel guesses cannot slip past the limit. A used-up
+        // code reports the ordinary token, which every released client already handles.
+        bool canGuess = await m_rateLimiter
+            .TryAcquireAsync( RateLimitPolicies.VerificationCodeGuess, GuessSubject( normalized, purpose ) )
+            .DefaultConfigureAwait();
+        if (!canGuess)
+        {
+            return ServiceError.BadRequest( "InvalidVerificationCode" );
+        }
+
         if (!FixedTimeEquals( stored.CodeHash, HashVerificationCode( code ) ))
         {
             return ServiceError.BadRequest( "InvalidVerificationCode" );
@@ -580,6 +618,13 @@ public class AccountService : IAccountService
         await m_dbContext.SaveChangesAsync().DefaultConfigureAwait();
         return ServiceResult.Success;
     }
+
+    private Task<bool> CanSendVerificationEmailAsync( string email )
+    {
+        return m_rateLimiter.TryAcquireAsync( RateLimitPolicies.VerificationEmail, NormalizeEmail( email ) );
+    }
+
+    private static string GuessSubject( string normalizedEmail, string purpose ) => $"{purpose}:{normalizedEmail}";
 
     private static string NormalizeEmail( string email ) => email.Trim().ToLowerInvariant();
 

@@ -9,6 +9,8 @@ public sealed record ServiceError( int StatusCode, object Body )
     public static ServiceError BadRequest( object body ) => new( 400, body );
 
     public static ServiceError NotFound( object body ) => new( 404, body );
+
+    public static ServiceError TooManyRequests( object body ) => new( 429, body );
 }
 
 public class ServiceResult
