@@ -249,21 +249,10 @@ public class AiService : IAiService
     {
         context ??= new RecommendHabitsContext();
         string culture = LanguageName( context.Culture );
-        string system =
-            "You are self development assistant. " +
-            "You are in the app that focuses on helping users to create, keep and track their atomic habits. " +
-            "You should recommend new atomic habits for user. Your answer should be in JSON format and contain an array of habits. " +
-            "Each array object should consist of the following fields: ReasonToFollow, Name. " +
-            "The ReasonToFollow field indicates why I should follow it and must be very briefly, but accurately explained. " +
-            "The Name field indicates habit name and time when execute habit (for example, \"when I wake up\") or location (\"when I am in a gym\"). " +
-            "It should NOT contain frequency of a habit (for example, \"every day\"). Example of the Name field is \"Meditate at least 5 minutes when I wake up\". " +
-            "You must send only JSON in your response and nothing else. " +
-            $"Your response must be in the {culture} language, regardless of the language of the user's personal information. " +
-            "JSON object which contains array of habits must be named \"Habits\" in english.";
 
         List<AiChatMessage> messages = new()
         {
-            new AiChatMessage( "system", system ),
+            new AiChatMessage( "system", BuildRecommendHabitsSystemPrompt( culture ) ),
             new AiChatMessage( "user", BuildRecommendUserPrompt( context, culture ) )
         };
 
@@ -438,19 +427,62 @@ public class AiService : IAiService
         return title;
     }
 
+    internal static string BuildRecommendHabitsSystemPrompt( string culture ) =>
+        "You help the user choose habits inside a habits-and-goals app. " +
+        "Reply with JSON only (no markdown). The JSON object must contain an array named \"Habits\" " +
+        "with exactly 4 objects. Each object has \"Name\" (the habit title the user would save) " +
+        "and \"ReasonToFollow\" (one short sentence explaining how this action moves the selected goal). " +
+        "Name must be a short concrete action that moves the goal: typically 2 to 12 words, like a title, not a paragraph. " +
+        "A good Name may include a cue for when or where to do it. " +
+        "Good names: \"Meditate when I wake up\", \"Set aside $200\", \"Apply to 5 jobs\". " +
+        "Do not put a frequency in Name (not \"every day\"). " +
+        "When a single goal is provided, every habit must be a direct lever for that goal. " +
+        "Do not suggest generic wellness (drink water, meditate, journal) unless that action is the actual lever for the goal. " +
+        "When no single goal is provided but a list of goals is, each habit must target one of those goals " +
+        "and ReasonToFollow must name which goal it moves. " +
+        "Put explanatory detail only in ReasonToFollow, not in Name. " +
+        $"All Name and ReasonToFollow values must be in the {culture} language, " +
+        "regardless of the language of the user's personal information.";
+
     internal static string BuildRecommendUserPrompt( RecommendHabitsContext context, string culture )
     {
         StringBuilder builder = new();
-        builder.Append( "Please recommend me a list of 4 next atomic habits that I can select. " );
+        string? goal = context.Goal?.Trim();
+        if (!string.IsNullOrWhiteSpace( goal ))
+        {
+            builder.Append(
+                "Please recommend 4 short concrete actions I can save as habits. " +
+                $"Every habit must be a direct lever for my goal: \"{goal}\". " +
+                "Do not suggest generic wellness habits unless that action is the actual lever for this goal. " +
+                "For a goal like \"Buy a Tesla\", \"Set aside $200 when I get paid\" fits. " +
+                "\"Meditate when I wake up\" is a good habit name, but only when meditation moves this goal. " );
+        }
+        else
+        {
+            List<string> goalNames = CleanNames( context.Goals );
+            if (goalNames.Count > 0)
+            {
+                builder.Append(
+                    "Please recommend 4 short concrete actions I can save as habits. " +
+                    "My goals are: " );
+                builder.Append( string.Join( "; ", goalNames ) );
+                builder.Append(
+                    ". Each habit must target one of those goals, and ReasonToFollow must name which goal it moves. " );
+            }
+            else
+            {
+                builder.Append( "Please recommend 4 short concrete actions I can save as habits. " );
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace( context.Mission ))
         {
-            builder.Append( $"They shouldn't conflict with my mission: \"{context.Mission.Trim()}\". " );
+            builder.Append( $"They must not conflict with my mission: \"{context.Mission.Trim()}\". " );
         }
 
         if (!string.IsNullOrWhiteSpace( context.MainSlogan ))
         {
-            builder.Append( $"They also shouldn't conflict with my main slogan of life: \"{context.MainSlogan.Trim()}\". " );
+            builder.Append( $"They must not conflict with my main slogan of life: \"{context.MainSlogan.Trim()}\". " );
         }
 
         builder.Append( $"Your response must be only in the {culture} language, regardless of the language of my personal information. " );
@@ -458,54 +490,34 @@ public class AiService : IAiService
         string gender = string.IsNullOrWhiteSpace( context.Gender ) ? "other" : context.Gender.Trim();
         builder.Append( $"I am a {gender}. " );
 
-        IReadOnlyList<string> currentHabits = context.CurrentHabits ?? Array.Empty<string>();
-        List<string> habitNames = currentHabits
-            .Where( n => !string.IsNullOrWhiteSpace( n ) )
-            .Select( n => n.Trim() )
-            .ToList();
+        List<string> habitNames = CleanNames( context.CurrentHabits );
         if (habitNames.Count > 0)
         {
-            builder.Append( "Now I adhere to the following habits:" );
-            builder.Append( Environment.NewLine );
+            builder.Append(
+                "I already follow these habits (do not repeat them, and do not theme the list around them): " );
             builder.Append( string.Join( "; ", habitNames ) );
-            builder.Append( ". The atomic habits you recommend should be related to specified habits. " );
+            builder.Append( ". " );
         }
 
-        IReadOnlyList<string> areas = context.AreasOfLife ?? Array.Empty<string>();
-        List<string> areaNames = areas
-            .Where( n => !string.IsNullOrWhiteSpace( n ) )
-            .Select( n => n.Trim() )
-            .ToList();
+        List<string> areaNames = CleanNames( context.AreasOfLife );
         if (areaNames.Count > 0)
         {
-            builder.Append( "The atomic habits you recommend will be applied to all the following areas of my life: " );
-            builder.Append( Environment.NewLine );
+            builder.Append( "Also keep these areas of life in mind: " );
             builder.Append( string.Join( "; ", areaNames ) );
-            builder.Append( ". So you should recommend me habits which are related to them. " );
-        }
-
-        string? goal = context.Goal?.Trim();
-        if (!string.IsNullOrWhiteSpace( goal ))
-        {
-            builder.Append( $"NOTE: The atomic habits you recommend will be applied to achieve my goal: \"{goal}\"." );
-        }
-        else
-        {
-            IReadOnlyList<string> goals = context.Goals ?? Array.Empty<string>();
-            List<string> goalNames = goals
-                .Where( n => !string.IsNullOrWhiteSpace( n ) )
-                .Select( n => n.Trim() )
-                .ToList();
-            if (goalNames.Count > 0)
-            {
-                builder.Append( "My current goals are: " );
-                builder.Append( string.Join( "; ", goalNames ) );
-                builder.Append( '.' );
-            }
+            builder.Append(
+                string.IsNullOrWhiteSpace( goal )
+                    ? ". Prefer habits that fit them. "
+                    : ". The goal still decides the habit. " );
         }
 
         return builder.ToString();
     }
+
+    private static List<string> CleanNames( IReadOnlyList<string>? names ) =>
+        ( names ?? Array.Empty<string>() )
+            .Where( n => !string.IsNullOrWhiteSpace( n ) )
+            .Select( n => n.Trim() )
+            .ToList();
 
     internal static string BuildSuggestProfileTextUserPrompt(
         SuggestProfileTextContext context,
