@@ -46,6 +46,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
         services.AddSingleton( Mock.Of<IJwtTokenService>() );
         services.AddSingleton( Mock.Of<IChatClient>() );
         services.AddSingleton<ISyncPushService>( new RecordingSyncPushService() );
+        services.AddSingleton<IRateLimiter>( new InMemoryRateLimiter( TimeProvider.System ) );
         services.AddBusinessLogic();
         return services.BuildServiceProvider( new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true } );
     }

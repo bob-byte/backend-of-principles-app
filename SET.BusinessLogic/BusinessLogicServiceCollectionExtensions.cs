@@ -4,7 +4,8 @@ public static class BusinessLogicServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the AutoMapper profile and scoped feature services. The host still registers
-    /// infrastructure: <c>AppDbContext</c>, <c>IJwtTokenService</c>, <c>IChatClient</c>, and push senders.
+    /// infrastructure: <c>AppDbContext</c>, <c>IJwtTokenService</c>, <c>IChatClient</c>,
+    /// <c>IRateLimiter</c>, and push senders.
     /// </summary>
     public static IServiceCollection AddBusinessLogic( this IServiceCollection services )
     {

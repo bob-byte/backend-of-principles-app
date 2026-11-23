@@ -77,6 +77,7 @@ public class Startup
 
             options.UseNpgsql( connectionString );
         });
+        services.AddRateLimiter( Configuration );
         services.AddBusinessLogic();
         services.AddChatClient( _ => AiService.CreateChatClient( Configuration ) );
         services.AddSingleton<FcmCredentials>();
