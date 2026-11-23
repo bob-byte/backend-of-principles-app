@@ -9,8 +9,8 @@ alwaysApply: true
 
 | Project | Role |
 |---------|------|
-| `SET.WebAPI` | Thin controllers, middleware, Startup/Program, resources, infra registration (`AppDbContext`, JWT, `IChatClient`, FCM push) |
-| `SET.BusinessLogic` | All business logic. Services in feature folders under `Services/` (`Ai`, `AreaOfLife`, `Auth`, `Email`, `Goal`, `Habit`, `Log`, `Profile`, `Push`, `Reminder`, `Sync`, `Task`); interface sits next to its implementation; single `BusinessLogic` namespace. API DTOs in `Models/` (`BusinessLogic.Models`), AutoMapper profile in `Mapping/`, `ServiceResult` in `Common/`. Register via `services.AddBusinessLogic()` |
+| `SET.WebAPI` | Thin controllers, middleware, Startup/Program, resources, infra registration (`AppDbContext`, JWT, `IChatClient`, `IRateLimiter`, FCM push) |
+| `SET.BusinessLogic` | All business logic. Services in feature folders under `Services/` (`Ai`, `AreaOfLife`, `Auth`, `Email`, `Goal`, `Habit`, `Log`, `Profile`, `Push`, `RateLimit`, `Reminder`, `Sync`, `Task`); interface sits next to its implementation; single `BusinessLogic` namespace. API DTOs in `Models/` (`BusinessLogic.Models`), AutoMapper profile in `Mapping/`, `ServiceResult` in `Common/`. Register via `services.AddBusinessLogic()` |
 | `SET.DAL` (`SET.DataAccess`) | `AppDbContext`, entity configs, EF migrations |
 | `SET.Shared` | Entities, shared DTOs/extensions |
 | `SET.UnitTests` | xUnit + Moq; services on EF InMemory via `TestSupport/` (`TestDb`, `TestData`, `RecordingSyncPushService`) |

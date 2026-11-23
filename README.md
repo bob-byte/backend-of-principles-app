@@ -40,12 +40,14 @@ PostgreSQL via EF Core. Schemas: `app`, `goal`, `hbt`, `arlf`, `tsk`. Prefer cam
 - AutoMapper, Serilog, Swashbuckle, Newtonsoft.Json
 - AI: `Microsoft.Extensions.AI` + Microsoft Agent Framework (`ChatClientAgent`)
 - Outbound mail: MailKit (Gmail SMTP)
+- Optional Redis (StackExchange.Redis) for login, verification-code, and AI rate limits
 - Optional FCM v1 silent sync push
 
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - PostgreSQL reachable with a connection string
+- Optional: Redis (`docker run -d -p 127.0.0.1:6379:6379 redis:7.4`)
 - Optional: Visual Studio 2022 or JetBrains Rider
 
 ## Getting started
@@ -66,6 +68,7 @@ DEBUG loads `SET.WebAPI/.env` via DotNetEnv. Important variables:
 | `HOST_EMAIL_PASSWORD` | Gmail App Password for verification emails |
 | `AI_API_KEY` | AI completions (server-side only) |
 | `PRINCIPLES_SERVER_JWT_SECRET` | JWT signing |
+| `REDIS_CONNECTION` | Optional Redis for rate limits, e.g. `localhost:6379,password=…` (unset = counted in process) |
 | `FIREBASE_CREDENTIALS_JSON` / `FIREBASE_CREDENTIALS_PATH` | Optional FCM sync push (unset = disabled) |
 
 Do not put DB passwords or Google client IDs in `appsettings*.json`.
