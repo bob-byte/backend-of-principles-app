@@ -27,6 +27,7 @@ public static class BusinessLogicServiceCollectionExtensions
         services.AddScoped<IClientLogService, ClientLogService>();
         services.AddScoped<IAiService, AiService>();
         services.AddScoped<IAiAssistantService, AiAssistantService>();
+        services.AddScoped<IAiUsageLimiter, AiUsageLimiter>();
         services.AddScoped<IAiConversationService, AiConversationService>();
 
         return services;

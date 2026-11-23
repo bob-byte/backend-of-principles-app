@@ -14,17 +14,19 @@ namespace SET.WebAPI.Controllers;
 public class AiController : BaseController
 {
     private readonly IAiAssistantService m_aiAssistantService;
+    private readonly IAiUsageLimiter m_aiUsageLimiter;
 
     public AiController( IServiceProvider serviceProvider )
         : base( serviceProvider )
     {
         m_aiAssistantService = serviceProvider.GetRequiredService<IAiAssistantService>();
+        m_aiUsageLimiter = serviceProvider.GetRequiredService<IAiUsageLimiter>();
     }
 
     [HttpPost( "chat" )]
     public Task<IActionResult> ChatAsync( [FromBody] AiChatRequest request )
     {
-        return TryCatchAsync( async user =>
+        return LimitedAsync( async user =>
         {
             ServiceResult<AiChatSession> result = await m_aiAssistantService
                 .PrepareChatAsync( user, request )
@@ -36,7 +38,7 @@ public class AiController : BaseController
     [HttpPost( "parse-task" )]
     public Task<IActionResult> ParseTaskAsync( [FromBody] AiParseTaskRequest request )
     {
-        return TryCatchAsync( async _ =>
+        return LimitedAsync( async _ =>
             ToActionResult( await m_aiAssistantService
                 .ParseTaskAsync( request, HttpContext.RequestAborted )
                 .DefaultConfigureAwait() ), request );
@@ -45,7 +47,7 @@ public class AiController : BaseController
     [HttpPost( "recommend-habits" )]
     public Task<IActionResult> RecommendHabitsAsync( [FromBody] AiRecommendHabitsRequest request )
     {
-        return TryCatchAsync( async user =>
+        return LimitedAsync( async user =>
             ToActionResult( await m_aiAssistantService
                 .RecommendHabitsAsync( user, request, HttpContext.RequestAborted )
                 .DefaultConfigureAwait() ), request );
@@ -54,7 +56,7 @@ public class AiController : BaseController
     [HttpPost( "title" )]
     public Task<IActionResult> TitleAsync( [FromBody] AiTitleRequest request )
     {
-        return TryCatchAsync( async _ =>
+        return LimitedAsync( async _ =>
             ToActionResult( await m_aiAssistantService
                 .GenerateTitleAsync( request, HttpContext.RequestAborted )
                 .DefaultConfigureAwait() ), request );
@@ -63,7 +65,7 @@ public class AiController : BaseController
     [HttpPost( "suggest-profile-text" )]
     public Task<IActionResult> SuggestProfileTextAsync( [FromBody] AiSuggestProfileTextRequest request )
     {
-        return TryCatchAsync( async user =>
+        return LimitedAsync( async user =>
             ToActionResult( await m_aiAssistantService
                 .SuggestProfileTextAsync( user, request, HttpContext.RequestAborted )
                 .DefaultConfigureAwait() ), request );
@@ -72,10 +74,22 @@ public class AiController : BaseController
     [HttpPost( "recommend-goals" )]
     public Task<IActionResult> RecommendGoalsAsync( [FromBody] AiRecommendGoalsRequest request )
     {
-        return TryCatchAsync( async user =>
+        return LimitedAsync( async user =>
             ToActionResult( await m_aiAssistantService
                 .RecommendGoalsAsync( user, request, HttpContext.RequestAborted )
                 .DefaultConfigureAwait() ), request );
+    }
+
+    /// <summary>Every action here calls the paid AI provider, so each one counts against the user's limits.</summary>
+    private Task<IActionResult> LimitedAsync( Func<User, Task<IActionResult>> action, object request )
+    {
+        return TryCatchAsync( async user =>
+        {
+            ServiceResult usage = await m_aiUsageLimiter.TryConsumeAsync( user.Id ).DefaultConfigureAwait();
+            return usage.IsSuccess
+                ? await action( user ).DefaultConfigureAwait()
+                : ToActionResult( usage );
+        }, request );
     }
 }
 

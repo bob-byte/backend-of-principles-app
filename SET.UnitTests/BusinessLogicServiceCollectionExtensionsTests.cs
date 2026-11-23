@@ -32,6 +32,7 @@ public class BusinessLogicServiceCollectionExtensionsTests
         typeof( IClientLogService ),
         typeof( IAiService ),
         typeof( IAiAssistantService ),
+        typeof( IAiUsageLimiter ),
         typeof( IAiConversationService ),
     };
 

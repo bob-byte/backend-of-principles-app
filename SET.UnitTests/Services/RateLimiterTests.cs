@@ -101,4 +101,37 @@ public class RateLimiterTests
         Assert.StartsWith( "principles:rl:test:", key );
         Assert.DoesNotContain( "example", key );
     }
+
+    [Fact]
+    public async Task TryConsumeAsync_BurstOverLimit_ReturnsErrorPerUser()
+    {
+        AiUsageLimiter limiter = new( new InMemoryRateLimiter( new ManualTime() ) );
+        for (int i = 0; i < RateLimitPolicies.AiBurst.Limit; i++)
+        {
+            Assert.True( (await limiter.TryConsumeAsync( 1 )).IsSuccess );
+        }
+
+        ServiceResult result = await limiter.TryConsumeAsync( 1 );
+
+        Assert.Equal( 429, result.Error!.StatusCode );
+        Assert.Contains( AiUsageLimiter.BurstError, result.Error.Body.ToString() );
+        Assert.True( (await limiter.TryConsumeAsync( 2 )).IsSuccess );
+    }
+
+    [Fact]
+    public async Task TryConsumeAsync_DailyOverLimit_ReturnsDailyError()
+    {
+        ManualTime time = new();
+        AiUsageLimiter limiter = new( new InMemoryRateLimiter( time ) );
+        for (int i = 0; i < RateLimitPolicies.AiDaily.Limit; i++)
+        {
+            Assert.True( (await limiter.TryConsumeAsync( 1 )).IsSuccess );
+            time.Now += TimeSpan.FromSeconds( 10 );
+        }
+
+        ServiceResult result = await limiter.TryConsumeAsync( 1 );
+
+        Assert.Equal( 429, result.Error!.StatusCode );
+        Assert.Contains( AiUsageLimiter.DailyError, result.Error.Body.ToString() );
+    }
 }
